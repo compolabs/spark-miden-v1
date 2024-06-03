@@ -1,0 +1,167 @@
+use.miden::note
+use.miden::contracts::wallets::basic->wallet
+use.miden::tx
+use.miden::account
+use.std::sys
+# CONSTANTS
+# =================================================================================================
+
+const.OFFCHAIN_NOTE=2
+
+# ERRORS
+# =================================================================================================
+
+# SWAP script expects exactly 9 note inputs
+const.ERR_SWAP_WRONG_NUMBER_OF_INPUTS=0x00020007
+
+# SWAP script requires exactly one note asset
+const.ERR_SWAP_WRONG_NUMBER_OF_ASSETS=0x00020008
+
+
+proc.build_recipient_hash
+  padw hmerge
+  # => [SERIAL_NUM_HASH, SCRIPT_HASH, input] 
+
+# merge SERIAL_NUM_HASH and SCRIPT_HASH
+  swapw hmerge
+  # => [SERIAL_SCRIPT_HASH, input] 
+
+  # compute the INPUT_HASH. Note: only one input is allowed
+  swapw swap.3 padw hmerge
+  # => [INPUT_HASH, SERIAL_SCRIPT_HASH]
+
+  hmerge
+  # [RECIPIENT]
+end
+
+# Swap script: adds an asset from the note into consumers account and
+# creates a note consumable by note issuer containing requested ASSET.
+#
+# Requires that the account exposes:
+#
+# Inputs: [SCRIPT_ROOT]
+# Outputs: []
+#
+# Note inputs are assumed to be as follows:
+# - RECIPIENT
+# - ASSET
+# - TAG = [tag, 0, 0, 0]
+#
+# FAILS if:
+# - Account does not expose miden::contracts::wallets::basic::receive_asset procedure
+# - Account does not expose miden::contracts::wallets::basic::send_asset procedure
+# - Account vault does not contain the requested asset
+# - Adding a fungible asset would result in amount overflow, i.e., the total amount would be
+#   greater than 2^63
+begin
+    # drop the transaction script root
+    dropw
+    # => []
+
+    # store asset into memory at address 3
+    push.3 exec.note::get_assets assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS
+    # => [ptr]
+
+    # load the asset and add it to the account
+    mem_loadw call.wallet::receive_asset dropw
+    # => []
+
+    # store note inputs into memory starting at address 0
+    push.0 exec.note::get_inputs
+    # => [num_inputs, inputs_ptr]
+
+    # make sure the number of inputs is 9
+    eq.9 assert.err=ERR_SWAP_WRONG_NUMBER_OF_INPUTS
+    # => [inputs_ptr]
+
+    # load recipient
+    drop padw mem_loadw
+    # => [RECIPIENT]
+
+    padw mem_loadw.1
+    # => [ASSET, RECIPIENT]
+
+    padw mem_loadw.2
+    # => [0, 0, 0, tag, ASSET, RECIPIENT]
+
+    drop drop drop movdn.4
+    # => [ASSET, tag, RECIPIENT]
+
+    push.OFFCHAIN_NOTE movdn.5
+    # => [ASSET, tag, note_type, RECIPIENT]
+
+    # save requested token to memory
+    dup mem_store.0
+
+    # save requested token amount to memory
+    swap.3 mem_store.1 push.0 swap.3
+
+    # call into account to get max bal
+    call.account::get_balance
+
+    # store wallet balance
+    mem_store.2
+
+    # check if requested amount is gte wallet balance
+    mem_load.1
+
+    mem_load.2
+    # => [wallet_balance, requested_amount, ...]
+
+    gte
+
+    # Call send_asset with wallet balance
+    # output new SWAPp note
+    if.true 
+
+      # load wallet balance
+      mem_load.2 swap.3 drop
+
+      # load requested token id
+      mem_load.0
+
+      push.1010
+      debug.stack
+      drop
+
+      # create a note using inputs
+      call.wallet::send_asset
+      # => [ptr, ZERO, ZERO, 0]
+
+      # Add remaining balance to SWAPp note (todo)
+
+      # push custom note test
+      push.13310334165435798105.17704527159432745453.13948713200779750900.13586240079106921094
+      push.1.2.3.4
+
+      exec.build_recipient_hash 
+      # [RECIPIENT]
+
+      # note type
+      push.2 
+      # tag
+      push.3221225472
+      # [tag, note_type, RECIPIENT]
+
+      call.tx::create_note
+
+
+    # call send_asset with requested amount
+    # do not ouput new SWAPp note
+    else  
+      # place holder
+      # dup drop
+      push.1111
+      debug.stack
+      drop 
+
+      call.wallet::send_asset
+
+    end
+
+    push.1
+    call.account::incr_nonce
+
+    # clean stack
+    exec.sys::truncate_stack
+end

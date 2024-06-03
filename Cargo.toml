@@ -1,0 +1,33 @@
+[package]
+name = "spark-miden-v1"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rand_chacha = "0.3.1"
+miden-objects = { git = "https://github.com/0xPolygonMiden/miden-base.git", package = "miden-objects", branch = "main" }
+miden-tx = { git = "https://github.com/0xPolygonMiden/miden-base.git", package = "miden-tx", branch = "main" }
+mock = { git = "https://github.com/0xPolygonMiden/miden-base.git", package = "miden-mock", branch = "main" }
+rand = "0.8.5"
+miden-stdlib = "0.9.1"
+miden-lib = { git = "https://github.com/0xPolygonMiden/miden-base.git", package = "miden-lib", branch = "main" }
+miden-vm = "0.9.1"
+miden-processor = "0.9.2"
+miden-prover = "0.9.1"
+tokio = "1.37.0"
+miden-client = "0.3.0"
+figment = "0.10.19"
+uuid = { version = "1.6.1", features = ["serde", "v4"], optional = true }
+cargo-make = "0.37.12"
+
+[patch.crates-io]
+miden-objects = { git = "https://github.com/0xPolygonMiden/miden-base.git", package = "miden-objects", branch = "main" }
+miden-tx = { git = "https://github.com/0xPolygonMiden/miden-base.git", package = "miden-tx", branch = "main" }
+
+[features]
+default = ["std"]
+integration = ["testing", "concurrent", "uuid"]
+concurrent = ["miden-lib/concurrent", "miden-objects/concurrent", "miden-tx/concurrent"]
+std = ["miden-objects/std"]
+testing = ["miden-objects/testing", "miden-lib/testing"]
+test_utils = ["miden-objects/testing"]
