@@ -34,6 +34,7 @@ proc.build_recipient_hash
   # [RECIPIENT]
 end
 
+
 # Swap script: adds an asset from the note into consumers account and
 # creates a note consumable by note issuer containing requested ASSET.
 #
@@ -53,6 +54,13 @@ end
 # - Account vault does not contain the requested asset
 # - Adding a fungible asset would result in amount overflow, i.e., the total amount would be
 #   greater than 2^63
+
+
+
+
+# memory
+# token_a is the token in the note, token_b is the requested token 
+# [token_a_id, token_a_user_wallet_bal, token_b_id, token_b_wallet_bal;]
 begin
     # drop the transaction script root
     dropw
@@ -62,8 +70,17 @@ begin
     push.3 exec.note::get_assets assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS
     # => [ptr]
 
+
     # load the asset and add it to the account
-    mem_loadw call.wallet::receive_asset dropw
+    mem_loadw 
+
+    # dup mem_store.0
+
+    push.101
+    debug.stack
+    drop
+    
+    call.wallet::receive_asset dropw
     # => []
 
     # store note inputs into memory starting at address 0
@@ -90,22 +107,22 @@ begin
     push.OFFCHAIN_NOTE movdn.5
     # => [ASSET, tag, note_type, RECIPIENT]
 
-    # save requested token to memory
-    dup mem_store.0
+    # save requested token id to memory @ mem addr 2
+    dup mem_store.2
 
-    # save requested token amount to memory
-    swap.3 mem_store.1 push.0 swap.3
+    # save requested token amount to memory @ mem addr 3
+    swap.3 mem_store.3 push.0 swap.3
 
     # call into account to get max bal
     call.account::get_balance
 
-    # store wallet balance
-    mem_store.2
+    # store wallet balance requested token @ mem addr 4
+    mem_store.4
 
     # check if requested amount is gte wallet balance
-    mem_load.1
+    mem_load.3
 
-    mem_load.2
+    mem_load.4
     # => [wallet_balance, requested_amount, ...]
 
     gte
@@ -115,10 +132,10 @@ begin
     if.true 
 
       # load wallet balance
-      mem_load.2 swap.3 drop
+      mem_load.4 swap.3 drop
 
       # load requested token id
-      mem_load.0
+      mem_load.2
 
       push.1010
       debug.stack
@@ -145,6 +162,11 @@ begin
 
       call.tx::create_note
 
+
+      mem_load.0
+      push.505
+      debug.stack
+      dropw
 
     # call send_asset with requested amount
     # do not ouput new SWAPp note
