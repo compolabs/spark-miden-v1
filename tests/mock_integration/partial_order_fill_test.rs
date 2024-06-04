@@ -367,13 +367,13 @@ fn test_partial_swap_fill() {
         .unwrap();
 
     // Note outputted by the transaction
-    // let tx_output_note = executed_transaction.output_notes().get_note(0);
+    let tx_output_note = executed_transaction.output_notes().get_note(0);
 
     // Note expected to be outputted by the transaction
     let (_expected_note, _note_script_hash) = create_output_note(Some(Felt::new(301))).unwrap();
 
     assert_eq!(executed_transaction.output_notes().num_notes(), 2);
-
+    
     /*
     // Check that the output note is the same as the expected note
     assert_eq!(
