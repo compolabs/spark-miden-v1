@@ -55,12 +55,8 @@ end
 # - Adding a fungible asset would result in amount overflow, i.e., the total amount would be
 #   greater than 2^63
 
-
-
-
 # memory
 # token_a is the token in the note, token_b is the requested token 
-# [token_a_id, token_a_user_wallet_bal, token_b_id, token_b_wallet_bal;]
 begin
     # drop the transaction script root
     dropw
@@ -202,6 +198,7 @@ begin
 
       mem_loadw.4
       call.account::remove_asset
+      dropw
 
       push.507
       debug.stack
