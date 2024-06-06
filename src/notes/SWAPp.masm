@@ -58,11 +58,8 @@ end
 # memory
 # token_a is the token in the note, token_b is the requested token 
 begin
-    debug.stack
-    mem_storew.20
-
-    # drop the transaction script root
-    dropw
+    # store SWAPp script hash to mem addr 5 & drop
+    mem_storew.5 dropw
     # => []
 
     # store asset into memory at address 3
@@ -71,26 +68,20 @@ begin
 
     # load the asset and add it to the account
     mem_loadw
+    # => [requested asset word]
 
-    # store token_a_id to memory addr 5
-    dup mem_store.5
-
-    debug.mem.0.11
-
-    push.101
-    debug.stack
-    drop
-
-    # get token_a balance user wallet save @ mem addr 10
-    mem_load.5 call.account::get_balance mem_store.10
-
-    # save token_a balance of note @ mem addr 9
-    swap.3 dup mem_store.9 swap.3
-
-    push.102
-    debug.stack
-    drop
+    # store token_a_id to memory addr 6
+    dup mem_store.6
+    # => [requested asset word]
     
+    # get token_a balance user wallet save @ mem addr 9
+    mem_load.6 call.account::get_balance mem_store.9
+    # => [requested asset word] 
+
+    # save token_a balance of note @ mem addr 8
+    swap.3 dup mem_store.8 swap.3
+    # => [requested asset word] 
+
     call.wallet::receive_asset dropw
     # => []
 
@@ -117,55 +108,62 @@ begin
 
     push.OFFCHAIN_NOTE movdn.5
     # => [ASSET, tag, note_type, RECIPIENT]
+    
+    # save requested token id to memory @ mem addr 7
+    dup mem_store.7
+    # => [ASSET, tag, note_type, RECIPIENT]
 
-    # save requested token id to memory @ mem addr 6
-    dup mem_store.6
-
-    # save requested token amount to memory @ mem addr 7
-    swap.3 mem_store.7 push.0 swap.3
+    # save requested token amount to memory @ mem addr 10
+    swap.3 mem_store.10 push.0 swap.3
+    # => [requested asset id, 0, 0, 0, tag, note_type, RECIPIENT]
 
     # call into account to get max bal
     call.account::get_balance
+    # => [requested asset balance user wallet, 0, 0, 0, tag, note_type, RECIPIENT]
+    
+    # store wallet balance requested token @ mem addr 11
+    mem_store.11
+    # =>  [0, 0, 0, tag, note_type, RECIPIENT]
 
-    # store wallet balance requested token @ mem addr 4
-    mem_store.8
+    # load requested amount token_b and initial balance of token_b of WALLET
+    mem_load.10 mem_load.11
+    # => [wallet_balance, requested_amount, 0, 0, 0, tag, note_type, RECIPIENT]
 
-    # check if requested amount is gte wallet balance
-    mem_load.7
-
-    mem_load.4
-    # => [wallet_balance, requested_amount, ...]
-
+    # check if requested amount is gte to wallet balance
     gte
+    # => [isRequestedAmountGTEwalletBalance, 0, 0, 0, tag, note_type, RECIPIENT] 
 
     # Call send_asset with wallet balance
     # output new SWAPp note
-    if.true 
+    if.true
+      # => [0, 0, 0, tag, note_type, RECIPIENT] 
 
       # load wallet balance
-      mem_load.8 swap.3 drop
+      mem_load.11 swap.3 drop
+      # => [0, 0, wallet balance, tag, note_type, RECIPIENT] 
 
       # load requested token id
-      mem_load.6
-
-      push.1010
-      debug.stack
-      drop
+      mem_load.7
+      # => [requested_token_id, 0, 0, wallet balance, tag, note_type, RECIPIENT] 
 
       # create a note using inputs
       call.wallet::send_asset
       # => [ptr, ZERO, ZERO, 0]
 
-      # push custom note test
-      #push.14515530009286458074.16948667995232073377.6273208984420046471.9943545960625923825
-      mem_loadw.20
+      # push SWAPp note SCRIPT_HASH 
+      mem_loadw.5
+      # => [SCRIPT_HASH]
+
+      # serial number
       push.1.2.3.4
+      # => [SERIAL_NUM, SCRIPT_HASH]
 
       exec.build_recipient_hash 
-      # [RECIPIENT]
+      # => [RECIPIENT]
 
       # note type
       push.2
+
       # tag
       push.3221225472
       # [tag, note_type, RECIPIENT]
@@ -173,38 +171,41 @@ begin
       call.tx::create_note
       # => [note_ptr]
 
-      debug.mem
-      
       # store ptr to mem addr 3
-      mem_store.3 
-
-      mem_load.7
-      mem_load.8
-      sub
-      push.0.0
+      mem_store.14 
+      # => []
       
-      mem_load.5
+      # load requested amt & initial balance wallet token b
+      mem_load.10 mem_load.11
+      # [requested_amt, balance_requested_wallet]
+      
+      # compute remainder 
+      sub
+      # [amt_requested_remaining]
 
-      # store ASSET out to memory addr 4
+      push.0.0
+      # => [0,0, amt_requested_remaining]
+
+      # get requested asset_id
+      mem_load.6
+      # => [ASSET_REMAINING]
+
+      # store ASSET out to memory addr 13
       # dupw
-      mem_storew.4
+      mem_storew.13
+      # => [ASSET_REMAINING]
 
       # load note ptr
-      mem_load.3
-
-      push.506
-      debug.stack
-      drop
+      mem_load.14
+      # => [swapp_ptr, ASSET_REMAINING]
 
       call.tx::add_asset_to_note
+      # => [swapp_ptr]
 
-      mem_loadw.4
-      call.account::remove_asset
-      dropw
-
-      push.507
+      # remove asset remaining
+      mem_loadw.13 call.account::remove_asset dropw
+      # => []
       debug.stack
-      drop
 
     # call send_asset with requested amount
     # do not ouput new SWAPp note

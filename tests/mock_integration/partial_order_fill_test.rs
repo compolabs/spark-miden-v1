@@ -109,6 +109,8 @@ fn create_initial_message_note<R: FeltRng>(
     let inputs = NoteInputs::new(vec![note_input])?;
 
     let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
+    println!("{:?}", tag);
+
     let serial_num = rng.draw_word();
     let aux = ZERO;
     let note_type = NoteType::OffChain;
@@ -375,7 +377,7 @@ fn test_partial_swap_fill() {
     assert_eq!(executed_transaction.output_notes().num_notes(), 2);
 
     // Check that the output note is the same as the expected note
-    /*     
+    /*
     assert_eq!(
         NoteHeader::from(tx_output_note).metadata(),
         NoteHeader::from(expected_note.clone()).metadata()
