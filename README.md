@@ -1,5 +1,4 @@
 # SPARK-MIDEN-V1
-## Spark Spot Order Book on Miden
 
 ### Settlement of Spot Order Trades with SWAPp
 
@@ -16,7 +15,7 @@ Partial consumption means that a SWAPp note allows a user who does not have suff
 
 When partially filling a SWAPp note with liquidity L, the remaining liquidity L1 in the SWAPp note is added to the new outputted SWAPp note.
 
-The process of partially filling a SWAPp note can continue N times until the liquidity in the SWAPp note is completely sold.
+The process of partially filling a SWAPp note can continue N times until the liquidity in the SWAPp note is completely exhausted.
 
 ### Output of Partially Consuming a SWAPp Note
 
@@ -27,7 +26,7 @@ When partially consuming a SWAPp note, two notes are outputted:
 ### Partial SWAPp fulfillment
 ![alt text](./docs/PartialFillSWAPp.svg)
 
-### Running Tests: 
+### Running Tests:c
 ```
 cargo test --test mock_integration
 ```

@@ -58,6 +58,8 @@ end
 # memory
 # token_a is the token in the note, token_b is the requested token 
 begin
+    debug.stack
+
     # drop the transaction script root
     dropw
     # => []
@@ -153,17 +155,15 @@ begin
       call.wallet::send_asset
       # => [ptr, ZERO, ZERO, 0]
 
-      # Add remaining balance to SWAPp note (todo)
-
       # push custom note test
-      push.13310334165435798105.17704527159432745453.13948713200779750900.13586240079106921094
+      push.14515530009286458074.16948667995232073377.6273208984420046471.9943545960625923825
       push.1.2.3.4
 
       exec.build_recipient_hash 
       # [RECIPIENT]
 
       # note type
-      push.2 
+      push.2
       # tag
       push.3221225472
       # [tag, note_type, RECIPIENT]
