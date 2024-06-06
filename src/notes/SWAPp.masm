@@ -18,13 +18,19 @@ const.ERR_SWAP_WRONG_NUMBER_OF_INPUTS=0x00020007
 const.ERR_SWAP_WRONG_NUMBER_OF_ASSETS=0x00020008
 
 
+#! Returns the RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and input
+#!
+#! Inputs: [SERIAL_NUM, SCRIPT_HASH, input]
+#! Outputs: [RECIPIENT]
+#!
+#! Only allows a single input currently
 proc.build_recipient_hash
   padw hmerge
-  # => [SERIAL_NUM_HASH, SCRIPT_HASH, input] 
+  # => [SERIAL_NUM_HASH, SCRIPT_HASH, input]
 
-# merge SERIAL_NUM_HASH and SCRIPT_HASH
+  # merge SERIAL_NUM_HASH and SCRIPT_HASH
   swapw hmerge
-  # => [SERIAL_SCRIPT_HASH, input] 
+  # => [SERIAL_SCRIPT_HASH, input]
 
   # compute the INPUT_HASH. Note: only one input is allowed
   swapw swap.3 padw hmerge
@@ -55,12 +61,12 @@ end
 # - Adding a fungible asset would result in amount overflow, i.e., the total amount would be
 #   greater than 2^63
 
-# Memory state:
-# ├── 0x00000000: [SWAP_RECIEVER]
+# Memory Layout:
+# ├── 0x00000000: [PAYBACK_RECIPIENT]
 # ├── 0x00000001: [REQUESTED_ASSET]
-# ├── 0x00000002: [?]
-# ├── 0x00000003: [temp]
-# ├── 0x00000004: [temp]
+# ├── 0x00000002: [payback_tag]
+# ├── 0x00000003: [?]
+# ├── 0x00000004: [?]
 # ├── 0x00000005: [SWAPP_SCRIPT_HASH]
 # ├── 0x00000006: [token_for_sale_id]
 # ├── 0x00000007: [requested_token_id]
@@ -68,8 +74,8 @@ end
 # ├── 0x00000009: [initial_balance_token_a_of_wallet]
 # ├── 0x0000000a: [requested_balance_token_b_note]
 # ├── 0x0000000b: [initial_balance_of_token_b_of_wallet]
-# ├── 0x0000000d: [ASSET_remainder_for_new_SWAPp_note_token_a]
-# └── 0x0000000e: [new_SWAPp_ptr]
+# ├── 0x0000000c: [ASSET_remainder_for_new_SWAPp_note_token_a]
+# └── 0x0000000d: [new_SWAPp_ptr]
 begin
     # store SWAPp script hash to mem addr 5 & drop
     mem_storew.5 dropw
@@ -178,7 +184,7 @@ begin
       push.2
 
       # tag
-      push.3221225472
+      mem_load.2
       # [tag, note_type, RECIPIENT]
 
       call.tx::create_note
