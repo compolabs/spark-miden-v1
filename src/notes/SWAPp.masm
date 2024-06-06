@@ -55,8 +55,21 @@ end
 # - Adding a fungible asset would result in amount overflow, i.e., the total amount would be
 #   greater than 2^63
 
-# memory
-# token_a is the token in the note, token_b is the requested token 
+# Memory state:
+# ├── 0x00000000: [SWAP_RECIEVER]
+# ├── 0x00000001: [REQUESTED_ASSET]
+# ├── 0x00000002: [?]
+# ├── 0x00000003: [temp]
+# ├── 0x00000004: [temp]
+# ├── 0x00000005: [SWAPP_SCRIPT_HASH]
+# ├── 0x00000006: [token_for_sale_id]
+# ├── 0x00000007: [requested_token_id]
+# ├── 0x00000008: [initial_balance_token_a_of_note]
+# ├── 0x00000009: [initial_balance_token_a_of_wallet]
+# ├── 0x0000000a: [requested_balance_token_b_note]
+# ├── 0x0000000b: [initial_balance_of_token_b_of_wallet]
+# ├── 0x0000000d: [ASSET_remainder_for_new_SWAPp_note_token_a]
+# └── 0x0000000e: [new_SWAPp_ptr]
 begin
     # store SWAPp script hash to mem addr 5 & drop
     mem_storew.5 dropw
@@ -172,7 +185,7 @@ begin
       # => [note_ptr]
 
       # store ptr to mem addr 3
-      mem_store.14 
+      mem_store.13
       # => []
       
       # load requested amt & initial balance wallet token b
@@ -192,18 +205,18 @@ begin
 
       # store ASSET out to memory addr 13
       # dupw
-      mem_storew.13
+      mem_storew.12
       # => [ASSET_REMAINING]
 
       # load note ptr
-      mem_load.14
+      mem_load.13
       # => [swapp_ptr, ASSET_REMAINING]
 
       call.tx::add_asset_to_note
       # => [swapp_ptr]
 
       # remove asset remaining
-      mem_loadw.13 call.account::remove_asset dropw
+      mem_loadw.12 call.account::remove_asset dropw
       # => []
       debug.mem
 
