@@ -205,13 +205,12 @@ begin
       # remove asset remaining
       mem_loadw.13 call.account::remove_asset dropw
       # => []
-      debug.stack
+      debug.mem
 
     # call send_asset with requested amount
     # do not ouput new SWAPp note
-    else  
-      # place holder
-      # dup drop
+    else
+      # @dev in progress...
       push.1111
       debug.stack
       drop 
