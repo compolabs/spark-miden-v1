@@ -374,8 +374,8 @@ fn test_partial_swap_fill() {
 
     assert_eq!(executed_transaction.output_notes().num_notes(), 2);
 
-    /*
     // Check that the output note is the same as the expected note
+    /*     
     assert_eq!(
         NoteHeader::from(tx_output_note).metadata(),
         NoteHeader::from(expected_note.clone()).metadata()
@@ -383,8 +383,8 @@ fn test_partial_swap_fill() {
     assert_eq!(
         NoteHeader::from(tx_output_note),
         NoteHeader::from(expected_note.clone())
-    );
-
+    ); */
+    /*
     // comment out to speed up test
     // assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 

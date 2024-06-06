@@ -59,6 +59,7 @@ end
 # token_a is the token in the note, token_b is the requested token 
 begin
     debug.stack
+    mem_storew.20
 
     # drop the transaction script root
     dropw
@@ -156,7 +157,8 @@ begin
       # => [ptr, ZERO, ZERO, 0]
 
       # push custom note test
-      push.14515530009286458074.16948667995232073377.6273208984420046471.9943545960625923825
+      #push.14515530009286458074.16948667995232073377.6273208984420046471.9943545960625923825
+      mem_loadw.20
       push.1.2.3.4
 
       exec.build_recipient_hash 
