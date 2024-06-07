@@ -114,56 +114,56 @@ begin
 
     # load recipient
     drop padw mem_loadw
-    # => [RECIPIENT]
+    # => [RECIPIENT_P2ID]
 
     padw mem_loadw.1
-    # => [ASSET, RECIPIENT]
+    # => [ASSET, RECIPIENT_P2ID]
 
     padw mem_loadw.2
-    # => [0, 0, 0, tag, ASSET, RECIPIENT]
+    # => [0, 0, 0, tag, ASSET, RECIPIENT_P2ID]
 
     drop drop drop movdn.4
-    # => [ASSET, tag, RECIPIENT]
+    # => [ASSET, tag, RECIPIENT_P2ID]
 
     push.OFFCHAIN_NOTE movdn.5
-    # => [ASSET, tag, note_type, RECIPIENT]
+    # => [ASSET, tag, note_type, RECIPIENT_P2ID]
     
     # save requested token id to memory @ mem addr 7
     dup mem_store.7
-    # => [ASSET, tag, note_type, RECIPIENT]
+    # => [ASSET, tag, note_type, RECIPIENT_P2ID]
 
     # save requested token amount to memory @ mem addr 10
     swap.3 mem_store.10 push.0 swap.3
-    # => [requested asset id, 0, 0, 0, tag, note_type, RECIPIENT]
+    # => [requested asset id, 0, 0, 0, tag, note_type, RECIPIENT_P2ID]
 
     # call into account to get max bal
     call.account::get_balance
-    # => [requested asset balance user wallet, 0, 0, 0, tag, note_type, RECIPIENT]
+    # => [requested asset balance user wallet, 0, 0, 0, tag, note_type, RECIPIENT_P2ID]
     
     # store wallet balance requested token @ mem addr 11
     mem_store.11
-    # =>  [0, 0, 0, tag, note_type, RECIPIENT]
+    # =>  [0, 0, 0, tag, note_type, RECIPIENT_P2ID]
 
     # load requested amount token_b and initial balance of token_b of WALLET
     mem_load.10 mem_load.11
-    # => [wallet_balance, requested_amount, 0, 0, 0, tag, note_type, RECIPIENT]
+    # => [wallet_balance, requested_amount, 0, 0, 0, tag, note_type, RECIPIENT_P2ID]
 
     # check if requested amount is gte to wallet balance
     gte
-    # => [isRequestedAmountGTEwalletBalance, 0, 0, 0, tag, note_type, RECIPIENT] 
+    # => [isRequestedAmountGTEwalletBalance, 0, 0, 0, tag, note_type, RECIPIENT_P2ID] 
 
     # Call send_asset with wallet balance
     # output new SWAPp note
     if.true
-      # => [0, 0, 0, tag, note_type, RECIPIENT] 
+      # => [0, 0, 0, tag, note_type, RECIPIENT_P2ID] 
 
       # load wallet balance
       mem_load.11 swap.3 drop
-      # => [0, 0, wallet balance, tag, note_type, RECIPIENT] 
+      # => [0, 0, wallet balance, tag, note_type, RECIPIENT_P2ID] 
 
       # load requested token id
       mem_load.7
-      # => [requested_token_id, 0, 0, wallet balance, tag, note_type, RECIPIENT] 
+      # => [requested_token_id, 0, 0, wallet balance, tag, note_type, RECIPIENT_P2ID] 
 
       # create a note using inputs
       call.wallet::send_asset
@@ -178,14 +178,15 @@ begin
       # => [SERIAL_NUM, SCRIPT_HASH]
 
       exec.build_recipient_hash 
-      # => [RECIPIENT]
+      # => [RECIPIENT_SWAPP]
 
       # note type
       push.2
+      # => [note_type, RECIPIENT_SWAPP]
 
       # tag
       mem_load.2
-      # [tag, note_type, RECIPIENT]
+      # => [tag, note_type, RECIPIENT_SWAPP]
 
       call.tx::create_note
       # => [note_ptr]
@@ -196,11 +197,11 @@ begin
       
       # load requested amt & initial balance wallet token b
       mem_load.10 mem_load.11
-      # [requested_amt, balance_requested_wallet]
+      # => [requested_amt, balance_requested_wallet]
       
       # compute remainder 
       sub
-      # [amt_requested_remaining]
+      # => [amt_requested_remaining]
 
       push.0.0
       # => [0,0, amt_requested_remaining]
