@@ -92,7 +92,7 @@ pub fn test_input_hash() {
     ];
 
     let inputs = NoteInputs::new(vec_inputs.clone()).unwrap();
-    println!("note_script_hash: {:?}", inputs.commitment());
+    // println!("input commitment : {:?}", inputs.commitment());
 
     let padded_values = pad_inputs(&vec_inputs);
     println!("padded values: {:?}", padded_values);
