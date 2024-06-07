@@ -16,35 +16,34 @@ proc.state_to_digest
   dropw
 end
 
-
 begin
-    # push the capacity portion of the hasher state onto the stack; since the number of elements we are
-    # hashing is not divisible by 8, the first capacity register must be set to 1 (this is RPO's padding
-    # rule)
-    push.1.0.0.0
-    # => [0, 0, 0, 1]
+    # Initialize the capacity portion of the hasher state.
+    padw
+    # => [0, 0, 0, 0]
 
-    # absorb the first 8 values into the hasher state
+    # Absorb the first 8 values into the hasher state.
     push.1.2.3.4.5.6.7.8
-    # => [8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 1]
+    # => [8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0]
 
-    # execute the RPO permutation
+    # Execute the RPO permutation.
     hperm
-    # => [R2, R1, C]
+    # => Permuted state [R2, R1, C]
 
-    # absorb the 9th element into the state; the padding rule is that we need to append 1 followed by the 
-    # number of zeros needed to get the state to the next multiple of 8
+    # Drop the two capacity elements to absorb the 9th element.
     dropw dropw
-    # => [R2, R1, C]
+    # => [R2, R1]
 
-    push.9.1.0.0.0.0.0.0
-    # => [0, 0, 0, 0, 0, 0, 1, 9, C]
+    # Absorb the 9th element and apply padding.
+    push.9.0.0.0.0.0.0.0
+    # => [0, 0, 0, 0, 0, 0, 10, 9, R2, R1]
 
-    # execute the RPO permutation
+    # Execute the RPO permutation.
     hperm
-    # => [R2, R1, C]
-    
+    # => Permuted state [R2, R1, C]
+
+    # Convert the state to the digest.
     exec.state_to_digest
-    # => [R1]
+    # => [Digest]
 end
+
 
