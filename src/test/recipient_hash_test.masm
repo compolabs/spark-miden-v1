@@ -1,5 +1,54 @@
+#! Returns the RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and input
+#!
+#! Inputs: [SERIAL_NUM, SCRIPT_HASH, input]
+#! Outputs: [RECIPIENT]
+#!
+proc.build_recipient_hash
+  padw hmerge
+  # => [SERIAL_NUM_HASH, SCRIPT_HASH, input]
+
+  # merge SERIAL_NUM_HASH and SCRIPT_HASH
+  swapw hmerge
+  # => [SERIAL_SCRIPT_HASH, input]
+
+  # compute the INPUT_HASH. Note: only one input is allowed
+  swapw
+
+  debug.stack
+
+  swap.3
+  padw
+  hmerge
+  # => [INPUT_HASH, SERIAL_SCRIPT_HASH]
+
+  hmerge
+  # [RECIPIENT]
+end
+
 begin
 
-  push.1.2.3.4
+  # Step 1: Push the first 8 elements
+  push.1.2.3.4.5.6.7.8
+
+  # First hmerge to process the first 8 elements
+  hmerge
+
+  # Step 2: Push the remaining element and pad with zeros to make it 8 elements
+  # The 1 is added to signify the end of input (as per padding logic)
+  push.9.0.0.0.0.0.0.1
+
+  # Second hmerge to process these 8 elements
+  hmerge
+
+  # Step 3: Final hmerge to combine the two hash words
+  hmerge
+
 
 end
+
+
+
+
+
+
+
