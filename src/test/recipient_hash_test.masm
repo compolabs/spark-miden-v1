@@ -16,14 +16,20 @@ proc.state_to_digest
   dropw
 end
 
-begin
+#! Computs the note inputs commitment for up to 16 inputs
+#! Inputs: 
+#! INPUTS_1 @ mem_17
+#! INPUTS_2 @ mem_16
+#! INPUTS_3 @ mem_15
+#! INPUTS_4 @ mem_14
+proc.get_note_inputs_commitment
     # Initialize the capacity portion of the hasher state.
     padw
     # => [0, 0, 0, 0]
 
     # Absorb the first 8 values into the hasher state.
-    push.1.2.3.4.5.6.7.8
-    # => [8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0]
+    mem_loadw.17 padw mem_loadw.16
+    # => [INPUTS_2, INPUTS_1, 0, 0, 0, 0]
 
     # Execute the RPO permutation.
     hperm
@@ -33,9 +39,9 @@ begin
     dropw dropw
     # => [R2, R1]
 
-    # Absorb the 9th element and apply padding.
-    push.9.0.0.0.0.0.0.0
-    # => [0, 0, 0, 0, 0, 0, 10, 9, R2, R1]
+    # Absorb INPUTS_3 & INPUTS_4.
+    padw mem_loadw.15 padw mem_loadw.14
+    # => [INPUTS_4, INPUTS_3, R2, R1]
 
     # Execute the RPO permutation.
     hperm
@@ -46,4 +52,17 @@ begin
     # => [Digest]
 end
 
+begin
 
+  push.1.2.3.4.5.6.7.8.9.0.0.0.0.0.0.0
+
+  mem_storew.14 dropw
+  mem_storew.15 dropw
+  mem_storew.16 dropw
+  mem_storew.17 dropw
+
+  debug.stack
+
+  exec.get_note_inputs_commitment
+
+end

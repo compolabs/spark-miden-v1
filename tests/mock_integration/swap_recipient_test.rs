@@ -79,13 +79,6 @@ fn pad_inputs(inputs: &[Felt]) -> Vec<Felt> {
     padded_inputs
 }
 
-const STATE_WIDTH: usize = 12;
-const RATE_WIDTH: usize = 4;
-const CAPACITY_RANGE: std::ops::Range<usize> = 0..4;
-const RATE_RANGE: std::ops::Range<usize> = 4..8;
-const DIGEST_RANGE: std::ops::Range<usize> = 8..12;
-const ONE: Felt = Felt::new(1);
-
 #[test]
 pub fn test_input_hash() {
     let vec_inputs = vec![

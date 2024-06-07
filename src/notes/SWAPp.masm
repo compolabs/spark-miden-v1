@@ -41,6 +41,8 @@ proc.build_recipient_hash
 end
 
 
+
+
 # Swap script: adds an asset from the note into consumers account and
 # creates a note consumable by note issuer containing requested ASSET.
 #
