@@ -1,48 +1,50 @@
-#! Returns the RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and input
-#!
-#! Inputs: [SERIAL_NUM, SCRIPT_HASH, input]
-#! Outputs: [RECIPIENT]
-#!
-proc.build_recipient_hash
-  padw hmerge
-  # => [SERIAL_NUM_HASH, SCRIPT_HASH, input]
 
-  # merge SERIAL_NUM_HASH and SCRIPT_HASH
-  swapw hmerge
-  # => [SERIAL_SCRIPT_HASH, input]
+#! Given the hasher state, returns the hash output
+#!
+#! Input: [C, B, A, ...]
+#! Ouptut: [HASH, ...]
+#! Where: For the native RPO hasher HASH is B.
+#! Cycles: 9
+proc.state_to_digest
+  # drop the first rate word (4 cycles)
+  dropw
 
-  # compute the INPUT_HASH. Note: only one input is allowed
+  # save the hash result (1 cycles)
   swapw
 
-  debug.stack
-
-  swap.3
-  padw
-  hmerge
-  # => [INPUT_HASH, SERIAL_SCRIPT_HASH]
-
-  hmerge
-  # [RECIPIENT]
+  # drop the capacity word (4 cycles)
+  dropw
 end
 
+
 begin
+    # push the capacity portion of the hasher state onto the stack; since the number of elements we are
+    # hashing is not divisible by 8, the first capacity register must be set to 1 (this is RPO's padding
+    # rule)
+    push.1.0.0.0
+    # => [0, 0, 0, 1]
 
-  # Step 1: Push the first 8 elements
-  push.1.2.3.4.5.6.7.8
+    # absorb the first 8 values into the hasher state
+    push.1.2.3.4.5.6.7.8
+    # => [8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 1]
 
-  # First hmerge to process the first 8 elements
-  hmerge
+    # execute the RPO permutation
+    hperm
+    # => [R2, R1, C]
 
-  # Step 2: Push the remaining element and pad with zeros to make it 8 elements
-  # The 1 is added to signify the end of input (as per padding logic)
-  push.9.0.0.0.0.0.0.1
+    # absorb the 9th element into the state; the padding rule is that we need to append 1 followed by the 
+    # number of zeros needed to get the state to the next multiple of 8
+    dropw dropw
+    # => [R2, R1, C]
 
-  # Second hmerge to process these 8 elements
-  hmerge
+    push.9.1.0.0.0.0.0.0
+    # => [0, 0, 0, 0, 0, 0, 1, 9, C]
 
-  # Step 3: Final hmerge to combine the two hash words
-  hmerge
-
-
+    # execute the RPO permutation
+    hperm
+    # => [R2, R1, C]
+    
+    exec.state_to_digest
+    # => [R1]
 end
 
