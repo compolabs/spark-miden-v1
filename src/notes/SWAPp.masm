@@ -3,6 +3,7 @@ use.miden::contracts::wallets::basic->wallet
 use.miden::tx
 use.miden::account
 use.std::sys
+use.std::crypto::hashes::native
 # CONSTANTS
 # =================================================================================================
 
@@ -24,7 +25,7 @@ const.ERR_SWAP_WRONG_NUMBER_OF_ASSETS=0x00020008
 #! Outputs: [RECIPIENT]
 #!
 #! Only allows a single input currently
-proc.build_recipient_hash
+proc.build_recipient_hash_single_input
   padw hmerge
   # => [SERIAL_NUM_HASH, SCRIPT_HASH, input]
 
@@ -40,7 +41,63 @@ proc.build_recipient_hash
   # [RECIPIENT]
 end
 
+#! Returns the RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and input
+#!
+#! Inputs: [SERIAL_NUM, SCRIPT_HASH, input]
+#! Outputs: [RECIPIENT]
+#!
+#! Only allows a single input currently
+proc.build_recipient_hash
+  padw hmerge
+  # => [SERIAL_NUM_HASH, SCRIPT_HASH, INPUT_HASH]
 
+  # merge SERIAL_NUM_HASH and SCRIPT_HASH
+  swapw hmerge
+  # => [SERIAL_SCRIPT_HASH, INPUT_HASH]
+
+  # compute the INPUT_HASH. Note: only one input is allowed
+  hmerge
+  # => [INPUT_HASH, SERIAL_SCRIPT_HASH]
+
+  hmerge
+  # [RECIPIENT]
+end
+
+#! Computs the note inputs commitment for up to 16 inputs
+#! Inputs: 
+#! INPUTS_1 @ mem_17
+#! INPUTS_2 @ mem_16
+#! INPUTS_3 @ mem_15
+#! INPUTS_4 @ mem_14
+proc.get_note_inputs_commitment
+    # Initialize the capacity portion of the hasher state.
+    padw
+    # => [0, 0, 0, 0]
+
+    # Absorb the first 8 values into the hasher state.
+    mem_loadw.17 padw mem_loadw.16
+    # => [INPUTS_2, INPUTS_1, 0, 0, 0, 0]
+
+    # Execute the RPO permutation.
+    hperm
+    # => Permuted state [R2, R1, C]
+
+    # Drop the two capacity elements to absorb the 9th element.
+    dropw dropw
+    # => [R2, R1]
+
+    # Absorb INPUTS_3 & INPUTS_4.
+    padw mem_loadw.15 padw mem_loadw.14
+    # => [INPUTS_4, INPUTS_3, R2, R1]
+
+    # Execute the RPO permutation.
+    hperm
+    # => Permuted state [R2, R1, C]
+
+    # Convert the state to the digest.
+    exec.native::state_to_digest
+    # => [Digest]
+end
 
 
 # Swap script: adds an asset from the note into consumers account and
@@ -170,6 +227,28 @@ begin
       # create a note using inputs
       call.wallet::send_asset
       # => [ptr, ZERO, ZERO, 0]
+
+      dropw
+      # => []
+
+      ### Building Inputs Hash Commitment
+
+      # get payback_tag
+      mem_load.2 push.0.0.0
+      # => [payback_tag, 0, 0, 0]
+
+      # get REQUESTED_ASSET @ dev need to update this with updated amount
+      mem_loadw.1
+      # => [REQUESTED_ASSET, payback_tag, 0, 0, 0]
+
+      # todo: calculate REQUESTED_ASSET'
+
+      # get PAYBACK_RECIPIENT
+      mem_loadw.0
+      # => [PAYBACK_RECIPIENT, REQUESTED_ASSET', payback_tag, 0, 0, 0] 
+      
+      exec.get_note_inputs_commitment
+      # => [INPUTS_HASH]
 
       # push SWAPp note SCRIPT_HASH 
       mem_loadw.5
