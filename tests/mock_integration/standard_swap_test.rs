@@ -117,7 +117,7 @@ pub fn create_custom_swap_note<R: FeltRng>(
     note_type: NoteType,
     mut rng: R,
 ) -> Result<(Note, NoteDetails), NoteError> {
-    let note_code = include_str!("../../src/notes/SWAP.masm");
+    let note_code = include_str!("../../src/test/SWAP.masm");
     let note_script = new_note_script(
         ProgramAst::parse(note_code).unwrap(),
         &TransactionKernel::assembler().with_debug_mode(true),
