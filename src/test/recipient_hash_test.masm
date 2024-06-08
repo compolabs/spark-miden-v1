@@ -22,7 +22,7 @@ end
 #! INPUTS_2 @ mem_16
 #! INPUTS_3 @ mem_15
 #! INPUTS_4 @ mem_14
-proc.get_note_inputs_commitment
+proc.get_note_inputs_commitment_mem
     # Initialize the capacity portion of the hasher state.
     padw
     # => [0, 0, 0, 0]
@@ -52,17 +52,40 @@ proc.get_note_inputs_commitment
     # => [Digest]
 end
 
+# [INPUTS_4, INPUTS_3, INPUTS_2, INPUTS_1]
+proc.get_note_inputs_commitment_stack
+  debug.stack
+  # Initialize the capacity portion of the hasher state.
+  # Absorb the first 8 values into the hasher state.
+  swapdw padw movupw.2 movupw.2
+  # => [8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0]
+
+  # Execute the RPO permutation.
+  hperm
+  # => Permuted state [R2, R1, C]
+
+  # Drop the two capacity elements to absorb the 9th element.
+  dropw dropw
+  # => [R2, R1]
+
+  # Absorb the 9th element and apply padding.
+  movupw.2 movupw.2
+  # => [0, 0, 0, 0, 0, 0, 0, 9, R2, R1]
+
+  # Execute the RPO permutation.
+  hperm
+  # => Permuted state [R2, R1, C]
+
+  # Convert the state to the digest.
+  exec.state_to_digest
+  # => [Digest]
+
+end
+
 begin
 
   push.1.2.3.4.5.6.7.8.9.0.0.0.0.0.0.0
 
-  mem_storew.14 dropw
-  mem_storew.15 dropw
-  mem_storew.16 dropw
-  mem_storew.17 dropw
-
-  debug.stack
-
-  exec.get_note_inputs_commitment
+  exec.get_note_inputs_commitment_stack
 
 end
