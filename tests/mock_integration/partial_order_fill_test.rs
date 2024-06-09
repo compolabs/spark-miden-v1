@@ -170,7 +170,6 @@ pub fn create_partial_swap_note<R: FeltRng>(
     let requested_asset_word: Word = requested_asset.into();
     let payback_tag = NoteTag::from_account_id(sender, NoteExecutionHint::Local)?;
 
-    println!("{:?}", payback_tag);
     let inputs = NoteInputs::new(vec![
         payback_recipient_word[0],
         payback_recipient_word[1],
@@ -183,12 +182,13 @@ pub fn create_partial_swap_note<R: FeltRng>(
         payback_tag.inner().into(),
     ])?;
 
+    println!("{:?}", inputs.to_padded_values());
+    println!("Inputs hash: {:?}", inputs.commitment());
+
     // build the tag for the SWAP use case
     let tag = build_swap_tag(note_type, &offered_asset, &requested_asset)?;
     let serial_num = rng.draw_word();
     let aux = ZERO;
-
-    println!("{:?}", tag);
 
     // build the outgoing note
     let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;

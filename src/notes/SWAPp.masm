@@ -64,41 +64,38 @@ proc.build_recipient_hash
 end
 
 #! Computs the note inputs commitment for up to 16 inputs
-#! Inputs: 
-#! INPUTS_1 @ mem_17
-#! INPUTS_2 @ mem_16
-#! INPUTS_3 @ mem_15
-#! INPUTS_4 @ mem_14
+#!
+#! Inputs: [INPUTS_4, INPUTS_3, INPUTS_2, INPUTS_1]
+#! Outputs: [INPUTS_HASH]
 proc.get_note_inputs_commitment
-    # Initialize the capacity portion of the hasher state.
-    padw
-    # => [0, 0, 0, 0]
 
-    # Absorb the first 8 values into the hasher state.
-    mem_loadw.17 padw mem_loadw.16
-    # => [INPUTS_2, INPUTS_1, 0, 0, 0, 0]
+  debug.stack
 
-    # Execute the RPO permutation.
-    hperm
-    # => Permuted state [R2, R1, C]
+  # Initialize the capacity portion of the hasher state.
+  # Absorb the first 8 values into the hasher state.
+  swapdw padw movupw.2 movupw.2
+  # => [8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0]
 
-    # Drop the two capacity elements to absorb the 9th element.
-    dropw dropw
-    # => [R2, R1]
+  # Execute the RPO permutation.
+  hperm
+  # => Permuted state [R2, R1, C]
 
-    # Absorb INPUTS_3 & INPUTS_4.
-    padw mem_loadw.15 padw mem_loadw.14
-    # => [INPUTS_4, INPUTS_3, R2, R1]
+  # Drop the two capacity elements to absorb the 9th element.
+  dropw dropw
+  # => [R2, R1]
 
-    # Execute the RPO permutation.
-    hperm
-    # => Permuted state [R2, R1, C]
+  # Absorb the 9th element and apply padding.
+  movupw.2 movupw.2
+  # => [0, 0, 0, 0, 0, 0, 0, 9, R2, R1]
 
-    # Convert the state to the digest.
-    exec.native::state_to_digest
-    # => [Digest]
+  # Execute the RPO permutation.
+  hperm
+  # => Permuted state [R2, R1, C]
+
+  # Convert the state to the digest.
+  exec.native::state_to_digest
+  # => [Digest]
 end
-
 
 # Swap script: adds an asset from the note into consumers account and
 # creates a note consumable by note issuer containing requested ASSET.
@@ -233,20 +230,39 @@ begin
 
       ### Building Inputs Hash Commitment
 
-      # get payback_tag
-      mem_load.2 push.0.0.0
-      # => [payback_tag, 0, 0, 0]
-
-      # get REQUESTED_ASSET @ dev need to update this with updated amount
-      mem_loadw.1
-      # => [REQUESTED_ASSET, payback_tag, 0, 0, 0]
-
-      # todo: calculate REQUESTED_ASSET'
-
       # get PAYBACK_RECIPIENT
-      mem_loadw.0
-      # => [PAYBACK_RECIPIENT, REQUESTED_ASSET', payback_tag, 0, 0, 0] 
+      padw mem_loadw.0
+      # => [PAYBACK_RECIPIENT] 
+
+      # load requested amt & initial balance wallet token b
+      mem_load.10 mem_load.11
+      # => [requested_amt, balance_requested_wallet, PAYBACK_RECIPIENT]
       
+      # compute remainder 
+      sub
+      # => [amt_requested_remaining, PAYBACK_RECIPIENT]
+
+      push.0.0
+      # => [0,0, amt_requested_remaining, PAYBACK_RECIPIENT]
+
+      # get requested asset_id
+      mem_load.7
+      # => [ASSET_REMAINING, PAYBACK_RECIPIENT]
+
+      # store ASSET out to memory addr 12
+      # dupw
+      mem_storew.12
+      # => [ASSET_REMAINING, PAYBACK_RECIPIENT]
+
+      # get payback_tag
+      mem_load.2 
+      # => [payback_tag, ASSET_REMAINING, PAYBACK_RECIPIENT]
+
+      # padw padw drop
+      push.0.0.0.0.0.0.0
+
+      # => [0,0,0,0,0,0,0, payback_tag, ASSET_REMAINING, PAYBACK_RECIPIENT]
+
       exec.get_note_inputs_commitment
       # => [INPUTS_HASH]
 
@@ -254,7 +270,7 @@ begin
       mem_loadw.5
       # => [SCRIPT_HASH]
 
-      # serial number
+      # Serial Number
       push.1.2.3.4
       # => [SERIAL_NUM, SCRIPT_HASH]
 
@@ -275,26 +291,6 @@ begin
       # store ptr to mem addr 3
       mem_store.13
       # => []
-      
-      # load requested amt & initial balance wallet token b
-      mem_load.10 mem_load.11
-      # => [requested_amt, balance_requested_wallet]
-      
-      # compute remainder 
-      sub
-      # => [amt_requested_remaining]
-
-      push.0.0
-      # => [0,0, amt_requested_remaining]
-
-      # get requested asset_id
-      mem_load.6
-      # => [ASSET_REMAINING]
-
-      # store ASSET out to memory addr 13
-      # dupw
-      mem_storew.12
-      # => [ASSET_REMAINING]
 
       # load note ptr
       mem_load.13

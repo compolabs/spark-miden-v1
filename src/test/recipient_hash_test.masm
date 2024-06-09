@@ -53,8 +53,7 @@ proc.get_note_inputs_commitment_mem
 end
 
 # [INPUTS_4, INPUTS_3, INPUTS_2, INPUTS_1]
-proc.get_note_inputs_commitment_stack
-  debug.stack
+proc.get_note_inputs_commitment
   # Initialize the capacity portion of the hasher state.
   # Absorb the first 8 values into the hasher state.
   swapdw padw movupw.2 movupw.2
@@ -79,13 +78,14 @@ proc.get_note_inputs_commitment_stack
   # Convert the state to the digest.
   exec.state_to_digest
   # => [Digest]
-
 end
 
 begin
 
   push.1.2.3.4.5.6.7.8.9.0.0.0.0.0.0.0
 
-  exec.get_note_inputs_commitment_stack
+  debug.stack
+
+  exec.get_note_inputs_commitment
 
 end
