@@ -292,14 +292,14 @@ fn test_partial_swap_fill() {
     // Offered Asset
     let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let amount_token_a = 100;
-    let token_a: Asset = FungibleAsset::new(faucet_id, amount_token_a)
+    let offered_token_a: Asset = FungibleAsset::new(faucet_id, amount_token_a)
         .unwrap()
         .into();
 
     // Requested Asset
     let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
-    let amount_token_b = 100;
-    let token_b: Asset = FungibleAsset::new(faucet_id_2, amount_token_b)
+    let requested_amount_token_b = 100;
+    let requested_token_b: Asset = FungibleAsset::new(faucet_id_2, requested_amount_token_b)
         .unwrap()
         .into();
 
@@ -326,9 +326,9 @@ fn test_partial_swap_fill() {
 
     // SWAPp note
     let (swap_note, _payback_note, _note_script_hash) = create_partial_swap_note(
-        swapp_creator_account_id,
-        token_a,
-        token_b,
+        swapp_creator_account_id.clone(),
+        offered_token_a,
+        requested_token_b,
         NoteType::Public,
         RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
@@ -372,22 +372,35 @@ fn test_partial_swap_fill() {
         .unwrap();
 
     // Note outputted by the transaction
-    let tx_output_note = executed_transaction.output_notes().get_note(0);
+    let tx_output_note = executed_transaction.output_notes().get_note(1);
+
+    let requested_token_b_amount_remaining = 20;
+    let remaining_token_b: Asset =
+        FungibleAsset::new(faucet_id_2, requested_token_b_amount_remaining)
+            .unwrap()
+            .into();
 
     // Note expected to be outputted by the transaction
-    let (_expected_note, _note_script_hash) = create_output_note(Some(Felt::new(301))).unwrap();
+    let (expected_swap_note, _payback_note, _note_script_hash) = create_partial_swap_note(
+        swapp_creator_account_id,
+        offered_token_a,
+        remaining_token_b,
+        NoteType::Public,
+        RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
+    )
+    .unwrap();
 
     assert_eq!(executed_transaction.output_notes().num_notes(), 2);
-
+/* 
     // Check that the output note is the same as the expected note
-    /*
+
     assert_eq!(
         NoteHeader::from(tx_output_note).metadata(),
-        NoteHeader::from(expected_note.clone()).metadata()
+        NoteHeader::from(expected_swap_note.clone()).metadata()
     );
     assert_eq!(
         NoteHeader::from(tx_output_note),
-        NoteHeader::from(expected_note.clone())
+        NoteHeader::from(expected_swap_note.clone())
     ); */
     /*
     // comment out to speed up test
