@@ -22,70 +22,50 @@ use miden_objects::{
 };
 use miden_vm::{prove, verify, Assembler, DefaultHost, ProvingOptions, StackInputs};
 
-use miden_objects::crypto::hash::rpo::Rpo256;
-
-pub fn new_note_script(
-    code: ProgramAst,
-    assembler: &Assembler,
-) -> Result<(NoteScript, CodeBlock), NoteError> {
-    // Compile the code in the context with phantom calls enabled
-    let code_block = assembler
-        .compile_in_context(
-            &code,
-            &mut AssemblyContext::for_program(Some(&code)).with_phantom_calls(true),
-        )
-        .map_err(NoteError::ScriptCompilationError)?;
-
-    // Use the from_parts method to create a NoteScript instance
-    let note_script = NoteScript::from_parts(code, code_block.hash());
-
-    Ok((note_script, code_block))
-}
-
-fn build_swap_tag(
-    note_type: NoteType,
-    offered_asset: &Asset,
-    requested_asset: &Asset,
-) -> Result<NoteTag, NoteError> {
-    const SWAP_USE_CASE_ID: u16 = 0;
-
-    // get bits 4..12 from faucet IDs of both assets, these bits will form the tag payload; the
-    // reason we skip the 4 most significant bits is that these encode metadata of underlying
-    // faucets and are likely to be the same for many different faucets.
-
-    let offered_asset_id: u64 = offered_asset.faucet_id().into();
-    let offered_asset_tag = (offered_asset_id >> 52) as u8;
-
-    let requested_asset_id: u64 = requested_asset.faucet_id().into();
-    let requested_asset_tag = (requested_asset_id >> 52) as u8;
-
-    let payload = ((offered_asset_tag as u16) << 8) | (requested_asset_tag as u16);
-
-    let execution = NoteExecutionHint::Local;
-    match note_type {
-        NoteType::Public => NoteTag::for_public_use_case(SWAP_USE_CASE_ID, payload, execution),
-        _ => NoteTag::for_local_use_case(SWAP_USE_CASE_ID, payload),
-    }
-}
-
-fn pad_inputs(inputs: &[Felt]) -> Vec<Felt> {
-    const BLOCK_SIZE: usize = 4 * 2;
-
-    let padded_len = inputs.len().next_multiple_of(BLOCK_SIZE);
-    let mut padded_inputs = Vec::with_capacity(padded_len);
-    padded_inputs.extend(inputs.iter());
-    padded_inputs.resize(padded_len, ZERO);
-
-    padded_inputs
+fn format_value_with_decimals(value: i64, decimals: u32) -> i64 {
+    value * 10i64.pow(decimals)
 }
 
 #[test]
-pub fn test_swap_math() {
+pub fn test_swap_math_base8_large_amounts() {
     // Instantiate the assembler
-    let assembler = Assembler::default().with_debug_mode(true);
+    let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
-    // Read the assembly program from a file
-    let assembly_code: &str = include_str!("../../src/test/swap_math.masm");
+    // Values to be formatted
+    let amount_a = format_value_with_decimals(100000, 8);
+    let amount_b = format_value_with_decimals(990000, 8);
+
+    let assembly_code = format!(
+        "
+  use.std::math::u64
+
+  begin
+
+    push.{amount_a}
+
+    # scale by 1e5
+    push.100000
+    mul
+    
+    u32split
+
+    push.{amount_b}
+
+    u32split
+    # => [b_hi, b_lo, a_hi, a_lo]
+    
+    exec.u64::div
+
+    # convert u64 to single stack => must be less than 2**64 - 2**32
+    # u64_number = (high_part * (2**32)) + low_part
+  
+    push.4294967296 mul add
+
+  end
+",
+        amount_a = amount_a,
+        amount_b = amount_b
+    );
 
     // Compile the program from the loaded assembly code
     let program = assembler
@@ -99,4 +79,134 @@ pub fn test_swap_math() {
     // Execute the program and generate a STARK proof
     let (outputs, _proof) = prove(&program, stack_inputs, host, ProvingOptions::default())
         .expect("Failed to execute the program and generate a proof");
+
+    println!("outputs: {:?}", outputs);
+
+    // Get the result from the assembly output and convert to i64
+    let assembly_result_u64: u64 = outputs.stack()[0].into();
+    let assembly_result: i64 = assembly_result_u64 as i64;
+
+    // Compute the expected result in Rust with fixed-point precision taken into account
+    let rust_result = (amount_a as f64 / amount_b as f64 * 10f64.powi(5)).round() as i64;
+
+    // Define the acceptable margin
+    let margin = 1000; // Adjust the margin as needed
+
+    println!("assembly_result: {}", assembly_result);
+    println!("rust_result: {}", rust_result);
+
+    // Check if the results match within the margin
+    assert!(
+        (assembly_result - rust_result).abs() <= margin,
+        "Assembly result ({}) and Rust result ({}) differ by more than {}",
+        assembly_result,
+        rust_result,
+        margin
+    );
+}
+
+#[test]
+pub fn test_swap_math_base8_small_amounts() {
+    // Instantiate the assembler
+    let assembler = TransactionKernel::assembler().with_debug_mode(true);
+
+    // Values to be formatted
+    let amount_a = format_value_with_decimals(1, 8);
+    let amount_b = format_value_with_decimals(70000, 8);
+
+    let assembly_code = format!(
+        "
+  use.std::math::u64
+
+  begin
+
+    push.{amount_a}
+
+    # scale by 1e5
+    push.100000
+    mul
+    
+    u32split
+
+    push.{amount_b}
+
+    u32split
+    # => [b_hi, b_lo, a_hi, a_lo]
+    
+    exec.u64::div
+
+    # convert u64 to single stack => must be less than 2**64 - 2**32
+    # u64_number = (high_part * (2**32)) + low_part
+  
+    push.4294967296 mul add
+
+  end
+",
+        amount_a = amount_a,
+        amount_b = amount_b
+    );
+
+    // Compile the program from the loaded assembly code
+    let program = assembler
+        .compile(assembly_code)
+        .expect("Failed to compile the assembly code");
+
+    let stack_inputs = StackInputs::try_from_ints([]).unwrap();
+
+    let host = DefaultHost::default();
+
+    // Execute the program and generate a STARK proof
+    let (outputs, _proof) = prove(&program, stack_inputs, host, ProvingOptions::default())
+        .expect("Failed to execute the program and generate a proof");
+
+    println!("outputs: {:?}", outputs);
+
+    // Get the result from the assembly output and convert to i64
+    let assembly_result_u64: u64 = outputs.stack()[0].into();
+    let assembly_result: i64 = assembly_result_u64 as i64;
+
+    // Compute the expected result in Rust with fixed-point precision taken into account
+    let rust_result = (amount_a as f64 / amount_b as f64 * 10f64.powi(5)).round() as i64;
+
+    // Define the acceptable margin
+    let margin = 1000; // Adjust the margin as needed
+
+    println!("assembly_result: {}", assembly_result);
+    println!("rust_result: {}", rust_result);
+
+    // Check if the results match within the margin
+    assert!(
+        (assembly_result - rust_result).abs() <= margin,
+        "Assembly result ({}) and Rust result ({}) differ by more than {}",
+        assembly_result,
+        rust_result,
+        margin
+    );
+}
+
+#[test]
+pub fn test_swap_math_base8_conversion() {
+    // Instantiate the assembler
+    let assembler = TransactionKernel::assembler().with_debug_mode(true);
+
+    let assembly_code = include_str!("../../src/test/u64_swap_math.masm");
+
+    // Compile the program from the loaded assembly code
+    let program = assembler
+        .compile(assembly_code)
+        .expect("Failed to compile the assembly code");
+
+    let stack_inputs = StackInputs::try_from_ints([]).unwrap();
+
+    let host = DefaultHost::default();
+
+    // Execute the program and generate a STARK proof
+    let (outputs, _proof) = prove(&program, stack_inputs, host, ProvingOptions::default())
+        .expect("Failed to execute the program and generate a proof");
+
+    println!("outputs: {:?}", outputs);
+
+    let result = outputs.stack().get(0).unwrap();
+
+    println!("result: {:?}", result);
 }

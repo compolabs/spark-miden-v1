@@ -1,0 +1,21 @@
+use.miden::account
+use.miden::tx
+use.miden::contracts::wallets::basic->wallet
+use.miden::contracts::auth::basic->basic_eoa
+
+# acct proc 0
+export.wallet::receive_asset
+
+# acct proc 1
+export.basic_eoa::auth_tx_rpo_falcon512
+
+# acct proc 2
+export.account_procedure_1
+    push.3.4
+    add
+    debug.stack
+    drop
+
+    push.1
+    exec.account::incr_nonce
+end
