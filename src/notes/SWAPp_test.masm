@@ -108,6 +108,27 @@ end
 # ├── 0x0000000c: [ASSET_remainder_for_new_SWAPp_note_token_a]
 # └── 0x0000000d: [new_SWAPp_ptr]
 begin
+
+    # 1) get amount that consumer wants to sell
+    # 2) calculate price ratio (todo => div with UD12x8 or UD14x6)
+    # => ratio = token_b / token_a
+
+    # 3) calculate token a amount out to consumer
+    # => token_a_out = balance_b * ratio
+
+    # 4) calculate token b amount to creator
+    
+    # 5) calculate token a remaining for new SWAPp note
+    # => token_a_remaining = token_a - token_a_out 
+
+    # 6) calculate updated token b requested amount (input hash)
+    # => token_b_requested_remaining = token_a_remaining * ratio
+
+    # 7) verify price ratio is constant within some margin (precision loss depends on fixed point lib precision)
+    # => assert_eq(token_b_requested_remaining / token_a_remaining , token_b / token_a)
+ 
+
+ 
     # store SWAPp script hash to mem addr 5 & drop
     mem_storew.5 dropw
     # => []

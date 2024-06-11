@@ -93,36 +93,6 @@ pub fn new_note_script(
     Ok((note_script, code_block))
 }
 
-fn create_initial_message_note<R: FeltRng>(
-    sender_account_id: AccountId,
-    target_account_id: AccountId,
-    note_input: Felt,
-    mut rng: R,
-) -> Result<Note, NoteError> {
-    let note_script = include_str!("../../src/notes/SWAPp.masm");
-
-    let note_assembler = TransactionKernel::assembler().with_debug_mode(true);
-
-    let script_ast = ProgramAst::parse(&note_script).unwrap();
-    let (note_script, _) = new_note_script(script_ast, &note_assembler).unwrap();
-
-    let inputs = NoteInputs::new(vec![note_input])?;
-
-    let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
-    println!("{:?}", tag);
-
-    let serial_num = rng.draw_word();
-    let aux = ZERO;
-    let note_type = NoteType::OffChain;
-    let metadata = NoteMetadata::new(sender_account_id, note_type, tag, aux)?;
-
-    // empty vault
-    let vault = NoteAssets::new(vec![])?;
-    let recipient = NoteRecipient::new(serial_num, note_script, inputs);
-
-    Ok(Note::new(vault, metadata, recipient))
-}
-
 fn build_swap_tag(
     note_type: NoteType,
     offered_asset: &Asset,
@@ -156,7 +126,7 @@ pub fn create_partial_swap_note<R: FeltRng>(
     note_type: NoteType,
     mut rng: R,
 ) -> Result<(Note, NoteDetails, RpoDigest), NoteError> {
-    let note_code = include_str!("../../src/notes/SWAPp.masm");
+    let note_code = include_str!("../../src/notes/SWAPp_test.masm");
     let (note_script, _code_block) = new_note_script(
         ProgramAst::parse(note_code).unwrap(),
         &TransactionKernel::assembler().with_debug_mode(true),
@@ -215,7 +185,7 @@ pub fn create_output_note(note_input: Option<Felt>) -> Result<(Note, RpoDigest),
 
     let note_assembler = TransactionKernel::assembler().with_debug_mode(true);
 
-    let note_script = include_str!("../../src/notes/SWAPp.masm");
+    let note_script = include_str!("../../src/notes/SWAPp_test.masm");
 
     let script_ast = ProgramAst::parse(&note_script).unwrap();
     let (note_script, _) = new_note_script(script_ast, &note_assembler).unwrap();
@@ -391,7 +361,7 @@ fn test_partial_swap_fill() {
     .unwrap();
 
     assert_eq!(executed_transaction.output_notes().num_notes(), 2);
-/* 
+    /*
     // Check that the output note is the same as the expected note
 
     assert_eq!(
