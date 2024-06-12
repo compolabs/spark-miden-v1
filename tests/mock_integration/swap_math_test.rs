@@ -421,61 +421,61 @@ pub fn test_msb_masm() {
     let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
     // Values to be formatted
-    let amount_a = format_value_with_decimals(1, 8);
+    let amount_a = format_value_with_decimals(15, 8);
 
     let assembly_code = format!(
         "
-        use.std::math::u64
+      use.std::math::u64
 
-        # input: [u64 a_hi, u64 a_lo]
-        proc.msb
+      # input: [u64 a_hi, u64 a_lo]
+      proc.msb
+        mem_store.10
+        mem_store.11
+
+        push.0
+        mem_store.20
+
+        push.1
+
+        while.true
+          mem_load.11
+          mem_load.10
+
+          push.1
+
+          exec.u64::shr
+
           mem_store.10
           mem_store.11
-  
-          push.0
-          mem_store.20
-  
-          push.1
 
-          while.true
-            mem_load.11
-            mem_load.10
-
-            push.1
-
-            exec.u64::shr
-
-            mem_store.10
-            mem_store.11
-  
-            mem_load.20
-            push.1
-            add 
-            mem_store.20
-
-            mem_load.11
-            push.0
-            mem_load.10
-            push.0
-
-            neq neq neq
-
-            if.true
-              push.1
-            else
-              push.0
-            end
-
-          end
-  
           mem_load.20
           push.1
-          sub
-  
+          add 
+          mem_store.20
+
+          mem_load.11
+          push.0
+          mem_load.10
+          push.0
+
+          neq neq neq
+
+          if.true
+            push.1
+          else
+            push.0
+          end
+
         end
 
+        mem_load.20
+        push.1
+        sub
+
+      end
+
         begin
-          push.{amount_a}
+          push.15
           u32split
 
           exec.msb
@@ -485,7 +485,7 @@ pub fn test_msb_masm() {
           drop
         end
     ",
-        amount_a = amount_a,
+        // amount_a = amount_a,
     );
 
     // Compile the program from the loaded assembly code
@@ -507,6 +507,220 @@ pub fn test_msb_masm() {
     let assembly_result_u64: u64 = outputs.stack()[0].into();
     let assembly_result: i64 = assembly_result_u64 as i64;
     println!("assembly_result: {}", assembly_result);
+}
+
+#[test]
+pub fn test_closest_base_ten_masm() {
+    // Instantiate the assembler
+    let assembler = TransactionKernel::assembler().with_debug_mode(true);
+
+    // Values to be formatted
+    let value = format_value_with_decimals(11, 8);
+
+    let assembly_code = format!(
+        "
+        proc.closest_base_ten
+
+        mem_store.10
+    
+        # 1e18
+        mem_load.10
+        push.0x0DE0B6B3A7640000
+        gte
+        if.true
+            push.0x0DE0B6B3A7640000
+            mem_store.11
+        else
+            # 1e17
+            mem_load.10
+            push.0x016345785D8A0000
+            gte
+            if.true
+                push.0x016345785D8A0000
+                mem_store.11
+            else
+                # 1e16
+                mem_load.10
+                push.0x002386F26FC10000
+                gte
+                if.true
+                    push.0x002386F26FC10000
+                    mem_store.11
+                else
+                    # 1e15
+                    mem_load.10
+                    push.0x00038D7EA4C68000
+                    gte
+                    if.true
+                        push.0x00038D7EA4C68000
+                        mem_store.11
+                    else
+                        # 1e14
+                        mem_load.10
+                        push.0x00005AF3107A4000
+                        gte
+                        if.true
+                            push.0x00005AF3107A4000
+                            mem_store.11
+                        else
+                            # 1e13
+                            mem_load.10
+                            push.0x000009184E72A000
+                            gte
+                            if.true
+                                push.0x000009184E72A000
+                                mem_store.11
+                            else
+                                # 1e12
+                                mem_load.10
+                                push.0x000000E8D4A51000
+                                gte
+                                if.true
+                                    push.0x000000E8D4A51000
+                                    mem_store.11
+                                else
+                                    # 1e11
+                                    mem_load.10
+                                    push.0x000000174876E800
+                                    gte
+                                    if.true
+                                        push.0x000000174876E800
+                                        mem_store.11
+                                    else
+                                        # 1e10
+                                        mem_load.10
+                                        push.0x00000002540BE400
+                                        gte
+                                        if.true
+                                            push.0x00000002540BE400
+                                            mem_store.11
+                                        else
+                                            # 1e9
+                                            mem_load.10
+                                            push.0x3B9ACA00
+                                            gte
+                                            if.true
+                                                push.0x3B9ACA00
+                                                mem_store.11
+                                            else
+                                                # 1e8
+                                                mem_load.10
+                                                push.0x05F5E100
+                                                gte
+                                                if.true
+                                                    push.0x05F5E100
+                                                    mem_store.11
+                                                else
+                                                    # 1e7
+                                                    mem_load.10
+                                                    push.0x00989680
+                                                    gte
+                                                    if.true
+                                                        push.0x00989680
+                                                        mem_store.11
+                                                    else
+                                                        # 1e6
+                                                        mem_load.10
+                                                        push.0x000F4240
+                                                        gte
+                                                        if.true
+                                                            push.0x000F4240
+                                                            mem_store.11
+                                                        else
+                                                            # 1e5
+                                                            mem_load.10
+                                                            push.0x000186A0
+                                                            gte
+                                                            if.true
+                                                                push.0x000186A0
+                                                                mem_store.11
+                                                            else
+                                                                # 1e4
+                                                                mem_load.10
+                                                                push.0x2710
+                                                                gte
+                                                                if.true
+                                                                    push.0x2710
+                                                                    mem_store.11
+                                                                else
+                                                                    # 1e3
+                                                                    mem_load.10
+                                                                    push.0x03E8
+                                                                    gte
+                                                                    if.true
+                                                                        push.0x03E8
+                                                                        mem_store.11
+                                                                    else
+                                                                        # 1e2
+                                                                        mem_load.10
+                                                                        push.0x0064
+                                                                        gte
+                                                                        if.true
+                                                                            push.0x0064
+                                                                            mem_store.11
+                                                                        else
+                                                                            # 1e1
+                                                                            mem_load.10
+                                                                            push.0x000A
+                                                                            gte
+                                                                            if.true
+                                                                                push.0x000A
+                                                                                mem_store.11
+                                                                            else
+                                                                                push.1
+                                                                                mem_store.11
+                                                                            end
+                                                                        end
+                                                                    end
+                                                                end
+                                                            end
+                                                        end
+                                                    end
+                                                end
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    
+        mem_load.11
+    end
+    
+    begin
+        push.{value}
+        exec.closest_base_ten
+    end
+    
+    ", value = value
+    );
+
+    // Compile the program from the loaded assembly code
+    let program = assembler
+        .compile(assembly_code)
+        .expect("Failed to compile the assembly code");
+
+    let stack_inputs = StackInputs::try_from_ints([]).unwrap();
+
+    let host = DefaultHost::default();
+
+    // Execute the program and generate a STARK proof
+    let (outputs, _proof) = prove(&program, stack_inputs, host, ProvingOptions::default())
+        .expect("Failed to execute the program and generate a proof");
+
+    println!("outputs: {:?}", outputs);
+
+    // Get the result from the assembly output and convert to i64
+    let assembly_result_u64: u64 = outputs.stack()[0].into();
+    let assembly_result: i64 = assembly_result_u64 as i64;
+    println!("assembly_result: {}", assembly_result);
+
+    // Check if the result is correct
+    assert_eq!(assembly_result, 1_000_000);
 }
 
 #[test]
