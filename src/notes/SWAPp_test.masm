@@ -230,6 +230,7 @@ begin
     dup mem_store.6
     # => [OFFERED_ASSET]
     
+    # TODO: use note args instead of user wallet
     # get token_a balance user wallet save @ mem addr 9
     mem_load.6 call.account::get_balance mem_store.9
     # => [OFFERED_ASSET] 
