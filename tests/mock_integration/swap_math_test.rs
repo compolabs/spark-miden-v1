@@ -513,7 +513,7 @@ pub fn test_closest_base_ten_masm() {
 #[test]
 pub fn test_calculate_tokens_a_for_b() {
     // Values to be used in the test
-    let (tokens_a, decimals_a) = (70000, 8);
+    let (tokens_a, decimals_a) = (357179, 8);
     let (tokens_b, decimals_b) = (1, 8);
     let (tokens_b_in, decimals_b_in) = (5, 7);
 
@@ -526,82 +526,83 @@ pub fn test_calculate_tokens_a_for_b() {
         "
       use.std::math::u64
 
+      const.AMT_TOKENS_A=0x0064
+      const.AMT_TOKENS_B=0x0065
+      const.AMT_TOKENS_B_IN=0x0066
+      const.RATIO=0x0067
+      
+      const.FACTOR=0x000186A0 # 1e5
+      const.MAX_U32=0x0000000100000000
+      
       # input: [tokens_a, tokens_b, tokens_b_in]
       # output: [tokens_a_out]
       proc.calculate_tokens_a_for_b
-
-        mem_store.10 # tokens_a
-        mem_store.11 # tokens_b
-        mem_store.12 # tokens_b_in
-
-        mem_load.11 mem_load.10
+      
+        mem_store.AMT_TOKENS_A # tokens_a
+        mem_store.AMT_TOKENS_B # tokens_b
+        mem_store.AMT_TOKENS_B_IN # tokens_b_in
+      
+        mem_load.AMT_TOKENS_B mem_load.AMT_TOKENS_A
         # => [tokens_a, tokens_b]
-
+      
         gt
         if.true
-          mem_load.11
+          mem_load.AMT_TOKENS_B
           u32split
-
-          push.100000
+      
+          push.FACTOR
           u32split
                   
           exec.u64::wrapping_mul
-
-          mem_load.10
+      
+          mem_load.AMT_TOKENS_A
           u32split
-
+      
           exec.u64::div
-          push.4294967296 mul add
-
-          mem_store.13
-
-          mem_load.12
+          push.MAX_U32 mul add
+      
+          mem_store.RATIO
+      
+          mem_load.AMT_TOKENS_B_IN
           u32split
-
-          push.100000
+      
+          push.FACTOR
           u32split
-
+      
           exec.u64::wrapping_mul
-
-          mem_load.13
+      
+          mem_load.RATIO
           u32split
-
+      
           exec.u64::div
-
-          push.4294967296 mul add          
-
+      
+          push.MAX_U32 mul add          
+      
         else
-          push.505
-          debug.stack
-          drop
-
-          mem_load.10
+          mem_load.AMT_TOKENS_A
           u32split
-
-          push.100000
+      
+          push.FACTOR
           u32split
                   
           exec.u64::wrapping_mul
-
-          mem_load.11
+      
+          mem_load.AMT_TOKENS_B
           u32split
-
+      
           exec.u64::div
-          # push.4294967296 mul add
-
-          # mem_store.13
-
-          mem_load.12
+      
+          mem_load.AMT_TOKENS_B_IN
           u32split
-
+      
           exec.u64::wrapping_mul
-
-          push.100000
+      
+          push.FACTOR
           u32split
-
+      
           exec.u64::div
-          push.4294967296 mul add          
-
+          push.MAX_U32 mul add          
+      
         end
       end
 
