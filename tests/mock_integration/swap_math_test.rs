@@ -730,9 +730,9 @@ pub fn test_calculate_tokens_a_for_b() {
     let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
     // Values to be formatted
-    let amount_a = format_value_with_decimals(10, 8);
-    let amount_b = format_value_with_decimals(11, 8);
-    let amount_b_in = format_value_with_decimals(5, 8);
+    let amount_a = format_value_with_decimals(70000, 8);
+    let amount_b = format_value_with_decimals(1, 8);
+    let amount_b_in = format_value_with_decimals(5, 7);
 
     let assembly_code = format!(
         "
@@ -762,9 +762,6 @@ pub fn test_calculate_tokens_a_for_b() {
           mem_load.10
           u32split
 
-          debug.stack
-          debug.mem
-
           exec.u64::div
           push.4294967296 mul add
 
@@ -785,15 +782,38 @@ pub fn test_calculate_tokens_a_for_b() {
 
           push.4294967296 mul add          
 
-          
-          
-
-
         else
-
           push.505
           debug.stack
           drop
+
+          mem_load.10
+          u32split
+
+          push.100000
+          u32split
+                  
+          exec.u64::wrapping_mul
+
+          mem_load.11
+          u32split
+
+          exec.u64::div
+          # push.4294967296 mul add
+
+          # mem_store.13
+
+          mem_load.12
+          u32split
+
+          exec.u64::wrapping_mul
+
+          push.100000
+          u32split
+
+          exec.u64::div
+          push.4294967296 mul add          
+
         end
 
 
