@@ -24,24 +24,6 @@ use crate::utils::{
     ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN, ACCOUNT_ID_SENDER, ACCOUNT_ID_SENDER_1,
 };
 
-const MASTS: [&str; 2] = [
-    "0x61e28f7c3fd6d79ea2f225f8d64961ba935329b9a68016ada1fabf22eee726b0", // recieve_asset
-    "0x74de7e94e5afc71e608f590c139ac51f446fc694da83f93d968b019d1d2b7306", // send_asset
-];
-
-const ACCOUNT_CODE: &str = include_str!("../../src/accounts/user_wallet.masm");
-
-pub fn account_code(assembler: &Assembler) -> AccountCode {
-    let account_module_ast = ModuleAst::parse(ACCOUNT_CODE).unwrap();
-    let code = AccountCode::new(account_module_ast, assembler).unwrap();
-
-    let current: [String; 2] = [code.procedures()[0].to_hex(), code.procedures()[1].to_hex()];
-
-    assert!(current == MASTS, "UPDATE MAST ROOT: {:?};", current);
-
-    code
-}
-
 pub fn get_custom_account_code(
     account_id: AccountId,
     public_key: Word,
@@ -119,12 +101,13 @@ fn build_swap_tag(
     }
 }
 
-pub fn create_partial_swap_note<R: FeltRng>(
+pub fn create_partial_swap_note(
     sender: AccountId,
+    last_consumer: AccountId,
     offered_asset: Asset,
     requested_asset: Asset,
     note_type: NoteType,
-    mut rng: R,
+    serial_num: [Felt; 4],
 ) -> Result<(Note, NoteDetails, RpoDigest), NoteError> {
     let note_code = include_str!("../../src/notes/SWAPp_test.masm");
     let (note_script, _code_block) = new_note_script(
@@ -133,12 +116,14 @@ pub fn create_partial_swap_note<R: FeltRng>(
     )
     .unwrap();
 
-    let payback_serial_num = rng.draw_word();
-    let payback_recipient = build_p2id_recipient(sender, payback_serial_num)?;
+    let payback_recipient = build_p2id_recipient(sender, serial_num)?;
 
     let payback_recipient_word: Word = payback_recipient.digest().into();
     let requested_asset_word: Word = requested_asset.into();
-    let payback_tag = NoteTag::from_account_id(sender, NoteExecutionHint::Local)?;
+    // let payback_tag = NoteTag::from_account_id(sender, NoteExecutionHint::Local)?;
+
+    // build the tag for the SWAP use case
+    let tag = build_swap_tag(note_type, &offered_asset, &requested_asset)?;
 
     let inputs = NoteInputs::new(vec![
         payback_recipient_word[0],
@@ -149,21 +134,15 @@ pub fn create_partial_swap_note<R: FeltRng>(
         requested_asset_word[1],
         requested_asset_word[2],
         requested_asset_word[3],
-        payback_tag.inner().into(),
+        tag.inner().into(),
     ])?;
 
-    println!("{:?}", inputs.to_padded_values());
-    println!("Inputs hash: {:?}", inputs.commitment());
-
-    // build the tag for the SWAP use case
-    let tag = build_swap_tag(note_type, &offered_asset, &requested_asset)?;
-    let serial_num = rng.draw_word();
     let aux = ZERO;
 
     // build the outgoing note
-    let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
+    let metadata = NoteMetadata::new(last_consumer, note_type, tag, aux)?;
     let assets = NoteAssets::new(vec![offered_asset])?;
-    let recipient = NoteRecipient::new(serial_num, note_script.clone(), inputs);
+    let recipient = NoteRecipient::new(serial_num, note_script.clone(), inputs.clone());
     let note = Note::new(assets, metadata, recipient);
 
     // build the payback note details
@@ -172,59 +151,11 @@ pub fn create_partial_swap_note<R: FeltRng>(
 
     let note_script_hash = note_script.hash();
 
+    println!("Inputs commitment: {:?}", inputs);
+    println!("Inputs commitment: {:?}", inputs.commitment());
+
     Ok((note, payback_note, note_script_hash))
 }
-
-pub fn create_output_note(note_input: Option<Felt>) -> Result<(Note, RpoDigest), NoteError> {
-    let sender_account_id: AccountId =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
-
-    // Create target smart contract
-    let target_account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
-
-    let note_assembler = TransactionKernel::assembler().with_debug_mode(true);
-
-    let note_script = include_str!("../../src/notes/SWAPp_test.masm");
-
-    let script_ast = ProgramAst::parse(&note_script).unwrap();
-    let (note_script, _) = new_note_script(script_ast, &note_assembler).unwrap();
-
-    // add the inputs to the note
-    let input_values = match note_input {
-        Some(value) => vec![value],
-        None => vec![],
-    };
-
-    let inputs: NoteInputs = NoteInputs::new(input_values).unwrap();
-
-    let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local).unwrap();
-    let serial_num = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-    let aux = ZERO;
-    let note_type = NoteType::OffChain;
-    let metadata = NoteMetadata::new(sender_account_id, note_type, tag, aux).unwrap();
-
-    // empty vault
-    let vault: NoteAssets = NoteAssets::new(vec![]).unwrap();
-    let recipient = NoteRecipient::new(serial_num, note_script.clone(), inputs);
-
-    let note_script_hash = note_script.hash();
-
-    Ok((Note::new(vault, metadata, recipient), note_script_hash))
-}
-
-/* // Run this first to check MASTs are correct
-#[test]
-pub fn check_account_masts() {
-    let assembler: Assembler = TransactionKernel::assembler().with_debug_mode(true);
-
-    let account_module_ast = ModuleAst::parse(ACCOUNT_CODE).unwrap();
-    let code = AccountCode::new(account_module_ast, &assembler).unwrap();
-
-    let current: [String; 2] = [code.procedures()[0].to_hex(), code.procedures()[1].to_hex()];
-    println!("{:?}", current);
-    assert!(current == MASTS, "UPDATE MAST ROOT: {:?};", current);
-} */
 
 #[test]
 pub fn get_note_script_hash() {
@@ -241,10 +172,11 @@ pub fn get_note_script_hash() {
 
     let (swap_note, _payback_note, note_script_hash) = create_partial_swap_note(
         sender_account_id,
+        sender_account_id,
         offered_asset,
         requested_asset,
-        NoteType::Public,
-        RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
+        NoteType::OffChain,
+        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
     )
     .unwrap();
 
@@ -256,13 +188,26 @@ pub fn get_note_script_hash() {
     println!("Note script hash: {:?}", note_script_hash);
 }
 
+// Helper function to calculate tokens_a for tokens_b
+fn calculate_tokens_a_for_b(tokens_a: i64, tokens_b: i64, requested_tokens_b: i64) -> i64 {
+    let scaling_factor = 100_000i64;
+
+    if tokens_a < tokens_b {
+        let scaled_ratio = (tokens_b * scaling_factor) / tokens_a;
+        (requested_tokens_b * scaling_factor) / scaled_ratio
+    } else {
+        let scaled_ratio = (tokens_a * scaling_factor) / tokens_b;
+        (scaled_ratio * requested_tokens_b) / scaling_factor
+    }
+}
+
 #[test]
 fn test_partial_swap_fill() {
     // ASSETS
     // Offered Asset
-    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+    let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let amount_token_a = 100;
-    let offered_token_a: Asset = FungibleAsset::new(faucet_id, amount_token_a)
+    let offered_token_a: Asset = FungibleAsset::new(faucet_id_1, amount_token_a)
         .unwrap()
         .into();
 
@@ -297,10 +242,11 @@ fn test_partial_swap_fill() {
     // SWAPp note
     let (swap_note, _payback_note, _note_script_hash) = create_partial_swap_note(
         swapp_creator_account_id.clone(),
+        swapp_creator_account_id.clone(),
         offered_token_a,
         requested_token_b,
-        NoteType::Public,
-        RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
+        NoteType::OffChain,
+        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
     )
     .unwrap();
 
@@ -344,7 +290,20 @@ fn test_partial_swap_fill() {
     // Note outputted by the transaction
     let tx_output_note = executed_transaction.output_notes().get_note(1);
 
-    let requested_token_b_amount_remaining = 20;
+    let offered_token_a_out_amount = calculate_tokens_a_for_b(
+        amount_token_a as i64,
+        requested_amount_token_b as i64,
+        swap_consumer_balance_token_b as i64,
+    );
+
+    let offered_token_a_amount_remaining = amount_token_a - offered_token_a_out_amount as u64;
+    let remaining_token_a: Asset =
+        FungibleAsset::new(faucet_id_1, offered_token_a_amount_remaining)
+            .unwrap()
+            .into();
+
+    let requested_token_b_amount_remaining =
+        requested_amount_token_b - swap_consumer_balance_token_b;
     let remaining_token_b: Asset =
         FungibleAsset::new(faucet_id_2, requested_token_b_amount_remaining)
             .unwrap()
@@ -353,25 +312,28 @@ fn test_partial_swap_fill() {
     // Note expected to be outputted by the transaction
     let (expected_swap_note, _payback_note, _note_script_hash) = create_partial_swap_note(
         swapp_creator_account_id,
-        offered_token_a,
+        swapp_consumer_account_id,
+        remaining_token_a,
         remaining_token_b,
-        NoteType::Public,
-        RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
+        NoteType::OffChain,
+        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
     )
     .unwrap();
 
     assert_eq!(executed_transaction.output_notes().num_notes(), 2);
-    /*
+
     // Check that the output note is the same as the expected note
 
     assert_eq!(
         NoteHeader::from(tx_output_note).metadata(),
         NoteHeader::from(expected_swap_note.clone()).metadata()
     );
+
     assert_eq!(
         NoteHeader::from(tx_output_note),
         NoteHeader::from(expected_swap_note.clone())
-    ); */
+    );
+
     /*
     // comment out to speed up test
     // assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());

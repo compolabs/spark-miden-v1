@@ -228,8 +228,14 @@ begin
     eq.9 assert.err=ERR_SWAP_WRONG_NUMBER_OF_INPUTS
     # => [inputs_ptr]
 
+    drop padw mem_loadw
+    debug.stack
+
+
     mem_loadw.1
-    # => [REQUESTED_ASSET, RECIPIENT_P2ID]
+    # => [REQUESTED_ASSET]
+
+    debug.stack
 
     # store token_b_id to memory addr 7
     dup mem_store.7
@@ -268,40 +274,26 @@ begin
       mem_load.11
     end
 
-    # send token_a_amt to consuming wallet
-    # push.0.0 mem_load.6
-    # call.wallet::receive_asset dropw
-
-    # mem_load.6
-    #call.account::get_balance
-
     # 1) send token B amt in to creator
     # 2) send token A out amt to consumer
     # 3) create SWAPp' and calculate token_a & token_b
     # 4) add token_a' and token_b' to SWAPp' 
-    
 
     # 1) send token B amt to creator
     mem_loadw.0 push.2 mem_load.2 mem_load.10 push.0.0 mem_load.7
     # => [requested_token_id, 0, 0, token_b_AMT_IN, tag, note_type, RECIPIENT_P2ID]
 
-    call.wallet::send_asset
-    # => [ptr, ZERO, ZERO, 0]
-
-    dropw
+    call.wallet::send_asset dropw
+    # => []
 
     # 2) send token A out amt to consumer
     mem_load.11 push.0.0 mem_load.6
     # => [token_a_AMT_OUT, 0, 0, token_a_id]
 
     call.wallet::receive_asset
-
-    push.111
-    debug.stack
-    drop
+    # => []
 
     # 3) create SWAPp' and calculate token_a' & token_b'
-
     padw mem_loadw.0
     # => [PAYBACK_RECIPIENT]
 
@@ -317,8 +309,13 @@ begin
     push.0.0.0.0.0.0.0
     # => [0,0,0,0,0,0,0, payback_tag, ASSET_REQUESTED_REMAINING, PAYBACK_RECIPIENT]
 
+    debug.stack
+    debug.mem
+
     exec.get_note_inputs_commitment
     # => [INPUTS_HASH]
+
+    debug.stack
 
     mem_loadw.5
     # => [SCRIPT_HASH, INPUTS_HASH]
@@ -329,12 +326,8 @@ begin
     exec.build_recipient_hash 
     # => [RECIPIENT_SWAPP]
 
-    push.2
-    # => [note_type, RECIPIENT_SWAPP]
-
-    debug.stack
-
-    mem_load.2
+    push.2 mem_load.2
+    # => [payback_tag, note_type, RECIPIENT_SWAPP]
 
     call.tx::create_note
     # => [swapp_ptr]
