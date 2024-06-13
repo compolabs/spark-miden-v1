@@ -4,6 +4,7 @@ use.miden::tx
 use.miden::account
 use.std::sys
 use.std::crypto::hashes::native
+use.std::math::u64
 # CONSTANTS
 # =================================================================================================
 
@@ -17,6 +18,92 @@ const.ERR_SWAP_WRONG_NUMBER_OF_INPUTS=0x00020007
 
 # SWAP script requires exactly one note asset
 const.ERR_SWAP_WRONG_NUMBER_OF_ASSETS=0x00020008
+
+# PRICE CALCULATION
+# =================================================================================================
+
+# memory addresses for calculate_tokens_a_for_b 
+const.AMT_TOKENS_A=0x0064
+const.AMT_TOKENS_B=0x0065
+const.AMT_TOKENS_B_IN=0x0066
+const.RATIO=0x0067
+
+# factor amount
+const.FACTOR=0x000186A0 # 1e5
+const.MAX_U32=0x0000000100000000
+
+# input: [tokens_a, tokens_b, tokens_b_in]
+# output: [tokens_a_out]
+proc.calculate_tokens_a_for_b
+
+  mem_store.AMT_TOKENS_A # tokens_a
+  mem_store.AMT_TOKENS_B # tokens_b
+  mem_store.AMT_TOKENS_B_IN # tokens_b_in
+
+  mem_load.AMT_TOKENS_B mem_load.AMT_TOKENS_A
+  # => [tokens_a, tokens_b]
+
+  gt
+  if.true
+    mem_load.AMT_TOKENS_B
+    u32split
+
+    push.FACTOR
+    u32split
+            
+    exec.u64::wrapping_mul
+
+    mem_load.AMT_TOKENS_A
+    u32split
+
+    exec.u64::div
+    push.MAX_U32 mul add
+
+    mem_store.RATIO
+
+    mem_load.AMT_TOKENS_B_IN
+    u32split
+
+    push.FACTOR
+    u32split
+
+    exec.u64::wrapping_mul
+
+    mem_load.RATIO
+    u32split
+
+    exec.u64::div
+
+    push.MAX_U32 mul add          
+
+  else
+    mem_load.AMT_TOKENS_A
+    u32split
+
+    push.FACTOR
+    u32split
+            
+    exec.u64::wrapping_mul
+
+    mem_load.AMT_TOKENS_B
+    u32split
+
+    exec.u64::div
+
+    mem_load.AMT_TOKENS_B_IN
+    u32split
+
+    exec.u64::wrapping_mul
+
+    push.FACTOR
+    u32split
+
+    exec.u64::div
+    push.MAX_U32 mul add          
+
+  end
+end
+
 
 #! Returns the RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and input
 #!
@@ -127,8 +214,6 @@ begin
     # 7) verify price ratio is constant within some margin (precision loss depends on fixed point lib precision)
     # => assert_eq(token_b_requested_remaining / token_a_remaining , token_b / token_a)
  
-
- 
     # store SWAPp script hash to mem addr 5 & drop
     mem_storew.5 dropw
     # => []
@@ -139,19 +224,24 @@ begin
 
     # load the asset and add it to the account
     mem_loadw
-    # => [REQUESTED_ASSET]
+    # => [OFFERED_ASSET]
 
     # store token_a_id to memory addr 6
     dup mem_store.6
-    # => [REQUESTED_ASSET]
+    # => [OFFERED_ASSET]
     
     # get token_a balance user wallet save @ mem addr 9
     mem_load.6 call.account::get_balance mem_store.9
-    # => [REQUESTED_ASSET] 
+    # => [OFFERED_ASSET] 
 
+    debug.stack
+    debug.mem
+    
     # save token_a balance of note @ mem addr 8
     swap.3 dup mem_store.8 swap.3
-    # => [REQUESTED_ASSET] 
+    # => [OFFERED_ASSET] 
+
+    debug.stack
 
     call.wallet::receive_asset dropw
     # => []
@@ -217,10 +307,6 @@ begin
       mem_load.6
       # => [requested_token_id, 0, 0, wallet balance, tag, note_type, RECIPIENT_P2ID]
 
-      push.102
-      debug.stack
-      drop 
-
       # create a note using inputs
       call.wallet::send_asset
       # => [ptr, ZERO, ZERO, 0]
@@ -248,10 +334,6 @@ begin
       # get requested asset_id
       mem_load.7
       # => [ASSET_REQUESTED_REMAINING, PAYBACK_RECIPIENT]
-
-      push.111
-      debug.stack
-      drop
 
       # store ASSET out to memory addr 12
       # dupw
@@ -304,9 +386,6 @@ begin
       mem_load.13
       # => [swapp_ptr, ASSET_REMAINING]
 
-      push.111
-      debug.stack
-      drop
 
       call.tx::add_asset_to_note
       # => [swapp_ptr]
@@ -314,7 +393,6 @@ begin
       # remove asset remaining
       mem_loadw.12 call.account::remove_asset dropw
       # => []
-      debug.mem
 
     # call send_asset with requested amount
     # do not ouput new SWAPp note
