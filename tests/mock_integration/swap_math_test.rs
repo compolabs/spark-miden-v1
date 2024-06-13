@@ -726,13 +726,15 @@ pub fn test_closest_base_ten_masm() {
 
 #[test]
 pub fn test_calculate_tokens_a_for_b() {
-    // Instantiate the assembler
-    let assembler = TransactionKernel::assembler().with_debug_mode(true);
+    // Values to be used in the test
+    let (tokens_a, decimals_a) = (70000, 8);
+    let (tokens_b, decimals_b) = (1, 8);
+    let (tokens_b_in, decimals_b_in) = (5, 7);
 
-    // Values to be formatted
-    let amount_a = format_value_with_decimals(70000, 8);
-    let amount_b = format_value_with_decimals(1, 8);
-    let amount_b_in = format_value_with_decimals(5, 7);
+    // Format values with decimals
+    let amount_a = format_value_with_decimals(tokens_a, decimals_a);
+    let amount_b = format_value_with_decimals(tokens_b, decimals_b);
+    let amount_b_in = format_value_with_decimals(tokens_b_in, decimals_b_in);
 
     let assembly_code = format!(
         "
@@ -815,27 +817,24 @@ pub fn test_calculate_tokens_a_for_b() {
           push.4294967296 mul add          
 
         end
-
-
-
-      
-
-
       end
 
       begin
 
-        push.{tokens_b_in}
+        push.{amount_b_in}
         push.{amount_b}
         push.{amount_a}
 
         exec.calculate_tokens_a_for_b
       end
     ",
-        tokens_b_in = amount_b_in,
+        amount_b_in = amount_b_in,
         amount_b = amount_b,
         amount_a = amount_a,
     );
+
+    // Instantiate the assembler
+    let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
     // Compile the program from the loaded assembly code
     let program = assembler
@@ -856,6 +855,29 @@ pub fn test_calculate_tokens_a_for_b() {
     let assembly_result_u64: u64 = outputs.stack()[0].into();
     let assembly_result: i64 = assembly_result_u64 as i64;
     println!("assembly_result: {}", assembly_result);
+
+    // Compute the expected result using the Rust implementation of the Python logic
+    let expected_result_u64 = calculate_tokens_a_for_b(amount_a, amount_b, amount_b_in);
+    let expected_result: i64 = expected_result_u64
+        .try_into()
+        .expect("Value doesn't fit into i64");
+    println!("expected_result: {}", expected_result);
+
+    // Assert the assembly result matches the expected result
+    assert_eq!(assembly_result, expected_result);
+}
+
+// Helper function to calculate tokens_a for tokens_b
+fn calculate_tokens_a_for_b(tokens_a: i64, tokens_b: i64, requested_tokens_b: i64) -> i64 {
+    let scaling_factor = 100_000i64;
+
+    if tokens_a < tokens_b {
+        let scaled_ratio = (tokens_b * scaling_factor) / tokens_a;
+        (requested_tokens_b * scaling_factor) / scaled_ratio
+    } else {
+        let scaled_ratio = (tokens_a * scaling_factor) / tokens_b;
+        (scaled_ratio * requested_tokens_b) / scaling_factor
+    }
 }
 
 #[test]
