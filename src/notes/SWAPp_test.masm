@@ -10,6 +10,27 @@ use.std::math::u64
 
 const.OFFCHAIN_NOTE=2
 
+# Memory Addresses for Price Calculation Procedure
+const.AMT_TOKENS_A=0x0064
+const.AMT_TOKENS_B=0x0065
+const.AMT_TOKENS_B_IN=0x0066
+const.RATIO=0x0067
+const.FACTOR=0x000186A0 # 1e5
+const.MAX_U32=0x0000000100000000
+
+# Memory Addresses for SWAPp Script
+const.PAYBACK_RECIPIENT=0x0000
+const.REQUESTED_ASSET=0x0001
+const.PAYBACK_TAG=0x0002
+const.SWAPP_SCRIPT_HASH=0x0004
+const.OFFERED_ASSET=0x0005
+const.TOKEN_A_ID=0x0006
+const.TOKEN_B_ID=0x0007
+const.TOKEN_A_AMT=0x0008
+const.TOKEN_B_AMT=0x0009
+const.TOKEN_B_AMT_IN=0x000A
+const.TOKEN_A_AMT_OUT=0x000B
+
 # ERRORS
 # =================================================================================================
 
@@ -21,15 +42,6 @@ const.ERR_SWAP_WRONG_NUMBER_OF_ASSETS=0x00020008
 
 # PRICE CALCULATION
 # =================================================================================================
-
-# Memory Addresses for Price Calculation Procedure
-const.AMT_TOKENS_A=0x0064
-const.AMT_TOKENS_B=0x0065
-const.AMT_TOKENS_B_IN=0x0066
-const.RATIO=0x0067
-
-const.FACTOR=0x000186A0 # 1e5
-const.MAX_U32=0x0000000100000000
 
 #! Returns the amount of tokens_a out given an amount of tokens_b
 #!
@@ -155,28 +167,36 @@ proc.build_recipient_hash
   # [RECIPIENT]
 end
 
-# Partial Swap Script (SWAPp): adds an asset from the note into consumers account and
+# Partially Fillable Swap Script (SWAPp)
+# =================================================================================================
+# 
+# Partially Fillable Swap Script (SWAPp): adds an asset from the note into consumers account and
 # creates a note consumable by note issuer containing requested ASSET.
 #
 # If the consuming account does not have the sufficient liquidity to completely 
 # fulfill the amount of the SWAPp creator's requested asset, then it:
-# 1) Computes the ratio of token_a to token_b, where token_a is the offered asset, 
-# and where token_b is the requested asset
-# 2) Calculates the amount of token_a to send to the consumer based on the the 
-# amount of token_b sent via P2ID to the creator
-# 3) Outputs a new SWAPp note with the remaining liquidity of token_a, and the updated
-# amount of token_b
+#  1) Computes the ratio of token_a to token_b, where token_a is the offered asset, 
+#     and where token_b is the requested asset
+#  2) Calculates the amount of token_a to send to the consumer based on the the 
+#     amount of token_b sent via P2ID to the creator
+#  3) Outputs a new SWAPp note with the remaining liquidity of token_a, and the updated
+#     amount of token_b
 #
-# Requires that the account exposes:
-# 
-# basic_wallet::receive_asset
-# basic_wallet::send_asset
-# basic_eoa::auth_tx_rpo_falcon512
-# account::get_balance
-# tx::create_note
-# tx::add_asset_to_note
-# account::remove_asset
-# account::incr_nonce
+# Note: 
+# 1) the offered asset is referred to as token_a,
+# 2) the requested asset is referred to as token_b,
+# 3) token_b_in is the amount of token_b sent to the SWAPp creator via P2ID
+# 4) token_a_out is the amount of token_a sent to the consuming wallet
+#
+# Requires that the consuming account exposes:
+#  basic_wallet::receive_asset
+#  basic_wallet::send_asset
+#  basic_eoa::auth_tx_rpo_falcon512
+#  account::get_balance
+#  tx::create_note
+#  tx::add_asset_to_note
+#  account::remove_asset
+#  account::incr_nonce
 #
 # Inputs: [SCRIPT_ROOT]
 # Outputs: []
@@ -190,18 +210,17 @@ end
 # - Account vault does not contain the requested asset
 # - Adding a fungible asset would result in amount overflow, i.e., the total amount would be
 #   greater than 2^63
-
 begin
     # STEPS: 
-    # 1) Get amount that consumer wants to sell
+    # 1) Get token_a, token_b, and token_b_in amounts
 
     # 2) Calculate price ratio:
     # => ratio = token_b / token_a
 
-    # 3) calculate token_aa amount out to consumer
+    # 3) Calculate token_a amount out to consumer
     # => token_a_out = balance_b * ratio
 
-    # 4) calculate token_b amount to creator
+    # 4) Calculate token_b amount to creator
     
     # 5) calculate token a remaining for new SWAPp note
     # => token_a_remaining = token_a - token_a_out 
@@ -211,11 +230,9 @@ begin
 
     # 7) verify price ratio is constant within some margin (precision loss depends on fixed point lib precision)
     # => assert_eq(token_b_requested_remaining / token_a_remaining , token_b / token_a)
- 
-
 
     # store SWAPp script hash to mem addr 4 & drop
-    mem_storew.4 dropw
+    mem_storew.SWAPP_SCRIPT_HASH dropw
     # => []
 
     # store asset into memory at address 3
@@ -226,12 +243,12 @@ begin
     mem_loadw
     # => [OFFERED_ASSET]
 
-    # store token_a_id to mem addr 6
-    dup mem_store.6 mem_storew.5
+    # store token_a_id and offered asset
+    dup mem_store.TOKEN_A_ID mem_storew.OFFERED_ASSET
     # => []
 
     # store token_a_AMT to mem addr 8
-    drop drop drop mem_store.8
+    drop drop drop mem_store.TOKEN_A_AMT
     # => []
 
     # store note inputs into memory starting at address 0
@@ -244,76 +261,76 @@ begin
 
     drop padw mem_loadw
 
-    mem_loadw.1
+    mem_loadw.REQUESTED_ASSET
     # => [REQUESTED_ASSET]
 
     # store token_b_id to memory addr 7
-    dup mem_store.7
+    dup mem_store.TOKEN_B_ID
     
     # store token_b_AMT to mem addr 9
-    drop drop drop mem_store.9
+    drop drop drop mem_store.TOKEN_B_AMT
 
     # TODO use note args to get amount consumer wants to sell
     # get token b amt out
-    mem_load.7 call.account::get_balance
+    mem_load.TOKEN_B_ID call.account::get_balance
     # => [token_b_AMT_IN]
 
     # store token_b_AMT_IN @ mem addr 10
-    dup mem_store.10
+    dup mem_store.TOKEN_B_AMT_IN
     # => [token_b_AMT_IN]
 
-    mem_load.9 mem_load.8
+    mem_load.TOKEN_B_AMT mem_load.TOKEN_A_AMT
     # => [token_a_AMT, token_b_AMT, token_b_AMT_IN]
 
     exec.calculate_tokens_a_for_b
     # [token_a_AMT_out]
 
     # store token_a_AMT_out @ mem addr 11
-    dup mem_store.11
+    dup mem_store.TOKEN_A_AMT_OUT
 
-    mem_load.8
+    mem_load.TOKEN_A_AMT
     # => [token_a_AMT, token_a_AMT_out]
 
     gte
 
-    # if amount_a < amount_out
+    # if amount_out > amount_a
     # amount_out = amount_a
     if.true
-      mem_load.8
+      mem_load.TOKEN_A_AMT
     else
-      mem_load.11
+      mem_load.TOKEN_A_AMT_OUT
     end
 
-    # 1) send token B amt in to creator
-    # 2) send token A out amt to consumer
-    # 3) create SWAPp' and calculate token_a & token_b
+    # 1) send token_b_in amt in to creator
+    # 2) send token_a_out amt to consumer
+    # 3) create SWAPp' and calculate token_a' & token_b'
     # 4) add token_a' and token_b' to SWAPp' 
 
     # 1) send token B amt to creator
-    mem_loadw.0 push.2 mem_load.2 mem_load.10 push.0.0 mem_load.7
+    mem_loadw.PAYBACK_RECIPIENT push.OFFCHAIN_NOTE mem_load.PAYBACK_TAG mem_load.TOKEN_B_AMT_IN push.0.0 mem_load.TOKEN_B_ID
     # => [requested_token_id, 0, 0, token_b_AMT_IN, tag, note_type, RECIPIENT_P2ID]
 
     call.wallet::send_asset dropw
     # => []
 
     # 2) send token A out amt to consumer
-    mem_load.11 push.0.0 mem_load.6
+    mem_load.TOKEN_A_AMT_OUT push.0.0 mem_load.TOKEN_A_ID
     # => [token_a_AMT_OUT, 0, 0, token_a_id]
 
     call.wallet::receive_asset
     # => []
 
     # 3) create SWAPp' and calculate token_a' & token_b'
-    padw mem_loadw.0
+    padw mem_loadw.PAYBACK_RECIPIENT
     # => [PAYBACK_RECIPIENT]
 
-    mem_load.9 mem_load.10 sub
+    mem_load.TOKEN_B_AMT mem_load.TOKEN_B_AMT_IN sub
     # => [token_b_AMT', PAYBACK_RECIPIENT]
 
-    push.0.0 mem_load.7
+    push.0.0 mem_load.TOKEN_B_ID
     # [REQUESTED_ASSET_REMAINING, PAYBACK_RECIPIENT]
 
-    mem_load.2
+    mem_load.PAYBACK_TAG
     # => [payback_tag, ASSET_REQUESTED_REMAINING, PAYBACK_RECIPIENT]
 
     push.0.0.0.0.0.0.0
@@ -322,7 +339,7 @@ begin
     exec.get_note_inputs_commitment
     # => [INPUTS_HASH]
 
-    padw mem_loadw.4
+    padw mem_loadw.SWAPP_SCRIPT_HASH
     # => [SCRIPT_HASH, INPUTS_HASH]
 
     push.1.2.3.4
@@ -331,13 +348,14 @@ begin
     exec.build_recipient_hash 
     # => [RECIPIENT_SWAPP]
 
-    push.2 mem_load.2
+    push.OFFCHAIN_NOTE mem_load.PAYBACK_TAG
     # => [payback_tag, note_type, RECIPIENT_SWAPP]
 
     call.tx::create_note
     # => [swapp_ptr]
 
-    mem_load.8 mem_load.11 sub push.0.0 mem_load.6
+    # 4) add token_a' and token_b' to SWAPp' 
+    mem_load.TOKEN_A_AMT mem_load.TOKEN_A_AMT_OUT sub push.0.0 mem_load.TOKEN_A_ID
     # => [OFFERED_ASSET_REMAINING, swapp_ptr]
 
     movup.4
@@ -346,8 +364,8 @@ begin
     call.tx::add_asset_to_note
     # => [swapp_ptr]
 
-    push.1
-    call.account::incr_nonce
+    # increment account nonce
+    push.1 call.account::incr_nonce
 
     # clean stack
     exec.sys::truncate_stack
