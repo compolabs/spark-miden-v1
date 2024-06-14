@@ -22,8 +22,8 @@ use miden_objects::{
 };
 use miden_vm::{prove, verify, Assembler, DefaultHost, ProvingOptions, StackInputs};
 
-fn format_value_with_decimals(value: i64, decimals: u32) -> i64 {
-    value * 10i64.pow(decimals)
+fn format_value_with_decimals(value: u64, decimals: u32) -> u64 {
+    value * 10u64.pow(decimals)
 }
 
 #[test]
@@ -513,6 +513,7 @@ pub fn test_closest_base_ten_masm() {
 #[test]
 pub fn test_calculate_tokens_a_for_b() {
     // Values to be used in the test
+    // Token amounts are base 1e8
     let (tokens_a, decimals_a) = (357179, 8);
     let (tokens_b, decimals_b) = (1, 8);
     let (tokens_b_in, decimals_b_in) = (5, 7);
@@ -639,15 +640,11 @@ pub fn test_calculate_tokens_a_for_b() {
     println!("outputs: {:?}", outputs);
 
     // Get the result from the assembly output and convert to i64
-    let assembly_result_u64: u64 = outputs.stack()[0].into();
-    let assembly_result: i64 = assembly_result_u64 as i64;
+    let assembly_result: u64 = outputs.stack()[0].into();
     println!("assembly_result: {}", assembly_result);
 
     // Compute the expected result using the Rust implementation of the Python logic
-    let expected_result_u64 = calculate_tokens_a_for_b(amount_a, amount_b, amount_b_in);
-    let expected_result: i64 = expected_result_u64
-        .try_into()
-        .expect("Value doesn't fit into i64");
+    let expected_result = calculate_tokens_a_for_b(amount_a, amount_b, amount_b_in);
     println!("expected_result: {}", expected_result);
 
     // Assert the assembly result matches the expected result
@@ -655,8 +652,8 @@ pub fn test_calculate_tokens_a_for_b() {
 }
 
 // Helper function to calculate tokens_a for tokens_b
-fn calculate_tokens_a_for_b(tokens_a: i64, tokens_b: i64, requested_tokens_b: i64) -> i64 {
-    let scaling_factor = 100_000i64;
+fn calculate_tokens_a_for_b(tokens_a: u64, tokens_b: u64, requested_tokens_b: u64) -> u64 {
+    let scaling_factor: u64 = 100_000;
 
     if tokens_a < tokens_b {
         let scaled_ratio = (tokens_b * scaling_factor) / tokens_a;

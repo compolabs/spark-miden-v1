@@ -22,26 +22,26 @@ const.ERR_SWAP_WRONG_NUMBER_OF_ASSETS=0x00020008
 # PRICE CALCULATION
 # =================================================================================================
 
-# memory addresses for calculate_tokens_a_for_b 
+# Memory Addresses for Price Calculation Procedure
 const.AMT_TOKENS_A=0x0064
 const.AMT_TOKENS_B=0x0065
 const.AMT_TOKENS_B_IN=0x0066
 const.RATIO=0x0067
 
-# factor amount
 const.FACTOR=0x000186A0 # 1e5
 const.MAX_U32=0x0000000100000000
 
-# input: [tokens_a, tokens_b, tokens_b_in]
-# output: [tokens_a_out]
+#! Returns the amount of tokens_a out given an amount of tokens_b
+#!
+#! Inputs: [tokens_a, tokens_b, tokens_b_in]
+#! Outputs: [tokens_a_out]
+#!
 proc.calculate_tokens_a_for_b
-
-  mem_store.AMT_TOKENS_A # tokens_a
-  mem_store.AMT_TOKENS_B # tokens_b
-  mem_store.AMT_TOKENS_B_IN # tokens_b_in
+  mem_store.AMT_TOKENS_A 
+  mem_store.AMT_TOKENS_B 
+  mem_store.AMT_TOKENS_B_IN 
 
   mem_load.AMT_TOKENS_B mem_load.AMT_TOKENS_A
-  # => [tokens_a, tokens_b]
 
   gt
   if.true
@@ -104,21 +104,8 @@ proc.calculate_tokens_a_for_b
   end
 end
 
-#! Returns the RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and input
-#!
-#! Inputs: [SERIAL_NUM, SCRIPT_HASH, INPUT_HASH]
-#! Outputs: [RECIPIENT]
-#!
-proc.build_recipient_hash
-  padw hmerge
-  # => [SERIAL_NUM_HASH, SCRIPT_HASH, INPUT_HASH]
-
-  swapw hmerge
-  # => [MERGE_SCRIPT, INPUT_HASH]
-
-  swapw hmerge
-  # [RECIPIENT]
-end
+# HASHING PROCEDURES
+# =================================================================================================
 
 #! Computs the note inputs commitment for up to 16 inputs
 #!
@@ -152,10 +139,44 @@ proc.get_note_inputs_commitment
   # => [Digest]
 end
 
-# Swap script: adds an asset from the note into consumers account and
+#! Returns the RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and input
+#!
+#! Inputs: [SERIAL_NUM, SCRIPT_HASH, INPUT_HASH]
+#! Outputs: [RECIPIENT]
+#!
+proc.build_recipient_hash
+  padw hmerge
+  # => [SERIAL_NUM_HASH, SCRIPT_HASH, INPUT_HASH]
+
+  swapw hmerge
+  # => [MERGE_SCRIPT, INPUT_HASH]
+
+  swapw hmerge
+  # [RECIPIENT]
+end
+
+# Partial Swap Script (SWAPp): adds an asset from the note into consumers account and
 # creates a note consumable by note issuer containing requested ASSET.
 #
+# If the consuming account does not have the sufficient liquidity to completely 
+# fulfill the amount of the SWAPp creator's requested asset, then it:
+# 1) Computes the ratio of token_a to token_b, where token_a is the offered asset, 
+# and where token_b is the requested asset
+# 2) Calculates the amount of token_a to send to the consumer based on the the 
+# amount of token_b sent via P2ID to the creator
+# 3) Outputs a new SWAPp note with the remaining liquidity of token_a, and the updated
+# amount of token_b
+#
 # Requires that the account exposes:
+# 
+# basic_wallet::receive_asset
+# basic_wallet::send_asset
+# basic_eoa::auth_tx_rpo_falcon512
+# account::get_balance
+# tx::create_note
+# tx::add_asset_to_note
+# account::remove_asset
+# account::incr_nonce
 #
 # Inputs: [SCRIPT_ROOT]
 # Outputs: []
@@ -166,21 +187,21 @@ end
 # - TAG = [tag, 0, 0, 0]
 #
 # FAILS if:
-# - Account does not expose miden::contracts::wallets::basic::receive_asset procedure
-# - Account does not expose miden::contracts::wallets::basic::send_asset procedure
 # - Account vault does not contain the requested asset
 # - Adding a fungible asset would result in amount overflow, i.e., the total amount would be
 #   greater than 2^63
-begin
 
-    # 1) get amount that consumer wants to sell
-    # 2) calculate price ratio (todo => div with UD12x8 or UD14x6)
+begin
+    # STEPS: 
+    # 1) Get amount that consumer wants to sell
+
+    # 2) Calculate price ratio:
     # => ratio = token_b / token_a
 
-    # 3) calculate token a amount out to consumer
+    # 3) calculate token_aa amount out to consumer
     # => token_a_out = balance_b * ratio
 
-    # 4) calculate token b amount to creator
+    # 4) calculate token_b amount to creator
     
     # 5) calculate token a remaining for new SWAPp note
     # => token_a_remaining = token_a - token_a_out 
@@ -191,6 +212,8 @@ begin
     # 7) verify price ratio is constant within some margin (precision loss depends on fixed point lib precision)
     # => assert_eq(token_b_requested_remaining / token_a_remaining , token_b / token_a)
  
+
+
     # store SWAPp script hash to mem addr 4 & drop
     mem_storew.4 dropw
     # => []

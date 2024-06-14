@@ -31,6 +31,7 @@ use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN: u64 = 0x900000000000003F; // 10376293541461622847
 pub const ACCOUNT_ID_SENDER: u64 = 0x800000000000001F; // 9223372036854775839
 pub const ACCOUNT_ID_SENDER_1: u64 = 0x800000000000002F; // 9223372036854775840
+pub const ACCOUNT_ID_SENDER_2: u64 = 0x800000000000003F; // 9223372036854775841
 
 // ACCOUNT TYPES
 // ================================================================================================
