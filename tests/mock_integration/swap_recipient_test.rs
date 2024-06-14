@@ -155,5 +155,4 @@ pub fn test_input_hash() {
     println!("serial_script_hash: {:?}", serial_script_hash);
     println!("Recipient Hash: {:?}", recipient.digest());
     println!("Stack Output: {:?}", outputs.stack());
-
 }

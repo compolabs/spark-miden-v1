@@ -18,9 +18,9 @@ use miden_tx::TransactionExecutor;
 use miden_vm::Assembler;
 
 use crate::utils::{
-    get_new_pk_and_authenticator, prove_and_verify_transaction,
-    MockDataStore, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
-    ACCOUNT_ID_SENDER, ACCOUNT_ID_SENDER_1,
+    get_new_pk_and_authenticator, prove_and_verify_transaction, MockDataStore,
+    ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_SENDER,
+    ACCOUNT_ID_SENDER_1,
 };
 
 pub fn get_custom_account_code(
