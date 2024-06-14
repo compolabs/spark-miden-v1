@@ -5,7 +5,6 @@ use miden_objects::{
     assembly::{AssemblyContext, ModuleAst, ProgramAst},
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::hash::rpo::RpoDigest,
-    crypto::rand::{FeltRng, RpoRandomCoin},
     notes::{
         Note, NoteAssets, NoteDetails, NoteExecutionHint, NoteHeader, NoteInputs, NoteMetadata,
         NoteRecipient, NoteScript, NoteTag, NoteType,
@@ -19,9 +18,9 @@ use miden_tx::TransactionExecutor;
 use miden_vm::Assembler;
 
 use crate::utils::{
-    get_new_key_pair_with_advice_map, get_new_pk_and_authenticator, prove_and_verify_transaction,
+    get_new_pk_and_authenticator, prove_and_verify_transaction,
     MockDataStore, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
-    ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN, ACCOUNT_ID_SENDER, ACCOUNT_ID_SENDER_1,
+    ACCOUNT_ID_SENDER, ACCOUNT_ID_SENDER_1,
 };
 
 pub fn get_custom_account_code(
@@ -109,7 +108,7 @@ pub fn create_partial_swap_note(
     note_type: NoteType,
     serial_num: [Felt; 4],
 ) -> Result<(Note, NoteDetails, RpoDigest), NoteError> {
-    let note_code = include_str!("../../src/notes/SWAPp_test.masm");
+    let note_code = include_str!("../../src/notes/SWAPp.masm");
     let (note_script, _code_block) = new_note_script(
         ProgramAst::parse(note_code).unwrap(),
         &TransactionKernel::assembler().with_debug_mode(true),
@@ -137,8 +136,6 @@ pub fn create_partial_swap_note(
         tag.inner().into(),
     ])?;
 
-    println!("inputs commitment: {:?}", inputs);
-
     let aux = ZERO;
 
     // build the outgoing note
@@ -152,9 +149,6 @@ pub fn create_partial_swap_note(
     let payback_note = NoteDetails::new(payback_assets, payback_recipient);
 
     let note_script_hash = note_script.hash();
-
-    println!("recipient: {:?}", recipient.digest());
-    println!("note_script_hash: {:?}", note_script_hash);
 
     Ok((note, payback_note, note_script_hash))
 }
@@ -280,9 +274,6 @@ fn test_partial_swap_fill() {
             .unwrap()
             .into();
 
-    println!("Remaining token A: {:?}", remaining_token_a);
-    println!("Remaining token B: {:?}", remaining_token_b);
-
     // Note expected to be outputted by the transaction
     let (expected_swap_note, _payback_note, _note_script_hash) = create_partial_swap_note(
         swapp_creator_account_id,
@@ -297,10 +288,6 @@ fn test_partial_swap_fill() {
     assert_eq!(executed_transaction.output_notes().num_notes(), 2);
 
     // Check that the output note is the same as the expected note
-
-    println!("Inputs for tx_output_note: {:?}", tx_output_note.metadata());
-
-    println!("recipient: {:?}", tx_output_note.recipient_digest());
 
     assert_eq!(
         NoteHeader::from(tx_output_note).metadata(),
