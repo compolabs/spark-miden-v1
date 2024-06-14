@@ -137,13 +137,15 @@ pub fn create_partial_swap_note(
         tag.inner().into(),
     ])?;
 
+    println!("inputs commitment: {:?}", inputs);  
+
     let aux = ZERO;
 
     // build the outgoing note
     let metadata = NoteMetadata::new(last_consumer, note_type, tag, aux)?;
     let assets = NoteAssets::new(vec![offered_asset])?;
     let recipient = NoteRecipient::new(serial_num, note_script.clone(), inputs.clone());
-    let note = Note::new(assets, metadata, recipient);
+    let note = Note::new(assets.clone(), metadata, recipient.clone());
 
     // build the payback note details
     let payback_assets = NoteAssets::new(vec![requested_asset])?;
@@ -151,41 +153,11 @@ pub fn create_partial_swap_note(
 
     let note_script_hash = note_script.hash();
 
-    println!("Inputs commitment: {:?}", inputs);
-    println!("Inputs commitment: {:?}", inputs.commitment());
+    println!("recipient: {:?}", recipient.digest());
+    println!("note_script_hash: {:?}", note_script_hash);
+
 
     Ok((note, payback_note, note_script_hash))
-}
-
-#[test]
-pub fn get_note_script_hash() {
-    // SWAPp note creator
-    let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
-
-    // Offered Asset
-    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-    let offered_asset: Asset = FungibleAsset::new(faucet_id, 100).unwrap().into();
-
-    // Requested Asset
-    let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
-    let requested_asset: Asset = FungibleAsset::new(faucet_id_2, 100).unwrap().into();
-
-    let (swap_note, _payback_note, note_script_hash) = create_partial_swap_note(
-        sender_account_id,
-        sender_account_id,
-        offered_asset,
-        requested_asset,
-        NoteType::OffChain,
-        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
-    )
-    .unwrap();
-
-    let tag = swap_note.clone().metadata().tag();
-    let note_type = swap_note.clone().metadata().note_type();
-
-    println!("{:?}", tag);
-    println!("{:?}", note_type);
-    println!("Note script hash: {:?}", note_script_hash);
 }
 
 // Helper function to calculate tokens_a for tokens_b
@@ -309,6 +281,9 @@ fn test_partial_swap_fill() {
             .unwrap()
             .into();
 
+    println!("Remaining token A: {:?}", remaining_token_a);
+    println!("Remaining token B: {:?}", remaining_token_b);
+
     // Note expected to be outputted by the transaction
     let (expected_swap_note, _payback_note, _note_script_hash) = create_partial_swap_note(
         swapp_creator_account_id,
@@ -323,6 +298,13 @@ fn test_partial_swap_fill() {
     assert_eq!(executed_transaction.output_notes().num_notes(), 2);
 
     // Check that the output note is the same as the expected note
+
+    println!(
+        "Inputs for tx_output_note: {:?}",
+        tx_output_note.metadata()
+    );
+
+    println!("recipient: {:?}", tx_output_note.recipient_digest());
 
     assert_eq!(
         NoteHeader::from(tx_output_note).metadata(),
@@ -368,4 +350,35 @@ fn test_partial_swap_fill() {
 
     // commented out to speed up test
     // assert!(prove_and_verify_transaction(executed_transaction_1.clone()).is_ok());
+}
+
+#[test]
+pub fn get_note_script_hash() {
+    // SWAPp note creator
+    let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+
+    // Offered Asset
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+    let offered_asset: Asset = FungibleAsset::new(faucet_id, 100).unwrap().into();
+
+    // Requested Asset
+    let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
+    let requested_asset: Asset = FungibleAsset::new(faucet_id_2, 100).unwrap().into();
+
+    let (swap_note, _payback_note, note_script_hash) = create_partial_swap_note(
+        sender_account_id,
+        sender_account_id,
+        offered_asset,
+        requested_asset,
+        NoteType::OffChain,
+        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+    )
+    .unwrap();
+
+    let tag = swap_note.clone().metadata().tag();
+    let note_type = swap_note.clone().metadata().note_type();
+
+    println!("{:?}", tag);
+    println!("{:?}", note_type);
+    println!("Note script hash: {:?}", note_script_hash);
 }

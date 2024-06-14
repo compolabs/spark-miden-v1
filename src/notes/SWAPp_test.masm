@@ -104,26 +104,19 @@ proc.calculate_tokens_a_for_b
   end
 end
 
-
 #! Returns the RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and input
 #!
-#! Inputs: [SERIAL_NUM, SCRIPT_HASH, input]
+#! Inputs: [SERIAL_NUM, SCRIPT_HASH, INPUT_HASH]
 #! Outputs: [RECIPIENT]
 #!
-#! Only allows a single input currently
 proc.build_recipient_hash
   padw hmerge
   # => [SERIAL_NUM_HASH, SCRIPT_HASH, INPUT_HASH]
 
-  # merge SERIAL_NUM_HASH and SCRIPT_HASH
   swapw hmerge
-  # => [SERIAL_SCRIPT_HASH, INPUT_HASH]
+  # => [MERGE_SCRIPT, INPUT_HASH]
 
-  # compute the INPUT_HASH. Note: only one input is allowed
-  hmerge
-  # => [INPUT_HASH, SERIAL_SCRIPT_HASH]
-
-  hmerge
+  swapw hmerge
   # [RECIPIENT]
 end
 
@@ -283,6 +276,10 @@ begin
     mem_loadw.0 push.2 mem_load.2 mem_load.10 push.0.0 mem_load.7
     # => [requested_token_id, 0, 0, token_b_AMT_IN, tag, note_type, RECIPIENT_P2ID]
 
+    push.101
+    debug.stack
+    drop
+
     call.wallet::send_asset dropw
     # => []
 
@@ -309,25 +306,40 @@ begin
     push.0.0.0.0.0.0.0
     # => [0,0,0,0,0,0,0, payback_tag, ASSET_REQUESTED_REMAINING, PAYBACK_RECIPIENT]
 
+    push.102
     debug.stack
-    debug.mem
+    drop
 
     exec.get_note_inputs_commitment
     # => [INPUTS_HASH]
 
+    push.103
     debug.stack
+    drop
 
-    mem_loadw.5
+    padw mem_loadw.4
     # => [SCRIPT_HASH, INPUTS_HASH]
 
     push.1.2.3.4
     # => [SERIAL_NUM, SCRIPT_HASH, INPUTS_HASH]
 
+    push.444
+    debug.stack
+    drop
+
     exec.build_recipient_hash 
     # => [RECIPIENT_SWAPP]
 
+    push.105
+    debug.stack
+    drop
+
     push.2 mem_load.2
     # => [payback_tag, note_type, RECIPIENT_SWAPP]
+
+    push.111
+    debug.stack
+    drop
 
     call.tx::create_note
     # => [swapp_ptr]
@@ -337,6 +349,10 @@ begin
 
     movup.4
     # => [swapp_ptr, OFFERED_ASSET_REMAINING]
+
+    push.222
+    debug.stack
+    drop
 
     call.tx::add_asset_to_note
     # => [swapp_ptr]

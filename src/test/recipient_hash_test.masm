@@ -80,6 +80,22 @@ proc.get_note_inputs_commitment
   # => [Digest]
 end
 
+#! Returns the RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and input
+#!
+#! Inputs: [SERIAL_NUM, SCRIPT_HASH, INPUT_HASH]
+#! Outputs: [RECIPIENT]
+#!
+proc.build_recipient_hash
+  padw hmerge
+  # => [SERIAL_NUM_HASH, SCRIPT_HASH, INPUT_HASH]
+
+  swapw hmerge
+  # => [MERGE_SCRIPT, INPUT_HASH]
+
+  swapw hmerge
+  # [RECIPIENT]
+end
+
 begin
 
   push.1.2.3.4.5.6.7.8.9.0.0.0.0.0.0.0
@@ -87,5 +103,11 @@ begin
   debug.stack
 
   exec.get_note_inputs_commitment
+
+  push.2759471287707961087.16916719151911714604.9981200281211272705.14248949638383279509
+
+  push.1.2.3.4
+
+  exec.build_recipient_hash
 
 end

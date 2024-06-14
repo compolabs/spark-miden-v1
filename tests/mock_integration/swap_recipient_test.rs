@@ -138,10 +138,22 @@ pub fn test_input_hash() {
     let serial_script_hash = Hasher::merge(&[serial_num_hash, note_script_hash]);
 
     let recipient_1 = Hasher::merge(&[serial_script_hash, inputs.commitment()]);
-    let recipient = NoteRecipient::new(serial_num, note_script, inputs.clone());
+    let recipient = NoteRecipient::new(serial_num, note_script.clone(), inputs.clone());
 
     assert_eq!(recipient_1, recipient.digest());
 
+    let serial_num_hash = Hasher::merge(&[serial_num.into(), Digest::default()]);
+    let merge_script = Hasher::merge(&[serial_num_hash, note_script.hash()]);
+    let recipient_hash = Hasher::merge(&[merge_script, inputs.commitment()]);
+
+    println!("Serial Num Hash: {:?}", serial_num_hash);
+    println!("Merge Script Hash: {:?}", merge_script);
+    println!("Recipient Hash: {:?}", recipient_hash);
+
+    println!("inputs commitment: {:?}", inputs.commitment());
+    println!("note_script_hash : {:?}", note_script_hash);
+    println!("serial_script_hash: {:?}", serial_script_hash);   
+    println!("Recipient Hash: {:?}", recipient.digest());
     println!("Stack Output: {:?}", outputs.stack());
 
     /*
