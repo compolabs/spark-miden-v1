@@ -152,29 +152,8 @@ pub fn test_input_hash() {
 
     println!("inputs commitment: {:?}", inputs.commitment());
     println!("note_script_hash : {:?}", note_script_hash);
-    println!("serial_script_hash: {:?}", serial_script_hash);   
+    println!("serial_script_hash: {:?}", serial_script_hash);
     println!("Recipient Hash: {:?}", recipient.digest());
     println!("Stack Output: {:?}", outputs.stack());
 
-    /*
-    let mut stack_output = outputs.stack().to_vec();
-    let recipient_hash = inputs.commitment().as_slice().to_vec();
-
-    if stack_output.len() > 8 {
-        stack_output.truncate(stack_output.len() - 13);
-    }
-
-    stack_output.reverse();
-    */
-
-    // asserting that the stack output is equal to the recipient hash
-    // the calculated in MASM proc equals what was calculated in Rust
-    // assert_eq!(stack_output, recipient_hash);
-    // println!("Stack Output: {:?}", stack_output);
-
-    // assert_eq!(inputs.commitment(), outputs.stack());
-
-    // verify(program.into(), cloned_inputs, outputs, proof).unwrap();
-
-    // Ok((note, payback_note, note_script_hash))
 }

@@ -137,7 +137,7 @@ pub fn create_partial_swap_note(
         tag.inner().into(),
     ])?;
 
-    println!("inputs commitment: {:?}", inputs);  
+    println!("inputs commitment: {:?}", inputs);
 
     let aux = ZERO;
 
@@ -155,7 +155,6 @@ pub fn create_partial_swap_note(
 
     println!("recipient: {:?}", recipient.digest());
     println!("note_script_hash: {:?}", note_script_hash);
-
 
     Ok((note, payback_note, note_script_hash))
 }
@@ -299,10 +298,7 @@ fn test_partial_swap_fill() {
 
     // Check that the output note is the same as the expected note
 
-    println!(
-        "Inputs for tx_output_note: {:?}",
-        tx_output_note.metadata()
-    );
+    println!("Inputs for tx_output_note: {:?}", tx_output_note.metadata());
 
     println!("recipient: {:?}", tx_output_note.recipient_digest());
 
