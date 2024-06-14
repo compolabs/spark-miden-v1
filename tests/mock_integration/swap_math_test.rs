@@ -301,7 +301,7 @@ pub fn test_closest_base_ten_masm() {
     let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
     // Values to be formatted
-    let value = format_value_with_decimals(11, 8);
+    let value = format_value_with_decimals(103, 8);
 
     let assembly_code = format!(
         "
@@ -502,12 +502,11 @@ pub fn test_closest_base_ten_masm() {
     println!("outputs: {:?}", outputs);
 
     // Get the result from the assembly output and convert to i64
-    let assembly_result_u64: u64 = outputs.stack()[0].into();
-    let assembly_result: i64 = assembly_result_u64 as i64;
+    let assembly_result: u64 = outputs.stack()[0].into();
     println!("assembly_result: {}", assembly_result);
 
     // Check if the result is correct
-    assert_eq!(assembly_result, 1_000_000);
+    assert_eq!(assembly_result, format_value_with_decimals(100, 8));
 }
 
 #[test]
