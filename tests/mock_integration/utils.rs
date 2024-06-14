@@ -1,17 +1,13 @@
-use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountStorage, SlotItem, StorageSlot},
-    assembly::{ModuleAst, ProgramAst},
-    assets::{Asset, AssetVault, FungibleAsset},
+    accounts::{Account, AccountId},
+    assembly::ModuleAst,
     crypto::{dsa::rpo_falcon512::SecretKey, utils::Serializable},
-    notes::{
-        Note, NoteAssets, NoteId, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteType,
-    },
+    notes::{Note, NoteId},
     transaction::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ProvenTransaction,
         TransactionArgs, TransactionInputs,
     },
-    BlockHeader, Felt, Word, ZERO,
+    BlockHeader, Word,
 };
 use miden_processor::utils::Deserializable;
 use miden_prover::ProvingOptions;
@@ -21,7 +17,7 @@ use miden_tx::{
 use mock::{
     constants::MIN_PROOF_SECURITY_LEVEL,
     mock::{
-        account::{MockAccountType, DEFAULT_ACCOUNT_CODE},
+        account::MockAccountType,
         notes::AssetPreservationStatus,
         transaction::{mock_inputs, mock_inputs_with_existing},
     },
@@ -57,7 +53,7 @@ pub const ACCOUNT_TYPE_MASK: u64 = 0b11 << ACCOUNT_TYPE_MASK_SHIFT;
 // pub const ACCOUNT_ISFAUCET_MASK: u64 = 0b10 << ACCOUNT_TYPE_MASK_SHIFT;
 
 pub const ON_CHAIN: u64 = 0b00;
-pub const OFF_CHAIN: u64 = 0b10;
+// pub const OFF_CHAIN: u64 = 0b10;
 
 // UTILITIES
 // --------------------------------------------------------------------------------------------
@@ -94,7 +90,7 @@ impl From<u64> for AccountType {
 #[repr(u64)]
 pub enum AccountStorageType {
     OnChain = ON_CHAIN,
-    OffChain = OFF_CHAIN,
+    // OffChain = OFF_CHAIN,
 }
 pub const fn account_id(account_type: AccountType, storage: AccountStorageType, rest: u64) -> u64 {
     let mut id = 0;
@@ -114,11 +110,11 @@ pub const fn account_id(account_type: AccountType, storage: AccountStorageType, 
     0b0010_1111,
 ); */
 // REGULAR ACCOUNTS - ON-CHAIN
-pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN: u64 = account_id(
+/* pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN: u64 = account_id(
     AccountType::RegularAccountImmutableCode,
     AccountStorageType::OnChain,
     0b0001_1111,
-);
+); */
 /* pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2: u64 = account_id(
     AccountType::RegularAccountImmutableCode,
     AccountStorageType::OnChain,
@@ -129,18 +125,18 @@ pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: u64 = account_id(
     AccountStorageType::OnChain,
     0b0011_1111,
 ); */
-pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2: u64 = account_id(
+/* pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2: u64 = account_id(
     AccountType::RegularAccountUpdatableCode,
     AccountStorageType::OnChain,
     0b0100_1111,
-);
+); */
 
 // FUNGIBLE TOKENS - OFF-CHAIN
-pub const ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN: u64 = account_id(
+/* pub const ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN: u64 = account_id(
     AccountType::FungibleFaucet,
     AccountStorageType::OffChain,
     0b0001_1111,
-);
+); */
 // FUNGIBLE TOKENS - ON-CHAIN
 pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = account_id(
     AccountType::FungibleFaucet,
@@ -309,7 +305,7 @@ pub fn prove_and_verify_transaction(
     verifier.verify(proven_transaction)
 }
 
-#[cfg(test)]
+/* #[cfg(test)]
 pub fn get_new_key_pair_with_advice_map() -> (Word, Vec<Felt>) {
     let seed = [0_u8; 32];
     let mut rng = ChaCha20Rng::from_seed(seed);
@@ -324,9 +320,9 @@ pub fn get_new_key_pair_with_advice_map() -> (Word, Vec<Felt>) {
         .collect::<Vec<Felt>>();
 
     (pub_key, pk_sk_felts)
-}
+} */
 
-#[cfg(test)]
+/* #[cfg(test)]
 pub fn get_account_with_default_account_code(
     account_id: AccountId,
     public_key: Word,
@@ -376,7 +372,8 @@ pub fn get_note_with_fungible_asset_and_script(
     let recipient = NoteRecipient::new(SERIAL_NUM, note_script, inputs);
 
     Note::new(vault, metadata, recipient)
-}
+} */
+
 pub fn get_new_pk_and_authenticator() -> (
     Word,
     std::rc::Rc<miden_tx::host::BasicAuthenticator<rand::rngs::StdRng>>,

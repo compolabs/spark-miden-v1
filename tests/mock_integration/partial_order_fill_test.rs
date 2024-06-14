@@ -1,4 +1,3 @@
-use miden_client::client::transactions::transaction_request::known_script_roots::P2ID;
 use miden_lib::notes::utils::build_p2id_recipient;
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
@@ -439,6 +438,8 @@ fn test_complete_swapp_fill() {
         NoteHeader::from(swapp_output_note),
         NoteHeader::from(expected_swapp_note.clone())
     );
+
+    prove_and_verify_transaction(executed_transaction.clone()).unwrap();
 }
 
 #[test]

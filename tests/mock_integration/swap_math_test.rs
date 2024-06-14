@@ -1,26 +1,5 @@
-use crate::utils::{
-    MockDataStore, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
-    ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN, ACCOUNT_ID_SENDER,
-};
-use miden_lib::notes::utils::build_p2id_recipient;
 use miden_lib::transaction::TransactionKernel;
-use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountStorage, SlotItem, StorageSlot},
-    assembly::{AssemblyContext, ModuleAst, ProgramAst},
-    assets::{Asset, AssetVault, FungibleAsset},
-    crypto::{
-        hash::rpo::RpoDigest,
-        rand::{FeltRng, RpoRandomCoin},
-    },
-    notes::{
-        Note, NoteAssets, NoteDetails, NoteExecutionHint, NoteHeader, NoteInputs, NoteMetadata,
-        NoteRecipient, NoteScript, NoteTag, NoteType,
-    },
-    transaction::{InputNotes, TransactionArgs},
-    vm::CodeBlock,
-    Digest, Felt, FieldElement, Hasher, NoteError, Word, ZERO,
-};
-use miden_vm::{prove, verify, Assembler, DefaultHost, ProvingOptions, StackInputs};
+use miden_vm::{prove, DefaultHost, ProvingOptions, StackInputs};
 
 fn format_value_with_decimals(value: u64, decimals: u32) -> u64 {
     value * 10u64.pow(decimals)
