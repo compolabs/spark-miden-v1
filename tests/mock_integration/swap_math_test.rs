@@ -1,21 +1,11 @@
 use miden_lib::transaction::TransactionKernel;
 use miden_vm::{prove, DefaultHost, ProvingOptions, StackInputs};
 
+use proptest::prelude::*;
+use proptest::test_runner::{Config as ProptestConfig, TestRunner};
+
 fn format_value_with_decimals(value: u64, decimals: u32) -> u64 {
     value * 10u64.pow(decimals)
-}
-
-// Helper function to calculate tokens_a for tokens_b
-fn calculate_tokens_a_for_b(tokens_a: u64, tokens_b: u64, requested_tokens_b: u64) -> u64 {
-    let scaling_factor: u64 = 100_000;
-
-    if tokens_a < tokens_b {
-        let scaled_ratio = (tokens_b * scaling_factor) / tokens_a;
-        (requested_tokens_b * scaling_factor) / scaled_ratio
-    } else {
-        let scaled_ratio = (tokens_a * scaling_factor) / tokens_b;
-        (scaled_ratio * requested_tokens_b) / scaling_factor
-    }
 }
 
 #[test]
@@ -24,8 +14,8 @@ pub fn test_swap_math_base8_large_amounts() {
     let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
     // Values to be formatted
-    let amount_a = format_value_with_decimals(100000, 8);
-    let amount_b = format_value_with_decimals(990000, 8);
+    let amount_a = format_value_with_decimals(1844674, 8);
+    let amount_b = format_value_with_decimals(1902, 8);
 
     let assembly_code = format!(
         "
@@ -506,8 +496,8 @@ pub fn test_calculate_tokens_a_for_b() {
     // Values to be used in the test
     // Token amounts are base 1e8
     let (tokens_a, decimals_a) = (357179, 8);
-    let (tokens_b, decimals_b) = (1, 8);
-    let (tokens_b_in, decimals_b_in) = (5, 7);
+    let (tokens_b, decimals_b) = (1, 1);
+    let (tokens_b_in, decimals_b_in) = (1, 3);
 
     // Format values with decimals
     let amount_a = format_value_with_decimals(tokens_a, decimals_a);
@@ -525,6 +515,10 @@ pub fn test_calculate_tokens_a_for_b() {
       
       const.FACTOR=0x000186A0 # 1e5
       const.MAX_U32=0x0000000100000000
+
+      const.MAX_SWAP_VAL=0xA7C5AC467381
+
+      const.ERR_INVALID_SWAP_AMOUNT=0x0000000000000001
       
       # input: [tokens_a, tokens_b, tokens_b_in]
       # output: [tokens_a_out]
@@ -536,7 +530,15 @@ pub fn test_calculate_tokens_a_for_b() {
       
         mem_load.AMT_TOKENS_B mem_load.AMT_TOKENS_A
         # => [tokens_a, tokens_b]
-      
+
+        dup.1 dup.1
+        push.MAX_SWAP_VAL lt
+        swap
+        push.MAX_SWAP_VAL lt
+
+        assert.err=ERR_INVALID_SWAP_AMOUNT
+        assert.err=ERR_INVALID_SWAP_AMOUNT
+
         gt
         if.true
           mem_load.AMT_TOKENS_B
@@ -640,6 +642,215 @@ pub fn test_calculate_tokens_a_for_b() {
 
     // Assert the assembly result matches the expected result
     assert_eq!(assembly_result, expected_result);
+}
+
+fn calculate_tokens_a_for_b(tokens_a: u64, tokens_b: u64, requested_tokens_b: u64) -> u64 {
+    let scaling_factor: u128 = 100_000;
+
+    println!(
+        "tokens_a: {}, tokens_b: {}, requested_tokens_b: {}",
+        tokens_a, tokens_b, requested_tokens_b
+    );
+
+    let tokens_a = tokens_a as u128;
+    let tokens_b = tokens_b as u128;
+    let requested_tokens_b = requested_tokens_b as u128;
+
+    if tokens_a < tokens_b {
+        let scaled_ratio = tokens_b
+            .checked_mul(scaling_factor)
+            .and_then(|v| v.checked_div(tokens_a))
+            .expect("Multiplication or division overflow");
+
+        println!("scaled_ratio (tokens_b < tokens_a): {}", scaled_ratio);
+
+        requested_tokens_b
+            .checked_mul(scaling_factor)
+            .and_then(|v| v.checked_div(scaled_ratio))
+            .expect("Multiplication or division overflow") as u64
+    } else {
+        let scaled_ratio = tokens_a
+            .checked_mul(scaling_factor)
+            .and_then(|v| v.checked_div(tokens_b))
+            .expect("Multiplication or division overflow");
+
+        println!("scaled_ratio (tokens_a >= tokens_b): {}", scaled_ratio);
+
+        let intermediate_value = scaled_ratio
+            .checked_mul(requested_tokens_b)
+            .expect("Multiplication overflow");
+
+        intermediate_value
+            .checked_div(scaling_factor)
+            .expect("Division overflow") as u64
+    }
+}
+
+#[test]
+fn fuzzed_test_calculate_tokens_a_for_b() {
+    let config = ProptestConfig::with_cases(100);
+    let mut runner = TestRunner::new(config);
+
+    runner
+        .run(
+            &(
+                1u64..=1_800_000,
+                1u32..=8,
+                1u64..=1_800_000,
+                1u32..=8,
+                1u64..=1_800_000,
+                1u32..=8,
+            ),
+            |(tokens_a, decimals_a, tokens_b, decimals_b, tokens_b_in, decimals_b_in)| {
+                // Format values with decimals
+                let amount_a = format_value_with_decimals(tokens_a, decimals_a);
+                let amount_b = format_value_with_decimals(tokens_b, decimals_b);
+                let amount_b_in = format_value_with_decimals(tokens_b_in, decimals_b_in);
+
+                let assembly_code = format!(
+                    "
+            use.std::math::u64
+
+            const.AMT_TOKENS_A=0x0064
+            const.AMT_TOKENS_B=0x0065
+            const.AMT_TOKENS_B_IN=0x0066
+            const.RATIO=0x0067
+            
+            const.FACTOR=0x000186A0 # 1e5
+            const.MAX_U32=0x0000000100000000
+
+            const.MAX_SWAP_VAL=0xA7C5AC467381
+
+            const.ERR_INVALID_SWAP_AMOUNT=0x0000000000000001
+            
+            # input: [tokens_a, tokens_b, tokens_b_in]
+            # output: [tokens_a_out]
+            proc.calculate_tokens_a_for_b
+            
+                mem_store.AMT_TOKENS_A # tokens_a
+                mem_store.AMT_TOKENS_B # tokens_b
+                mem_store.AMT_TOKENS_B_IN # tokens_b_in
+            
+                mem_load.AMT_TOKENS_B mem_load.AMT_TOKENS_A
+                # => [tokens_a, tokens_b]
+
+                dup.1 dup.1
+                push.MAX_SWAP_VAL lt
+                swap
+                push.MAX_SWAP_VAL lt
+
+                assert.err=ERR_INVALID_SWAP_AMOUNT
+                assert.err=ERR_INVALID_SWAP_AMOUNT
+
+                gt
+                if.true
+                  mem_load.AMT_TOKENS_B
+                  u32split
+            
+                  push.FACTOR
+                  u32split
+                          
+                  exec.u64::wrapping_mul
+            
+                  mem_load.AMT_TOKENS_A
+                  u32split
+            
+                  exec.u64::div
+                  push.MAX_U32 mul add
+            
+                  mem_store.RATIO
+            
+                  mem_load.AMT_TOKENS_B_IN
+                  u32split
+            
+                  push.FACTOR
+                  u32split
+            
+                  exec.u64::wrapping_mul
+            
+                  mem_load.RATIO
+                  u32split
+            
+                  exec.u64::div
+            
+                  push.MAX_U32 mul add          
+            
+                else
+                  mem_load.AMT_TOKENS_A
+                  u32split
+            
+                  push.FACTOR
+                  u32split
+                          
+                  exec.u64::wrapping_mul
+            
+                  mem_load.AMT_TOKENS_B
+                  u32split
+            
+                  exec.u64::div
+            
+                  mem_load.AMT_TOKENS_B_IN
+                  u32split
+            
+                  exec.u64::wrapping_mul
+            
+                  push.FACTOR
+                  u32split
+            
+                  exec.u64::div
+                  push.MAX_U32 mul add          
+            
+                end
+            end
+
+            begin
+
+                push.{amount_b_in}
+                push.{amount_b}
+                push.{amount_a}
+
+                exec.calculate_tokens_a_for_b
+            end
+            ",
+                    amount_b_in = amount_b_in,
+                    amount_b = amount_b,
+                    amount_a = amount_a,
+                );
+
+                // Instantiate the assembler
+                let assembler = TransactionKernel::assembler().with_debug_mode(true);
+
+                // Compile the program from the loaded assembly code
+                let program = assembler
+                    .compile(assembly_code)
+                    .expect("Failed to compile the assembly code");
+
+                let stack_inputs = StackInputs::try_from_ints([]).unwrap();
+
+                let host = DefaultHost::default();
+
+                // Execute the program and generate a STARK proof
+                let (outputs, _proof) =
+                    prove(&program, stack_inputs, host, ProvingOptions::default())
+                        .expect("Failed to execute the program and generate a proof");
+
+                println!("outputs: {:?}", outputs);
+
+                // Get the result from the assembly output and convert to i64
+                let assembly_result: u64 = outputs.stack()[0].into();
+                println!("assembly_result: {}", assembly_result);
+
+                // Compute the expected result using the Rust implementation of the Python logic
+                let expected_result = calculate_tokens_a_for_b(amount_a, amount_b, amount_b_in);
+                println!("expected_result: {}", expected_result);
+
+                // Assert the assembly result matches the expected result
+                assert_eq!(assembly_result, expected_result);
+
+                Ok(())
+            },
+        )
+        .expect("Test failed");
 }
 
 #[test]

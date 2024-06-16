@@ -19,6 +19,7 @@ miden-client = "0.3.0"
 figment = "0.10.19"
 uuid = { version = "1.6.1", features = ["serde", "v4"], optional = true }
 cargo-make = "0.37.12"
+proptest = "1.4.0"
 
 [patch.crates-io]
 miden-objects = { git = "https://github.com/0xPolygonMiden/miden-base.git", package = "miden-objects", branch = "main" }
