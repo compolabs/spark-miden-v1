@@ -5,6 +5,19 @@ fn format_value_with_decimals(value: u64, decimals: u32) -> u64 {
     value * 10u64.pow(decimals)
 }
 
+// Helper function to calculate tokens_a for tokens_b
+fn calculate_tokens_a_for_b(tokens_a: u64, tokens_b: u64, requested_tokens_b: u64) -> u64 {
+    let scaling_factor: u64 = 100_000;
+
+    if tokens_a < tokens_b {
+        let scaled_ratio = (tokens_b * scaling_factor) / tokens_a;
+        (requested_tokens_b * scaling_factor) / scaled_ratio
+    } else {
+        let scaled_ratio = (tokens_a * scaling_factor) / tokens_b;
+        (scaled_ratio * requested_tokens_b) / scaling_factor
+    }
+}
+
 #[test]
 pub fn test_swap_math_base8_large_amounts() {
     // Instantiate the assembler
@@ -627,19 +640,6 @@ pub fn test_calculate_tokens_a_for_b() {
 
     // Assert the assembly result matches the expected result
     assert_eq!(assembly_result, expected_result);
-}
-
-// Helper function to calculate tokens_a for tokens_b
-fn calculate_tokens_a_for_b(tokens_a: u64, tokens_b: u64, requested_tokens_b: u64) -> u64 {
-    let scaling_factor: u64 = 100_000;
-
-    if tokens_a < tokens_b {
-        let scaled_ratio = (tokens_b * scaling_factor) / tokens_a;
-        (requested_tokens_b * scaling_factor) / scaled_ratio
-    } else {
-        let scaled_ratio = (tokens_a * scaling_factor) / tokens_b;
-        (scaled_ratio * requested_tokens_b) / scaling_factor
-    }
 }
 
 #[test]
