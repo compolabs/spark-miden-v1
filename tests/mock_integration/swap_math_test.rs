@@ -496,6 +496,161 @@ pub fn test_calculate_tokens_a_for_b() {
     // Values to be used in the test
     // Token amounts are base 1e8
     let (tokens_a, decimals_a) = (357179, 8);
+    let (tokens_b, decimals_b) = (10, 8);
+    let (tokens_b_in, decimals_b_in) = (1, 8);
+
+    // Format values with decimals
+    let amount_a = format_value_with_decimals(tokens_a, decimals_a);
+    let amount_b = format_value_with_decimals(tokens_b, decimals_b);
+    let amount_b_in = format_value_with_decimals(tokens_b_in, decimals_b_in);
+
+    let assembly_code = format!(
+        "
+      use.std::math::u64
+
+      const.AMT_TOKENS_A=0x0064
+      const.AMT_TOKENS_B=0x0065
+      const.AMT_TOKENS_B_IN=0x0066
+      const.RATIO=0x0067
+      
+      const.FACTOR=0x000186A0 # 1e5
+      const.MAX_U32=0x0000000100000000
+
+      const.MAX_SWAP_VAL=0xA7C5AC467381
+
+      const.ERR_INVALID_SWAP_AMOUNT=0x0000000000000001
+      
+      # input: [tokens_a, tokens_b, tokens_b_in]
+      # output: [tokens_a_out]
+      proc.calculate_tokens_a_for_b
+      
+        mem_store.AMT_TOKENS_A # tokens_a
+        mem_store.AMT_TOKENS_B # tokens_b
+        mem_store.AMT_TOKENS_B_IN # tokens_b_in
+      
+        mem_load.AMT_TOKENS_B mem_load.AMT_TOKENS_A
+        # => [tokens_a, tokens_b]
+
+        dup.1 dup.1
+        push.MAX_SWAP_VAL lt
+        swap
+        push.MAX_SWAP_VAL lt
+
+        assert.err=ERR_INVALID_SWAP_AMOUNT
+        assert.err=ERR_INVALID_SWAP_AMOUNT
+
+        gt
+        if.true
+          mem_load.AMT_TOKENS_B
+          u32split
+      
+          push.FACTOR
+          u32split
+                  
+          exec.u64::wrapping_mul
+      
+          mem_load.AMT_TOKENS_A
+          u32split
+      
+          exec.u64::div
+          push.MAX_U32 mul add
+      
+          mem_store.RATIO
+      
+          mem_load.AMT_TOKENS_B_IN
+          u32split
+      
+          push.FACTOR
+          u32split
+      
+          exec.u64::wrapping_mul
+      
+          mem_load.RATIO
+          u32split
+      
+          exec.u64::div
+      
+          push.MAX_U32 mul add          
+      
+        else
+
+          mem_load.AMT_TOKENS_A
+          u32split
+      
+          push.FACTOR
+          u32split
+            
+          exec.u64::wrapping_mul
+     
+          mem_load.AMT_TOKENS_B
+          u32split
+     
+          exec.u64::div
+     
+          mem_load.AMT_TOKENS_B_IN
+          u32split
+
+          exec.u64::wrapping_mul
+     
+          push.FACTOR
+          u32split
+      
+          exec.u64::div
+
+          push.MAX_U32 mul add          
+      
+        end
+      end
+
+      begin
+
+        push.{amount_b_in}
+        push.{amount_b}
+        push.{amount_a}
+
+        exec.calculate_tokens_a_for_b
+      end
+    ",
+        amount_b_in = amount_b_in,
+        amount_b = amount_b,
+        amount_a = amount_a,
+    );
+
+    // Instantiate the assembler
+    let assembler = TransactionKernel::assembler().with_debug_mode(true);
+
+    // Compile the program from the loaded assembly code
+    let program = assembler
+        .compile(assembly_code)
+        .expect("Failed to compile the assembly code");
+
+    let stack_inputs = StackInputs::try_from_ints([]).unwrap();
+
+    let host = DefaultHost::default();
+
+    // Execute the program and generate a STARK proof
+    let (outputs, _proof) = prove(&program, stack_inputs, host, ProvingOptions::default())
+        .expect("Failed to execute the program and generate a proof");
+
+    println!("outputs: {:?}", outputs);
+
+    // Get the result from the assembly output and convert to i64
+    let assembly_result: u64 = outputs.stack()[0].into();
+    println!("assembly_result: {}", assembly_result);
+
+    // Compute the expected result using the Rust implementation of the Python logic
+    let expected_result = calculate_tokens_a_for_b(amount_a, amount_b, amount_b_in);
+    println!("expected_result: {}", expected_result);
+
+    // Assert the assembly result matches the expected result
+    assert_eq!(assembly_result, expected_result);
+}
+
+#[test]
+pub fn test_calculate_tokens_a_for_b_debug() {
+    // Values to be used in the test
+    // Token amounts are base 1e8
+    let (tokens_a, decimals_a) = (357179, 8);
     let (tokens_b, decimals_b) = (1, 1);
     let (tokens_b_in, decimals_b_in) = (1, 3);
 
@@ -573,28 +728,62 @@ pub fn test_calculate_tokens_a_for_b() {
           push.MAX_U32 mul add          
       
         else
+
           mem_load.AMT_TOKENS_A
           u32split
       
           push.FACTOR
           u32split
+
+          push.101
+          debug.stack
+          drop
                   
           exec.u64::wrapping_mul
+
+          push.111
+          debug.stack
+          drop
       
           mem_load.AMT_TOKENS_B
           u32split
+
+          push.112
+          debug.stack
+          drop
       
           exec.u64::div
+
+          push.102
+          debug.stack
+          drop
       
           mem_load.AMT_TOKENS_B_IN
           u32split
+
+          push.102
+          debug.stack
+          drop
       
           exec.u64::wrapping_mul
+
+          push.104
+          debug.stack
+          drop
       
           push.FACTOR
           u32split
+
+          push.105
+          debug.stack
+          drop
       
           exec.u64::div
+
+          push.106
+          debug.stack
+          drop
+
           push.MAX_U32 mul add          
       
         end
