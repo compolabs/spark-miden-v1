@@ -25,3 +25,7 @@ export.account::remove_asset
 # increment counter
 export.account::incr_nonce
 
+
+# OWNER 
+# get account id
+export.account::get_id

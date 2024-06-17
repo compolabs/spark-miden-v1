@@ -31,6 +31,7 @@ const.TOKEN_B_AMT=0x0009
 const.TOKEN_B_AMT_IN=0x000A
 const.TOKEN_A_AMT_OUT=0x000B
 
+
 # ERRORS
 # =================================================================================================
 
@@ -39,6 +40,9 @@ const.ERR_SWAP_WRONG_NUMBER_OF_INPUTS=0x00020007
 
 # SWAP script requires exactly one note asset
 const.ERR_SWAP_WRONG_NUMBER_OF_ASSETS=0x00020008
+
+# SWAP amount must not exceed 184467440694145
+const.ERR_INVALID_SWAP_AMOUNT=0x00020009
 
 # PRICE CALCULATION
 # =================================================================================================

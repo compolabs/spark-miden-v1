@@ -1,0 +1,78 @@
+use.miden::note
+use.miden::contracts::wallets::basic->wallet
+use.miden::tx
+use.miden::account
+use.std::sys
+use.std::crypto::hashes::native
+use.std::math::u64
+
+#! Returns the RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and input
+#!
+#! Inputs: [SERIAL_NUM, SCRIPT_HASH, input]
+#! Outputs: [RECIPIENT]
+#!
+#! Only allows a single input currently  
+proc.build_recipient_hash
+  padw hmerge
+  # => [SERIAL_NUM_HASH, SCRIPT_HASH, input] 
+
+  # merge SERIAL_NUM_HASH and SCRIPT_HASH
+  swapw hmerge
+  # => [SERIAL_SCRIPT_HASH, input] 
+
+  # compute the INPUT_HASH. Note: only one input is allowed
+  swapw swap.3 padw hmerge
+  # => [INPUT_HASH, SERIAL_SCRIPT_HASH]
+
+  hmerge
+  # [RECIPIENT]
+end
+
+#! Returns if the currently consuming account is the creator of the note
+#!
+#! Inputs: []
+#! Outputs: [is_creator]
+#!
+proc.check_if_consumer_is_creator
+  # get consuming account id
+  exec.account::get_id
+
+  # P2ID SCRIPT HASH
+  push.3642986171513046784.439557843658843141.7958091074590640761.10053938157345527983
+
+  # serial num
+  padw mem_loadw.20
+
+  exec.build_recipient_hash
+
+  # write inputs to mem drop num inputs & ptr
+  push.0 exec.note::get_inputs drop drop
+
+  padw mem_loadw.0
+  
+  eqw
+
+end
+
+
+
+begin
+
+  dropw
+
+  # check if not zero
+  mem_storew.20 # note args
+  # => [arg0,arg1,arg2,arg3]
+
+  # check if the word is all zeros
+  add add add neq.0
+
+  if.true
+    exec.check_if_consumer_is_creator
+
+    if.true
+      # withraw
+    end
+  end
+
+end

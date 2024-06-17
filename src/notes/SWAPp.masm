@@ -53,8 +53,6 @@ const.ERR_INVALID_SWAP_AMOUNT=0x00020009
 #! Outputs: [tokens_a_out]
 #!
 proc.calculate_tokens_a_for_b
-
-
   mem_store.AMT_TOKENS_A 
   mem_store.AMT_TOKENS_B 
   mem_store.AMT_TOKENS_B_IN 
