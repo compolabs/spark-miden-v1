@@ -58,7 +58,6 @@ proc.check_if_consumer_is_creator
 
 end
 
-
 begin
   dropw
   

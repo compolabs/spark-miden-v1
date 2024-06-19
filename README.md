@@ -17,7 +17,35 @@ When partially filling a SWAPp note with liquidity L, the remaining liquidity L1
 
 The process of partially filling a SWAPp note can continue N times until the liquidity in the SWAPp note is completely exhausted.
 
-### Output of Partially Consuming a SWAPp Note
+## SWAPp Note Inputs
+
+The SWAPp note has the same number of inputs as the standard SWAP note in the miden-base repository. 
+
+This means there are 9 stack elements as inputs to the note:
+
+```
+Inputs: [PAYBACK_RECIPIENT, REQUESTED_ASSET, SWAPp_tag]
+```
+
+The payback recipient is the RECIPIENT digest of the P2ID note.
+
+The RECIPIENT digest is defined as:
+```
+hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
+```
+
+The REQUESTED_ASSET is defined as:
+```
+[faucet_id, 0, 0, amount]
+```
+
+
+The SWAPp note is reclaimable by the intial creator of the SWAPp note. After each partial consumption of the SWAPp note, the sender of the note changes. However, since the PAYBACK_RECIPIENT input of the SWAPp note does not change, we can compute inside of the SWAPp note the PAYBACK_RECIPIENT hash using the account id of the currently executing account. If the PAYBACK_RECIPIENT hash matches the SWAPp note input for the PAYBACK_RECIPIENT, this means that the currently executing account is the initial creator.
+
+This is achieved by calling the ```account::get_id``` procedure, and then computing the PAYBACK_RECIPIENT digest inside of the note. 
+
+
+## Output of Partially Consuming a SWAPp Note
 
 When partially consuming a SWAPp note, two notes are outputted:
 1. A P2ID note with the requested asset for the SWAPp note creator.
