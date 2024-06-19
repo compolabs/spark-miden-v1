@@ -259,5 +259,4 @@ fn test_check_if_swapp_creator() {
             tx_args_target.clone(),
         )
         .unwrap();
-
 }
