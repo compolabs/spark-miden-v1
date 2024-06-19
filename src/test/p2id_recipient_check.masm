@@ -70,9 +70,11 @@ begin
   if.true
     exec.check_if_consumer_is_creator
 
-    if.true
+    # if.true
       # withraw
-    end
+    # end
   end
+
+  exec.sys::truncate_stack
 
 end

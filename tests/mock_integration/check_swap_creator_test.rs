@@ -251,7 +251,7 @@ fn test_check_if_swapp_creator() {
     );
 
     // Execute the transaction and get the witness
-    let executed_transaction = executor
+    let _executed_transaction = executor
         .execute_transaction(
             swapp_consumer_account_id,
             block_ref,
@@ -259,4 +259,5 @@ fn test_check_if_swapp_creator() {
             tx_args_target.clone(),
         )
         .unwrap();
+
 }
