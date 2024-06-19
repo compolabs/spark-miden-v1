@@ -19,9 +19,11 @@ The process of partially filling a SWAPp note can continue N times until the liq
 
 ## SWAPp Note Inputs
 
-The SWAPp note has the same number of inputs as the standard SWAP note in the miden-base repository. 
+The SWAPp note has the same number of inputs as the standard SWAP note in the miden-base repository.
 
-This means there are 9 stack elements as inputs to the note:
+This means there are nine stack elements as inputs to the SWAPp note:
+
+*In the context of Miden, when describing the stack, capitalized words represent four stack elements. Four stack elements are referred to as words.*
 
 ```
 Inputs: [PAYBACK_RECIPIENT, REQUESTED_ASSET, SWAPp_tag]
@@ -30,6 +32,7 @@ Inputs: [PAYBACK_RECIPIENT, REQUESTED_ASSET, SWAPp_tag]
 The payback recipient is the RECIPIENT digest of the P2ID note.
 
 The RECIPIENT digest is defined as:
+
 ```
 hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
 ```
@@ -40,9 +43,9 @@ The REQUESTED_ASSET is defined as:
 ```
 
 
-The SWAPp note is reclaimable by the intial creator of the SWAPp note. After each partial consumption of the SWAPp note, the sender of the note changes. However, since the PAYBACK_RECIPIENT input of the SWAPp note does not change, we can compute inside of the SWAPp note the PAYBACK_RECIPIENT hash using the account id of the currently executing account. If the PAYBACK_RECIPIENT hash matches the SWAPp note input for the PAYBACK_RECIPIENT, this means that the currently executing account is the initial creator.
+The SWAPp note is reclaimable by the initial creator of the SWAPp note. After each partial consumption of the SWAPp note, the sender of the note changes. However, since the PAYBACK_RECIPIENT input of the SWAPp note does not change, we can compute the PAYBACK_RECIPIENT hash inside the SWAPp note using the account ID of the currently executing account. If the PAYBACK_RECIPIENT hash matches the SWAPp note input for the PAYBACK_RECIPIENT, this means that the currently executing account is the initial creator.
 
-This is achieved by calling the ```account::get_id``` procedure, and then computing the PAYBACK_RECIPIENT digest inside of the note. 
+This is achieved by calling the account::get_id procedure and then computing the PAYBACK_RECIPIENT digest inside the note.
 
 
 ## Output of Partially Consuming a SWAPp Note
