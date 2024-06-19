@@ -166,7 +166,7 @@ fn format_value_with_decimals(value: u64, decimals: u32) -> u64 {
 }
 
 #[test]
-fn test_check_if_swapp_creator() {
+fn test_check_if_swapp_creator_success() {
     // ASSETS
     // Offered Asset
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
@@ -242,23 +242,111 @@ fn test_check_if_swapp_creator() {
         .unwrap();
 
     // Note args
-    let note_args = [swapp_serial_num];
+    // let note_args = [swapp_serial_num];
+    // let note_args_map = BTreeMap::from([(swap_note.id(), note_args[0])]);
 
-    let note_args_map = BTreeMap::from([(swap_note.id(), note_args[0])]);
-
-    let tx_args_target = TransactionArgs::new(
-        Some(tx_script_target),
-        Some(note_args_map),
-        AdviceMap::default(),
-    );
+    let tx_args_target = TransactionArgs::new(Some(tx_script_target), None, AdviceMap::default());
 
     // Execute the transaction and get the witness
-    let _executed_transaction = executor
-        .execute_transaction(
-            swapp_consumer_account_id,
-            block_ref,
-            &note_ids,
-            tx_args_target.clone(),
-        )
+    let _executed_transaction = executor.execute_transaction(
+        swapp_consumer_account_id,
+        block_ref,
+        &note_ids,
+        tx_args_target.clone(),
+    );
+
+    assert!(_executed_transaction.is_ok());
+}
+
+#[test]
+fn test_check_if_swapp_creator_fail() {
+    // ASSETS
+    // Offered Asset
+    let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+    let amount_token_a: u64 = format_value_with_decimals(100, 6);
+    let offered_token_a: Asset = FungibleAsset::new(faucet_id_1, amount_token_a)
+        .unwrap()
+        .into();
+
+    // Requested Asset
+    let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
+    let requested_amount_token_b = format_value_with_decimals(100, 6);
+    let requested_token_b: Asset = FungibleAsset::new(faucet_id_2, requested_amount_token_b)
+        .unwrap()
+        .into();
+
+    // ACCOUNT IDs
+    // SWAPp note creator
+    let swapp_creator_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+
+    // SWAPp note consumer
+    let swapp_consumer_account_id = AccountId::try_from(ACCOUNT_ID_SENDER_1).unwrap();
+
+    // SWAPp note consumer wallet balance
+    let swap_consumer_balance_token_b = format_value_with_decimals(387, 6);
+    let swap_consumer_token_b = FungibleAsset::new(faucet_id_2, swap_consumer_balance_token_b)
+        .unwrap()
+        .into();
+    let (target_pub_key, _target_falcon_auth) = get_new_pk_and_authenticator();
+
+    // SWAPp note consumer wallet
+    let swap_consumer_wallet = get_custom_account_code(
+        swapp_consumer_account_id,
+        target_pub_key,
+        Some(swap_consumer_token_b),
+    );
+
+    let swapp_serial_num = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
+
+    // SWAPp note
+    let (swap_note, _payback_note, _note_script_hash) = create_partial_swap_note(
+        swapp_creator_account_id.clone(),
+        swapp_creator_account_id.clone(),
+        offered_token_a,
+        requested_token_b,
+        NoteType::OffChain,
+        swapp_serial_num,
+    )
+    .unwrap();
+
+    // CONSTRUCT AND EXECUTE TX (Success)
+    // --------------------------------------------------------------------------------------------
+    let data_store = MockDataStore::with_existing(
+        Some(swap_consumer_wallet.clone()),
+        Some(vec![swap_note.clone()]),
+    );
+
+    let mut executor: TransactionExecutor<_, ()> =
+        TransactionExecutor::new(data_store.clone(), None).with_debug_mode(true);
+    executor.load_account(swapp_consumer_account_id).unwrap();
+
+    let block_ref = data_store.block_header.block_num();
+    let note_ids = data_store
+        .notes
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
+
+    let tx_script_code = include_str!("../../src/tx_scripts/tx_script.masm");
+    let tx_script_ast = ProgramAst::parse(tx_script_code).unwrap();
+
+    let tx_script_target = executor
+        .compile_tx_script(tx_script_ast.clone(), vec![], vec![])
         .unwrap();
+
+    // Note args
+    // let note_args = [swapp_serial_num];
+    // let note_args_map = BTreeMap::from([(swap_note.id(), note_args[0])]);
+
+    let tx_args_target = TransactionArgs::new(Some(tx_script_target), None, AdviceMap::default());
+
+    // Execute the transaction and get the witness
+    let result = executor.execute_transaction(
+        swapp_consumer_account_id,
+        block_ref,
+        &note_ids,
+        tx_args_target.clone(),
+    );
+
+    assert!(result.is_err());
 }

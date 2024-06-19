@@ -6,6 +6,8 @@ use.std::sys
 use.std::crypto::hashes::native
 use.std::math::u64
 
+const.NOT_CREATOR=1
+
 #! Returns the RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and input
 #!
 #! Inputs: [SERIAL_NUM, SCRIPT_HASH, input]
@@ -38,10 +40,10 @@ proc.check_if_consumer_is_creator
   exec.account::get_id
 
   # P2ID SCRIPT HASH
-  push.3642986171513046784.439557843658843141.7958091074590640761.10053938157345527983
+  push.10602532918680875325.6675127147439709234.18374149518996115046.17430228962309045350
 
   # serial num
-  padw mem_loadw.20
+  exec.note::get_serial_number
 
   exec.build_recipient_hash
 
@@ -52,29 +54,30 @@ proc.check_if_consumer_is_creator
   
   eqw
 
+  swap.8 dropw dropw
+
 end
 
 
-
 begin
-
   dropw
-
-  # check if not zero
-  mem_storew.20 # note args
-  # => [arg0,arg1,arg2,arg3]
-
-  # check if the word is all zeros
-  add add add neq.0
+  
+  exec.check_if_consumer_is_creator
 
   if.true
-    exec.check_if_consumer_is_creator
+    # get assets in note and give them to owner
+    push.0 exec.note::get_assets
+    mem_loadw.0
+    call.wallet::receive_asset 
+    dropw
+    push.1 call.account::incr_nonce
+    exec.sys::truncate_stack
 
-    # if.true
-      # withraw
-    # end
+  else
+    assert.err=NOT_CREATOR
+    push.333
+    debug.stack
+    drop
   end
-
-  exec.sys::truncate_stack
 
 end
