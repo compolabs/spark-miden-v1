@@ -1,26 +1,20 @@
+use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{Account, AccountId},
+    accounts::{Account, AccountCode, AccountId, AccountStorage, SlotItem},
     assembly::ModuleAst,
+    assets::{Asset, AssetVault, FungibleAsset},
     crypto::{dsa::rpo_falcon512::SecretKey, utils::Serializable},
     notes::{Note, NoteId},
     transaction::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ProvenTransaction,
         TransactionArgs, TransactionInputs,
     },
-    BlockHeader, Word,
+    BlockHeader, Felt, Word,
 };
 use miden_processor::utils::Deserializable;
 use miden_prover::ProvingOptions;
 use miden_tx::{
     DataStore, DataStoreError, TransactionProver, TransactionVerifier, TransactionVerifierError,
-};
-use mock::{
-    constants::MIN_PROOF_SECURITY_LEVEL,
-    mock::{
-        account::MockAccountType,
-        notes::AssetPreservationStatus,
-        transaction::{mock_inputs, mock_inputs_with_existing},
-    },
 };
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
@@ -187,7 +181,7 @@ pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN: u64 = account_id(
 // MOCK DATA STORE
 // ================================================================================================
 
-#[derive(Clone)]
+/* #[derive(Clone)]
 pub struct MockDataStore {
     pub account: Account,
     pub block_header: BlockHeader,
@@ -282,7 +276,7 @@ impl DataStore for MockDataStore {
         Ok(self.account.code().module().clone())
     }
 }
-
+ */
 // HELPER FUNCTIONS
 // ================================================================================================
 
@@ -290,17 +284,21 @@ impl DataStore for MockDataStore {
 pub fn prove_and_verify_transaction(
     executed_transaction: ExecutedTransaction,
 ) -> Result<(), TransactionVerifierError> {
+    let executed_transaction_id = executed_transaction.id();
     // Prove the transaction
+
     let proof_options = ProvingOptions::default();
     let prover = TransactionProver::new(proof_options);
     let proven_transaction = prover.prove_transaction(executed_transaction).unwrap();
+
+    assert_eq!(proven_transaction.id(), executed_transaction_id);
 
     // Serialize & deserialize the ProvenTransaction
     let serialised_transaction = proven_transaction.to_bytes();
     let proven_transaction = ProvenTransaction::read_from_bytes(&serialised_transaction).unwrap();
 
     // Verify that the generated proof is valid
-    let verifier = TransactionVerifier::new(MIN_PROOF_SECURITY_LEVEL);
+    let verifier = TransactionVerifier::new(miden_objects::MIN_PROOF_SECURITY_LEVEL);
 
     verifier.verify(proven_transaction)
 }
@@ -374,13 +372,23 @@ pub fn get_note_with_fungible_asset_and_script(
     Note::new(vault, metadata, recipient)
 } */
 
+pub const DEFAULT_ACCOUNT_CODE: &str = "
+    use.miden::contracts::wallets::basic->basic_wallet
+    use.miden::contracts::auth::basic->basic_eoa
+
+    export.basic_wallet::receive_asset
+    export.basic_wallet::send_asset
+    export.basic_eoa::auth_tx_rpo_falcon512
+";
+
 pub fn get_new_pk_and_authenticator() -> (
     Word,
-    std::rc::Rc<miden_tx::host::BasicAuthenticator<rand::rngs::StdRng>>,
+    std::rc::Rc<miden_tx::auth::BasicAuthenticator<rand::rngs::StdRng>>,
 ) {
     use std::rc::Rc;
 
-    use miden_tx::host::BasicAuthenticator;
+    use miden_objects::accounts::AuthSecretKey;
+    use miden_tx::auth::BasicAuthenticator;
     use rand::rngs::StdRng;
 
     let seed = [0_u8; 32];
@@ -389,10 +397,38 @@ pub fn get_new_pk_and_authenticator() -> (
     let sec_key = SecretKey::with_rng(&mut rng);
     let pub_key: Word = sec_key.public_key().into();
 
-    let authenticator = BasicAuthenticator::<StdRng>::new(&[(
-        pub_key,
-        miden_objects::accounts::AuthSecretKey::RpoFalcon512(sec_key),
-    )]);
+    let authenticator =
+        BasicAuthenticator::<StdRng>::new(&[(pub_key, AuthSecretKey::RpoFalcon512(sec_key))]);
 
     (pub_key, Rc::new(authenticator))
+}
+
+pub fn get_account_with_default_account_code(
+    account_id: AccountId,
+    public_key: Word,
+    assets: Option<Asset>,
+) -> Account {
+    use std::collections::BTreeMap;
+
+    // use miden_objects::testing::account_code::DEFAULT_ACCOUNT_CODE;
+    let account_code_src = DEFAULT_ACCOUNT_CODE;
+    let account_code_ast = ModuleAst::parse(account_code_src).unwrap();
+    let account_assembler = TransactionKernel::assembler();
+
+    let account_code = AccountCode::new(account_code_ast.clone(), &account_assembler).unwrap();
+    let account_storage =
+        AccountStorage::new(vec![SlotItem::new_value(0, 0, public_key)], BTreeMap::new()).unwrap();
+
+    let account_vault = match assets {
+        Some(asset) => AssetVault::new(&[asset]).unwrap(),
+        None => AssetVault::new(&[]).unwrap(),
+    };
+
+    Account::from_parts(
+        account_id,
+        account_vault,
+        account_storage,
+        account_code,
+        Felt::new(1),
+    )
 }

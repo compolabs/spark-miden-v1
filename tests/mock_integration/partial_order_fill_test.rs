@@ -14,11 +14,12 @@ use miden_objects::{
     Felt, NoteError, Word, ZERO,
 };
 use miden_processor::AdviceMap;
-use miden_tx::TransactionExecutor;
+use miden_tx::{testing::data_store::MockDataStore, TransactionExecutor};
 use miden_vm::Assembler;
+use std::collections::BTreeMap;
 
 use crate::utils::{
-    get_new_pk_and_authenticator, prove_and_verify_transaction, MockDataStore,
+    get_new_pk_and_authenticator, prove_and_verify_transaction,
     ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_SENDER,
     ACCOUNT_ID_SENDER_1, ACCOUNT_ID_SENDER_2,
 };
@@ -33,12 +34,13 @@ pub fn get_custom_account_code(
     let account_assembler = TransactionKernel::assembler().with_debug_mode(true);
 
     let account_code = AccountCode::new(account_code_ast.clone(), &account_assembler).unwrap();
+
     let account_storage = AccountStorage::new(
         vec![SlotItem {
             index: 0,
             slot: StorageSlot::new_value(public_key),
         }],
-        vec![],
+        BTreeMap::new(),
     )
     .unwrap();
 
@@ -47,7 +49,7 @@ pub fn get_custom_account_code(
         None => AssetVault::new(&[]).unwrap(),
     };
 
-    Account::new(
+    Account::from_parts(
         account_id,
         account_vault,
         account_storage,

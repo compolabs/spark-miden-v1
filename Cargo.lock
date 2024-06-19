@@ -169,15 +169,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "atomic-polyfill"
-version = "1.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8cf2bce30dfe09ef0bfaef228b9d414faaf7e563035494d7fe092dba54b300f4"
-dependencies = [
- "critical-section",
-]
-
-[[package]]
 name = "attohttpc"
 version = "0.26.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -547,12 +538,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "74bd707b71a46260ab2b8951748cae3010445aced1dc000ef90d4156bcfad5a2"
 
 [[package]]
-name = "cobs"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67ba02a97a2bd10f4b59b25c7973101c79642302776489e030cd13cdab09ed15"
-
-[[package]]
 name = "colorchoice"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -609,12 +594,6 @@ checksum = "a97769d94ddab943e4510d138150169a2758b5ef3eb191a9ee688de3e23ef7b3"
 dependencies = [
  "cfg-if",
 ]
-
-[[package]]
-name = "critical-section"
-version = "1.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7059fff8937831a9ae6f0fe4d658ffabf58f2ca96aa9dec1c889f936f705f216"
 
 [[package]]
 name = "crossbeam-deque"
@@ -788,41 +767,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3dca9240753cf90908d7e4aac30f630662b02aebaa1b58a3cadabdb23385b58b"
 
 [[package]]
-name = "embedded-io"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef1a6892d9eef45c8fa6b9e0086428a2cca8491aca8f787c534a3d6d0bcb3ced"
-
-[[package]]
 name = "encoding_rs"
 version = "0.8.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b45de904aa0b010bce2ab45264d0631681847fa7b6f2eaa7dab7619943bc4f59"
 dependencies = [
  "cfg-if",
-]
-
-[[package]]
-name = "env_filter"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a009aa4810eb158359dda09d0c87378e4bbb89b5a801f016885a4707ba24f7ea"
-dependencies = [
- "log",
- "regex",
-]
-
-[[package]]
-name = "env_logger"
-version = "0.11.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38b35839ba51819680ba087cd351788c9a3c476841207e0b8cee0b04722343b9"
-dependencies = [
- "anstream",
- "anstyle",
- "env_filter",
- "humantime",
- "log",
 ]
 
 [[package]]
@@ -1075,15 +1025,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hash32"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0c35f58762feb77d74ebe43bdbc3210f09be9fe6742234d573bacc26ed92b67"
-dependencies = [
- "byteorder",
-]
-
-[[package]]
 name = "hashbrown"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1106,20 +1047,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e8094feaf31ff591f651a2664fb9cfd92bba7a60ce3197265e9482ebe753c8f7"
 dependencies = [
  "hashbrown 0.14.5",
-]
-
-[[package]]
-name = "heapless"
-version = "0.7.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cdc6457c0eb62c71aac4bc17216026d8410337c4126773b9c5daba343f17964f"
-dependencies = [
- "atomic-polyfill",
- "hash32",
- "rustc_version",
- "serde",
- "spin",
- "stable_deref_trait",
 ]
 
 [[package]]
@@ -1188,12 +1115,6 @@ name = "httpdate"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
-
-[[package]]
-name = "humantime"
-version = "2.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 
 [[package]]
 name = "hyper"
@@ -1698,10 +1619,10 @@ dependencies = [
  "comfy-table",
  "figment",
  "lazy_static",
- "miden-lib 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "miden-lib 0.3.1",
  "miden-node-proto",
- "miden-objects",
- "miden-tx",
+ "miden-objects 0.3.1",
+ "miden-tx 0.3.1",
  "rand",
  "rusqlite",
  "rusqlite_migration",
@@ -1752,35 +1673,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07cf9a3d8d4fa017e2b957a024ca0859bdd44bb315b2b8814ad652f3852858a3"
 dependencies = [
  "miden-assembly",
- "miden-objects",
+ "miden-objects 0.3.1",
  "miden-stdlib",
 ]
 
 [[package]]
 name = "miden-lib"
-version = "0.3.1"
-source = "git+https://github.com/0xPolygonMiden/miden-base.git?branch=main#6184966b87f26c0a30b79b277e760d291ae6f493"
+version = "0.4.0"
+source = "git+https://github.com/0xPolygonMiden/miden-base.git?branch=next#4310871268c1acff23b5d7eb31c727070d1e5efc"
 dependencies = [
  "miden-assembly",
- "miden-objects",
+ "miden-objects 0.4.0",
  "miden-stdlib",
-]
-
-[[package]]
-name = "miden-mock"
-version = "0.3.1"
-source = "git+https://github.com/0xPolygonMiden/miden-base.git?branch=main#6184966b87f26c0a30b79b277e760d291ae6f493"
-dependencies = [
- "env_logger",
- "hex",
- "miden-lib 0.3.1 (git+https://github.com/0xPolygonMiden/miden-base.git?branch=main)",
- "miden-objects",
- "miden-processor",
- "miden-prover",
- "postcard",
- "rand",
- "rand_pcg",
- "winter-rand-utils",
 ]
 
 [[package]]
@@ -1791,7 +1695,7 @@ checksum = "4cad7cb698a5e3cd387eca9380c0c6da1eea262b9527967b6eb755da3699b5b0"
 dependencies = [
  "hex",
  "miden-node-utils",
- "miden-objects",
+ "miden-objects 0.3.1",
  "miette",
  "prost",
  "prost-build",
@@ -1810,7 +1714,7 @@ dependencies = [
  "anyhow",
  "figment",
  "itertools",
- "miden-objects",
+ "miden-objects 0.3.1",
  "serde",
  "thiserror",
  "tonic",
@@ -1821,15 +1725,28 @@ dependencies = [
 [[package]]
 name = "miden-objects"
 version = "0.3.1"
-source = "git+https://github.com/0xPolygonMiden/miden-base.git?branch=main#6184966b87f26c0a30b79b277e760d291ae6f493"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9aca01b7fbc924a666ad98ac59cb2b32880fb1183959d901ff0d476a98fbe68a"
 dependencies = [
- "log",
  "miden-assembly",
  "miden-core",
  "miden-crypto",
  "miden-processor",
  "miden-verifier",
  "serde",
+]
+
+[[package]]
+name = "miden-objects"
+version = "0.4.0"
+source = "git+https://github.com/0xPolygonMiden/miden-base.git?branch=next#4310871268c1acff23b5d7eb31c727070d1e5efc"
+dependencies = [
+ "miden-assembly",
+ "miden-core",
+ "miden-crypto",
+ "miden-processor",
+ "miden-verifier",
+ "rand",
  "winter-rand-utils",
 ]
 
@@ -1869,10 +1786,25 @@ dependencies = [
 [[package]]
 name = "miden-tx"
 version = "0.3.1"
-source = "git+https://github.com/0xPolygonMiden/miden-base.git?branch=main#6184966b87f26c0a30b79b277e760d291ae6f493"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "914a8436b7920eae1c519605b14c0dad4458607ed1ddea1d06724ec0c36aa6ff"
 dependencies = [
- "miden-lib 0.3.1 (git+https://github.com/0xPolygonMiden/miden-base.git?branch=main)",
- "miden-objects",
+ "miden-lib 0.3.1",
+ "miden-objects 0.3.1",
+ "miden-processor",
+ "miden-prover",
+ "miden-verifier",
+ "rand",
+ "winter-maybe-async",
+]
+
+[[package]]
+name = "miden-tx"
+version = "0.4.0"
+source = "git+https://github.com/0xPolygonMiden/miden-base.git?branch=next#4310871268c1acff23b5d7eb31c727070d1e5efc"
+dependencies = [
+ "miden-lib 0.4.0",
+ "miden-objects 0.4.0",
  "miden-processor",
  "miden-prover",
  "miden-verifier",
@@ -2247,18 +2179,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d231b230927b5e4ad203db57bbcbee2802f6bce620b1e4a9024a07d94e2907ec"
 
 [[package]]
-name = "postcard"
-version = "1.0.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a55c51ee6c0db07e68448e336cf8ea4131a620edefebf9893e759b2d793420f8"
-dependencies = [
- "cobs",
- "embedded-io",
- "heapless",
- "serde",
-]
-
-[[package]]
 name = "powerfmt"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2470,16 +2390,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rand_pcg"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59cad018caf63deb318e5a4586d99a24424a364f40f1e5778c29aca23f4fc73e"
-dependencies = [
- "rand_core",
- "serde",
-]
-
-[[package]]
 name = "rand_xorshift"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2640,15 +2550,6 @@ name = "rustc-demangle"
 version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "719b953e2095829ee67db738b3bfa9fa368c94900df327b3f07fe6e794d2fe1f"
-
-[[package]]
-name = "rustc_version"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfa0f585226d2e68097d4f95d113b15b83a82e819ab25717ec0590d9584ef366"
-dependencies = [
- "semver",
-]
 
 [[package]]
 name = "rustix"
@@ -2869,13 +2770,12 @@ dependencies = [
  "cargo-make",
  "figment",
  "miden-client",
- "miden-lib 0.3.1 (git+https://github.com/0xPolygonMiden/miden-base.git?branch=main)",
- "miden-mock",
- "miden-objects",
+ "miden-lib 0.4.0",
+ "miden-objects 0.4.0",
  "miden-processor",
  "miden-prover",
  "miden-stdlib",
- "miden-tx",
+ "miden-tx 0.4.0",
  "miden-vm",
  "proptest",
  "rand",
@@ -2889,9 +2789,6 @@ name = "spin"
 version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
-dependencies = [
- "lock_api",
-]
 
 [[package]]
 name = "stable_deref_trait"
