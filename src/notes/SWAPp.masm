@@ -310,9 +310,10 @@ begin
     # 3) create SWAPp' and calculate token_a' & token_b'
     # 4) add token_a' and token_b' to SWAPp' 
 
+    # TODO: add aux value
     # 1) send token B amt to creator
-    mem_loadw.PAYBACK_RECIPIENT push.OFFCHAIN_NOTE mem_load.PAYBACK_TAG mem_load.TOKEN_B_AMT_IN push.0.0 mem_load.TOKEN_B_ID
-    # => [requested_token_id, 0, 0, token_b_AMT_IN, tag, note_type, RECIPIENT_P2ID]
+    mem_loadw.PAYBACK_RECIPIENT push.OFFCHAIN_NOTE push.0 mem_load.PAYBACK_TAG mem_load.TOKEN_B_AMT_IN push.0.0 mem_load.TOKEN_B_ID
+    # => [requested_token_id, 0, 0, token_b_AMT_IN, tag, note_type, aux, RECIPIENT_P2ID]
 
     call.wallet::send_asset dropw
     # => []
@@ -352,8 +353,8 @@ begin
     exec.build_recipient_hash 
     # => [RECIPIENT_SWAPP]
 
-    push.OFFCHAIN_NOTE mem_load.PAYBACK_TAG
-    # => [payback_tag, note_type, RECIPIENT_SWAPP]
+    push.OFFCHAIN_NOTE push.0 mem_load.PAYBACK_TAG
+    # => [payback_tag, aux, note_type, RECIPIENT_SWAPP]
 
     call.tx::create_note
     # => [swapp_ptr]
