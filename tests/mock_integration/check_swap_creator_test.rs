@@ -6,8 +6,8 @@ use miden_objects::{
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::hash::rpo::RpoDigest,
     notes::{
-        Note, NoteAssets, NoteDetails, NoteExecutionHint, NoteHeader, NoteInputs, NoteMetadata,
-        NoteRecipient, NoteScript, NoteTag, NoteType,
+        Note, NoteAssets, NoteDetails, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient,
+        NoteScript, NoteTag, NoteType,
     },
     transaction::TransactionArgs,
     vm::CodeBlock,
@@ -20,9 +20,8 @@ use std::collections::BTreeMap;
 use miden_tx::{testing::data_store::MockDataStore, TransactionExecutor};
 
 use crate::utils::{
-    get_new_pk_and_authenticator, prove_and_verify_transaction,
-    ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_SENDER,
-    ACCOUNT_ID_SENDER_1, ACCOUNT_ID_SENDER_2,
+    get_new_pk_and_authenticator, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+    ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_SENDER, ACCOUNT_ID_SENDER_1,
 };
 
 pub fn get_custom_account_code(

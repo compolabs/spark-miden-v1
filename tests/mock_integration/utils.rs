@@ -2,23 +2,17 @@ use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountStorage, SlotItem},
     assembly::ModuleAst,
-    assets::{Asset, AssetVault, FungibleAsset},
+    assets::{Asset, AssetVault},
     crypto::{dsa::rpo_falcon512::SecretKey, utils::Serializable},
-    notes::{Note, NoteId},
-    transaction::{
-        ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ProvenTransaction,
-        TransactionArgs, TransactionInputs,
-    },
-    BlockHeader, Felt, Word,
+    transaction::{ExecutedTransaction, ProvenTransaction},
+    Felt, Word,
 };
 use miden_processor::utils::Deserializable;
 use miden_prover::ProvingOptions;
-use miden_tx::{
-    DataStore, DataStoreError, TransactionProver, TransactionVerifier, TransactionVerifierError,
-};
+use miden_tx::{TransactionProver, TransactionVerifier, TransactionVerifierError};
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
-pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN: u64 = 0x900000000000003F; // 10376293541461622847
+// pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN: u64 = 0x900000000000003F; // 10376293541461622847
 pub const ACCOUNT_ID_SENDER: u64 = 0x800000000000001F; // 9223372036854775839
 pub const ACCOUNT_ID_SENDER_1: u64 = 0x800000000000002F; // 9223372036854775840
 pub const ACCOUNT_ID_SENDER_2: u64 = 0x800000000000003F; // 9223372036854775841
@@ -166,11 +160,11 @@ pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN: u64 = account_id(
     0b0001_1111,
 ); */
 // NON-FUNGIBLE TOKENS - ON-CHAIN
-pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN: u64 = account_id(
+/* pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN: u64 = account_id(
     AccountType::NonFungibleFaucet,
     AccountStorageType::OnChain,
     0b0010_1111,
-);
+); */
 
 /* pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1: u64 = account_id(
     AccountType::NonFungibleFaucet,
