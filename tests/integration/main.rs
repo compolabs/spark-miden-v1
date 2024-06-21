@@ -15,10 +15,11 @@ use miden_tx::TransactionExecutorError;
 mod common;
 use common::*;
 
-mod cli_tests;
 mod custom_transactions_tests;
 mod onchain_tests;
 mod swap_transactions_tests;
+
+mod partial_fill_swap_transactions_tests;
 
 #[tokio::test]
 async fn test_added_notes() {
