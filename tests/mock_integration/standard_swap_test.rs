@@ -117,5 +117,5 @@ fn prove_swap_script() {
     );
 
     // Prove, serialize/deserialize and verify the transaction
-    // assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
+    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 }
