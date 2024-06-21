@@ -17,6 +17,12 @@ When partially filling a SWAPp note with liquidity L, the remaining liquidity L1
 
 The process of partially filling a SWAPp note can continue N times until the liquidity in the SWAPp note is completely exhausted.
 
+
+
+### Partial SWAPp fulfillment
+![alt text](./docs/PartialFillSWAPp.svg)
+
+
 ## SWAPp Note Inputs
 
 The SWAPp note has the same number of inputs as the standard SWAP note in the miden-base repository.
@@ -54,8 +60,7 @@ When partially consuming a SWAPp note, two notes are outputted:
 1. A P2ID note with the requested asset for the SWAPp note creator.
 2. A new SWAPp note with L1 liquidity of the asset being sold.
 
-### Partial SWAPp fulfillment
-![alt text](./docs/PartialFillSWAPp.svg)
+
 
 ### Running Tests:c
 ```
