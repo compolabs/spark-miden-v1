@@ -17,11 +17,8 @@ When partially filling a SWAPp note with liquidity L, the remaining liquidity L1
 
 The process of partially filling a SWAPp note can continue N times until the liquidity in the SWAPp note is completely exhausted.
 
-
-
 ### Partial SWAPp fulfillment
 ![alt text](./docs/PartialFillSWAPp.svg)
-
 
 ## SWAPp Note Inputs
 
@@ -48,19 +45,15 @@ The REQUESTED_ASSET is defined as:
 [faucet_id, 0, 0, amount]
 ```
 
-
 The SWAPp note is reclaimable by the initial creator of the SWAPp note. After each partial consumption of the SWAPp note, the sender of the note changes. However, since the PAYBACK_RECIPIENT input of the SWAPp note does not change, we can compute the PAYBACK_RECIPIENT hash inside the SWAPp note using the account ID of the currently executing account. If the PAYBACK_RECIPIENT hash matches the SWAPp note input for the PAYBACK_RECIPIENT, this means that the currently executing account is the initial creator.
 
 This is achieved by calling the account::get_id procedure and then computing the PAYBACK_RECIPIENT digest inside the note.
-
 
 ## Output of Partially Consuming a SWAPp Note
 
 When partially consuming a SWAPp note, two notes are outputted:
 1. A P2ID note with the requested asset for the SWAPp note creator.
 2. A new SWAPp note with L1 liquidity of the asset being sold.
-
-
 
 ### Running Tests:c
 ```
