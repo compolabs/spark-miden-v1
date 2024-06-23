@@ -5,27 +5,27 @@ use.std::math::u64
 # both tokens are base 1e8
 begin
 
-  # a = 100k base 1e8
-  push.10000000000000
+    # a = 100k base 1e8
+    push.10000000000000
 
-  # scale by 1e5
-  push.100000
-  mul
-  
-  u32split
+    # scale by 1e5
+    push.100000
+    mul
 
-  # b = 99k base 1e8
-  push.99000000000000
+    u32split
 
-  u32split
-  # => [b_hi, b_lo, a_hi, a_lo]
-  
-  exec.u64::div
-  # [c_hi, c_lo]
+    # b = 99k base 1e8
+    push.99000000000000
 
-  # convert u64 to single stack => must be less than 2**64 - 2**32
-  # u64_number = (high_part * (2**32)) + low_part
+    u32split
+    # => [b_hi, b_lo, a_hi, a_lo]
 
-  push.4294967296 mul add
+    exec.u64::div
+    # [c_hi, c_lo]
+
+    # convert u64 to single stack => must be less than 2**64 - 2**32
+    # u64_number = (high_part * (2**32)) + low_part
+
+    push.4294967296 mul add
 
 end

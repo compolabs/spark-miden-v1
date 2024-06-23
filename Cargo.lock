@@ -1429,6 +1429,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "masm-formatter"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56979f64b495f2dc00e1c445d503414ff9e31007ec854d5548d51bb416396cda"
+dependencies = [
+ "clap",
+ "glob",
+ "regex",
+]
+
+[[package]]
 name = "matchers"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2632,6 +2643,7 @@ version = "0.1.0"
 dependencies = [
  "cargo-make",
  "figment",
+ "masm-formatter",
  "miden-client",
  "miden-lib 0.4.0",
  "miden-objects 0.4.0",
