@@ -86,7 +86,9 @@ async fn test_swap_fully_onchain() {
 
     // Sync and consume note for accountA
     client1.sync_state().await.unwrap();
-    let client_1_notes = client1.get_input_notes(miden_client::store::NoteFilter::All).unwrap();
+    let client_1_notes = client1
+        .get_input_notes(miden_client::store::NoteFilter::All)
+        .unwrap();
     assert_eq!(client_1_notes.len(), 1);
 
     println!("Consuming mint note on first client...");
@@ -97,7 +99,9 @@ async fn test_swap_fully_onchain() {
 
     // Sync and consume note for accountB
     client2.sync_state().await.unwrap();
-    let client_2_notes = client2.get_input_notes(miden_client::store::NoteFilter::All).unwrap();
+    let client_2_notes = client2
+        .get_input_notes(miden_client::store::NoteFilter::All)
+        .unwrap();
     assert_eq!(client_2_notes.len(), 1);
 
     println!("Consuming mint note on second client...");
@@ -130,8 +134,11 @@ async fn test_swap_fully_onchain() {
 
     execute_tx_and_sync(&mut client1, tx_request).await;
 
-    let payback_note_tag =
-        build_swap_tag(NoteType::Public, btc_faucet_account.id(), eth_faucet_account.id());
+    let payback_note_tag = build_swap_tag(
+        NoteType::Public,
+        btc_faucet_account.id(),
+        eth_faucet_account.id(),
+    );
 
     // add swap note's tag to both client 1 and client 2 (TODO: check if it's needed for both)
     // we could technically avoid this step, but for the first iteration of swap notes we'll
@@ -181,14 +188,14 @@ async fn test_swap_fully_onchain() {
         {
             assert_eq!(btc_asset.amount(), 999);
             assert_eq!(eth_asset.amount(), 25);
-        },
+        }
         (Asset::Fungible(eth_asset), Asset::Fungible(btc_asset))
             if btc_asset.faucet_id() == btc_faucet_account.id()
                 && eth_asset.faucet_id() == eth_faucet_account.id() =>
         {
             assert_eq!(btc_asset.amount(), 999);
             assert_eq!(eth_asset.amount(), 25);
-        },
+        }
         _ => panic!("should only have fungible assets!"),
     }
 
@@ -207,14 +214,14 @@ async fn test_swap_fully_onchain() {
         {
             assert_eq!(btc_asset.amount(), 1);
             assert_eq!(eth_asset.amount(), 975);
-        },
+        }
         (Asset::Fungible(eth_asset), Asset::Fungible(btc_asset))
             if btc_asset.faucet_id() == btc_faucet_account.id()
                 && eth_asset.faucet_id() == eth_faucet_account.id() =>
         {
             assert_eq!(btc_asset.amount(), 1);
             assert_eq!(eth_asset.amount(), 975);
-        },
+        }
         _ => panic!("should only have fungible assets!"),
     }
 }
@@ -292,7 +299,9 @@ async fn test_swap_offchain() {
 
     // Sync and consume note for accountA
     client1.sync_state().await.unwrap();
-    let client_1_notes = client1.get_input_notes(miden_client::store::NoteFilter::All).unwrap();
+    let client_1_notes = client1
+        .get_input_notes(miden_client::store::NoteFilter::All)
+        .unwrap();
     assert_eq!(client_1_notes.len(), 1);
 
     println!("Consuming mint note on first client...");
@@ -303,7 +312,9 @@ async fn test_swap_offchain() {
 
     // Sync and consume note for accountB
     client2.sync_state().await.unwrap();
-    let client_2_notes = client2.get_input_notes(miden_client::store::NoteFilter::All).unwrap();
+    let client_2_notes = client2
+        .get_input_notes(miden_client::store::NoteFilter::All)
+        .unwrap();
     assert_eq!(client_2_notes.len(), 1);
 
     println!("Consuming mint note on second client...");
@@ -337,7 +348,9 @@ async fn test_swap_offchain() {
     execute_tx_and_sync(&mut client1, tx_request).await;
 
     // Export note from client 1 to client 2
-    let exported_note = client1.get_output_note(expected_output_notes[0].id()).unwrap();
+    let exported_note = client1
+        .get_output_note(expected_output_notes[0].id())
+        .unwrap();
 
     client2
         .import_input_note(exported_note.try_into().unwrap(), true)
@@ -386,14 +399,14 @@ async fn test_swap_offchain() {
         {
             assert_eq!(btc_asset.amount(), 999);
             assert_eq!(eth_asset.amount(), 25);
-        },
+        }
         (Asset::Fungible(eth_asset), Asset::Fungible(btc_asset))
             if btc_asset.faucet_id() == btc_faucet_account.id()
                 && eth_asset.faucet_id() == eth_faucet_account.id() =>
         {
             assert_eq!(btc_asset.amount(), 999);
             assert_eq!(eth_asset.amount(), 25);
-        },
+        }
         _ => panic!("should only have fungible assets!"),
     }
 
@@ -412,14 +425,14 @@ async fn test_swap_offchain() {
         {
             assert_eq!(btc_asset.amount(), 1);
             assert_eq!(eth_asset.amount(), 975);
-        },
+        }
         (Asset::Fungible(eth_asset), Asset::Fungible(btc_asset))
             if btc_asset.faucet_id() == btc_faucet_account.id()
                 && eth_asset.faucet_id() == eth_faucet_account.id() =>
         {
             assert_eq!(btc_asset.amount(), 1);
             assert_eq!(eth_asset.amount(), 975);
-        },
+        }
         _ => panic!("should only have fungible assets!"),
     }
 }

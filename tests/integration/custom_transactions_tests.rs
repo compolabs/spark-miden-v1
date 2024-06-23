@@ -89,12 +89,17 @@ async fn test_transaction_request() {
         let (pubkey_input, advice_map): (Word, Vec<Felt>) = match account_auth {
             AuthSecretKey::RpoFalcon512(key) => (
                 key.public_key().into(),
-                key.to_bytes().iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>(),
+                key.to_bytes()
+                    .iter()
+                    .map(|a| Felt::new(*a as u64))
+                    .collect::<Vec<Felt>>(),
             ),
         };
 
         let script_inputs = vec![(pubkey_input, advice_map)];
-        client.compile_tx_script(program, script_inputs, vec![]).unwrap()
+        client
+            .compile_tx_script(program, script_inputs, vec![])
+            .unwrap()
     };
 
     let transaction_request = TransactionRequest::new(
@@ -118,12 +123,17 @@ async fn test_transaction_request() {
         let (pubkey_input, advice_map): (Word, Vec<Felt>) = match account_auth {
             AuthSecretKey::RpoFalcon512(key) => (
                 key.public_key().into(),
-                key.to_bytes().iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>(),
+                key.to_bytes()
+                    .iter()
+                    .map(|a| Felt::new(*a as u64))
+                    .collect::<Vec<Felt>>(),
             ),
         };
 
         let script_inputs = vec![(pubkey_input, advice_map)];
-        client.compile_tx_script(program, script_inputs, vec![]).unwrap()
+        client
+            .compile_tx_script(program, script_inputs, vec![])
+            .unwrap()
     };
 
     let transaction_request = TransactionRequest::new(
@@ -146,7 +156,12 @@ async fn mint_custom_note(
 ) -> Note {
     // Prepare transaction
     let mut random_coin = RpoRandomCoin::new(Default::default());
-    let note = create_custom_note(client, faucet_account_id, target_account_id, &mut random_coin);
+    let note = create_custom_note(
+        client,
+        faucet_account_id,
+        target_account_id,
+        &mut random_coin,
+    );
 
     let recipient = note
         .recipient()
@@ -175,7 +190,10 @@ async fn mint_custom_note(
     end
     "
     .replace("{recipient}", &recipient)
-    .replace("{note_type}", &Felt::new(NoteType::OffChain as u64).to_string())
+    .replace(
+        "{note_type}",
+        &Felt::new(NoteType::OffChain as u64).to_string(),
+    )
     .replace("{tag}", &Felt::new(note_tag.into()).to_string())
     .replace("{amount}", &Felt::new(10).to_string());
 
@@ -221,8 +239,10 @@ fn create_custom_note(
         Default::default(),
     )
     .unwrap();
-    let note_assets =
-        NoteAssets::new(vec![FungibleAsset::new(faucet_account_id, 10).unwrap().into()]).unwrap();
+    let note_assets = NoteAssets::new(vec![FungibleAsset::new(faucet_account_id, 10)
+        .unwrap()
+        .into()])
+    .unwrap();
     let note_recipient = NoteRecipient::new(serial_num, note_script, inputs);
     Note::new(note_assets, note_metadata, note_recipient)
 }
