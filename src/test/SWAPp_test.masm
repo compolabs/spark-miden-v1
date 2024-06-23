@@ -31,7 +31,6 @@ const.TOKEN_B_AMT=0x0009
 const.TOKEN_B_AMT_IN=0x000A
 const.TOKEN_A_AMT_OUT=0x000B
 
-
 # ERRORS
 # =================================================================================================
 
@@ -53,71 +52,71 @@ const.ERR_INVALID_SWAP_AMOUNT=0x00020009
 #! Outputs: [tokens_a_out]
 #!
 proc.calculate_tokens_a_for_b
-  mem_store.AMT_TOKENS_A 
-  mem_store.AMT_TOKENS_B 
-  mem_store.AMT_TOKENS_B_IN 
+    mem_store.AMT_TOKENS_A
+    mem_store.AMT_TOKENS_B
+    mem_store.AMT_TOKENS_B_IN
 
-  mem_load.AMT_TOKENS_B mem_load.AMT_TOKENS_A
+    mem_load.AMT_TOKENS_B mem_load.AMT_TOKENS_A
 
-  gt
-  if.true
-    mem_load.AMT_TOKENS_B
-    u32split
+    gt
+    if.true
+        mem_load.AMT_TOKENS_B
+        u32split
 
-    push.FACTOR
-    u32split
-            
-    exec.u64::wrapping_mul
+        push.FACTOR
+        u32split
 
-    mem_load.AMT_TOKENS_A
-    u32split
+        exec.u64::wrapping_mul
 
-    exec.u64::div
-    push.MAX_U32 mul add
+        mem_load.AMT_TOKENS_A
+        u32split
 
-    mem_store.RATIO
+        exec.u64::div
+        push.MAX_U32 mul add
 
-    mem_load.AMT_TOKENS_B_IN
-    u32split
+        mem_store.RATIO
 
-    push.FACTOR
-    u32split
+        mem_load.AMT_TOKENS_B_IN
+        u32split
 
-    exec.u64::wrapping_mul
+        push.FACTOR
+        u32split
 
-    mem_load.RATIO
-    u32split
+        exec.u64::wrapping_mul
 
-    exec.u64::div
+        mem_load.RATIO
+        u32split
 
-    push.MAX_U32 mul add          
+        exec.u64::div
 
-  else
-    mem_load.AMT_TOKENS_A
-    u32split
+        push.MAX_U32 mul add
 
-    push.FACTOR
-    u32split
-            
-    exec.u64::wrapping_mul
+    else
+        mem_load.AMT_TOKENS_A
+        u32split
 
-    mem_load.AMT_TOKENS_B
-    u32split
+        push.FACTOR
+        u32split
 
-    exec.u64::div
+        exec.u64::wrapping_mul
 
-    mem_load.AMT_TOKENS_B_IN
-    u32split
+        mem_load.AMT_TOKENS_B
+        u32split
 
-    exec.u64::wrapping_mul
+        exec.u64::div
 
-    push.FACTOR
-    u32split
+        mem_load.AMT_TOKENS_B_IN
+        u32split
 
-    exec.u64::div
-    push.MAX_U32 mul add          
+        exec.u64::wrapping_mul
 
-  end
+        push.FACTOR
+        u32split
+
+        exec.u64::div
+        push.MAX_U32 mul add
+
+    end
 end
 
 # HASHING PROCEDURES
@@ -129,30 +128,30 @@ end
 #! Outputs: [INPUTS_HASH]
 proc.get_note_inputs_commitment
 
-  # Initialize the capacity portion of the hasher state.
-  # Absorb the first 8 values into the hasher state.
-  swapdw padw movupw.2 movupw.2
-  # => [8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0]
+    # Initialize the capacity portion of the hasher state.
+    # Absorb the first 8 values into the hasher state.
+    swapdw padw movupw.2 movupw.2
+    # => [8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0]
 
-  # Execute the RPO permutation.
-  hperm
-  # => Permuted state [R2, R1, C]
+    # Execute the RPO permutation.
+    hperm
+    # => Permuted state [R2, R1, C]
 
-  # Drop the two capacity elements to absorb the 9th element.
-  dropw dropw
-  # => [R2, R1]
+    # Drop the two capacity elements to absorb the 9th element.
+    dropw dropw
+    # => [R2, R1]
 
-  # Absorb the 9th element and apply padding.
-  movupw.2 movupw.2
-  # => [0, 0, 0, 0, 0, 0, 0, 9, R2, R1]
+    # Absorb the 9th element and apply padding.
+    movupw.2 movupw.2
+    # => [0, 0, 0, 0, 0, 0, 0, 9, R2, R1]
 
-  # Execute the RPO permutation.
-  hperm
-  # => Permuted state [R2, R1, C]
+    # Execute the RPO permutation.
+    hperm
+    # => Permuted state [R2, R1, C]
 
-  # Convert the state to the digest.
-  exec.native::state_to_digest
-  # => [Digest]
+    # Convert the state to the digest.
+    exec.native::state_to_digest
+    # => [Digest]
 end
 
 #! Returns the RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and input
@@ -161,32 +160,32 @@ end
 #! Outputs: [RECIPIENT]
 #!
 proc.build_recipient_hash
-  padw hmerge
-  # => [SERIAL_NUM_HASH, SCRIPT_HASH, INPUT_HASH]
+    padw hmerge
+    # => [SERIAL_NUM_HASH, SCRIPT_HASH, INPUT_HASH]
 
-  swapw hmerge
-  # => [MERGE_SCRIPT, INPUT_HASH]
+    swapw hmerge
+    # => [MERGE_SCRIPT, INPUT_HASH]
 
-  swapw hmerge
-  # [RECIPIENT]
+    swapw hmerge
+    # [RECIPIENT]
 end
 
 # Partially Fillable Swap Script (SWAPp)
 # =================================================================================================
-# 
+#
 # Partially Fillable Swap Script (SWAPp): adds an asset from the note into consumers account and
 # creates a note consumable by note issuer containing requested ASSET.
 #
-# If the consuming account does not have the sufficient liquidity to completely 
+# If the consuming account does not have the sufficient liquidity to completely
 # fulfill the amount of the SWAPp creator's requested asset, then it:
-#  1) Computes the ratio of token_a to token_b, where token_a is the offered asset, 
+#  1) Computes the ratio of token_a to token_b, where token_a is the offered asset,
 #     and where token_b is the requested asset
-#  2) Calculates the amount of token_a to send to the consumer based on the the 
+#  2) Calculates the amount of token_a to send to the consumer based on the the
 #     amount of token_b sent via P2ID to the creator
 #  3) Outputs a new SWAPp note with the remaining liquidity of token_a, and the updated
 #     amount of token_b
 #
-# Note: 
+# Note:
 # 1) the offered asset is referred to as token_a,
 # 2) the requested asset is referred to as token_b,
 # 3) token_b_in is the amount of token_b sent to the SWAPp creator via P2ID
@@ -215,7 +214,7 @@ end
 # - Adding a fungible asset would result in amount overflow, i.e., the total amount would be
 #   greater than 2^63
 begin
-    # STEPS: 
+    # STEPS:
     # 1) Get token_a, token_b, and token_b_in amounts
 
     # 2) Calculate price ratio:
@@ -225,9 +224,9 @@ begin
     # => token_a_out = balance_b * ratio
 
     # 4) Calculate token_b amount to creator
-    
+
     # 5) calculate token a remaining for new SWAPp note
-    # => token_a_remaining = token_a - token_a_out 
+    # => token_a_remaining = token_a - token_a_out
 
     # 6) calculate updated token b requested amount (input hash)
     # => token_b_requested_remaining = token_a_remaining * ratio
@@ -270,7 +269,7 @@ begin
 
     # store token_b_id to memory addr 7
     dup mem_store.TOKEN_B_ID
-    
+
     # store token_b_AMT to mem addr 9
     drop drop drop mem_store.TOKEN_B_AMT
 
@@ -300,15 +299,15 @@ begin
     # if amount_out > amount_a
     # amount_out = amount_a
     if.true
-      mem_load.TOKEN_A_AMT
+        mem_load.TOKEN_A_AMT
     else
-      mem_load.TOKEN_A_AMT_OUT
+        mem_load.TOKEN_A_AMT_OUT
     end
 
     # 1) send token_b_in amt in to creator
     # 2) send token_a_out amt to consumer
     # 3) create SWAPp' and calculate token_a' & token_b'
-    # 4) add token_a' and token_b' to SWAPp' 
+    # 4) add token_a' and token_b' to SWAPp'
 
     # 1) send token B amt to creator
     mem_loadw.PAYBACK_RECIPIENT push.OFFCHAIN_NOTE mem_load.PAYBACK_TAG mem_load.TOKEN_B_AMT_IN push.0.0 mem_load.TOKEN_B_ID
@@ -349,7 +348,7 @@ begin
     push.1.2.3.4
     # => [SERIAL_NUM, SCRIPT_HASH, INPUTS_HASH]
 
-    exec.build_recipient_hash 
+    exec.build_recipient_hash
     # => [RECIPIENT_SWAPP]
 
     push.OFFCHAIN_NOTE mem_load.PAYBACK_TAG
@@ -358,7 +357,7 @@ begin
     call.tx::create_note
     # => [swapp_ptr]
 
-    # 4) add token_a' and token_b' to SWAPp' 
+    # 4) add token_a' and token_b' to SWAPp'
     mem_load.TOKEN_A_AMT mem_load.TOKEN_A_AMT_OUT sub push.0.0 mem_load.TOKEN_A_ID
     # => [OFFERED_ASSET_REMAINING, swapp_ptr]
 
