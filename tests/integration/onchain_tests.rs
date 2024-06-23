@@ -64,8 +64,15 @@ async fn test_onchain_notes_flow() {
     client_2.sync_state().await.unwrap();
 
     // Assert that the note is the same
-    let received_note: InputNote = client_2.get_input_note(note.id()).unwrap().try_into().unwrap();
-    assert_eq!(received_note.note().authentication_hash(), note.authentication_hash());
+    let received_note: InputNote = client_2
+        .get_input_note(note.id())
+        .unwrap()
+        .try_into()
+        .unwrap();
+    assert_eq!(
+        received_note.note().authentication_hash(),
+        note.authentication_hash()
+    );
     assert_eq!(received_note.note(), &note);
 
     // consume the note
@@ -129,19 +136,30 @@ async fn test_onchain_accounts() {
 
     let (_, faucet_seed) = client_1.get_account_stub_by_id(faucet_account_id).unwrap();
     let auth_info = client_1.get_account_auth(faucet_account_id).unwrap();
-    client_2.insert_account(&faucet_account_stub, faucet_seed, &auth_info).unwrap();
+    client_2
+        .insert_account(&faucet_account_stub, faucet_seed, &auth_info)
+        .unwrap();
 
     // First Mint necesary token
     println!("First client consuming note");
-    let note =
-        mint_note(&mut client_1, target_account_id, faucet_account_id, NoteType::OffChain).await;
+    let note = mint_note(
+        &mut client_1,
+        target_account_id,
+        faucet_account_id,
+        NoteType::OffChain,
+    )
+    .await;
 
     // Update the state in the other client and ensure the onchain faucet hash is consistent
     // between clients
     client_2.sync_state().await.unwrap();
 
-    let (client_1_faucet, _) = client_1.get_account_stub_by_id(faucet_account_stub.id()).unwrap();
-    let (client_2_faucet, _) = client_2.get_account_stub_by_id(faucet_account_stub.id()).unwrap();
+    let (client_1_faucet, _) = client_1
+        .get_account_stub_by_id(faucet_account_stub.id())
+        .unwrap();
+    let (client_2_faucet, _) = client_2
+        .get_account_stub_by_id(faucet_account_stub.id())
+        .unwrap();
 
     assert_eq!(client_1_faucet.hash(), client_2_faucet.hash());
 
@@ -163,7 +181,12 @@ async fn test_onchain_accounts() {
     consume_notes(&mut client_1, target_account_id, &[note]).await;
     assert_account_has_single_asset(&client_1, target_account_id, faucet_account_id, MINT_AMOUNT)
         .await;
-    consume_notes(&mut client_2, second_client_target_account_id, &[second_client_note]).await;
+    consume_notes(
+        &mut client_2,
+        second_client_target_account_id,
+        &[second_client_note],
+    )
+    .await;
     assert_account_has_single_asset(
         &client_2,
         second_client_target_account_id,
@@ -172,8 +195,12 @@ async fn test_onchain_accounts() {
     )
     .await;
 
-    let (client_1_faucet, _) = client_1.get_account_stub_by_id(faucet_account_stub.id()).unwrap();
-    let (client_2_faucet, _) = client_2.get_account_stub_by_id(faucet_account_stub.id()).unwrap();
+    let (client_1_faucet, _) = client_1
+        .get_account_stub_by_id(faucet_account_stub.id())
+        .unwrap();
+    let (client_2_faucet, _) = client_2
+        .get_account_stub_by_id(faucet_account_stub.id())
+        .unwrap();
 
     assert_eq!(client_1_faucet.hash(), client_2_faucet.hash());
 
@@ -213,7 +240,10 @@ async fn test_onchain_accounts() {
     let notes = client_2.get_input_notes(NoteFilter::Committed).unwrap();
 
     //Import the note on the first client so that we can later check its consumer account
-    client_1.import_input_note(notes[0].clone(), false).await.unwrap();
+    client_1
+        .import_input_note(notes[0].clone(), false)
+        .await
+        .unwrap();
 
     // Consume the note
     println!("Consuming note con second client...");
@@ -250,7 +280,10 @@ async fn test_onchain_accounts() {
         .get_balance(faucet_account_id)
         .unwrap_or(0);
 
-    assert_eq!(new_from_account_balance, from_account_balance - TRANSFER_AMOUNT);
+    assert_eq!(
+        new_from_account_balance,
+        from_account_balance - TRANSFER_AMOUNT
+    );
     assert_eq!(new_to_account_balance, to_account_balance + TRANSFER_AMOUNT);
 }
 
@@ -307,8 +340,18 @@ async fn test_onchain_notes_sync_with_tag() {
     client_3.sync_state().await.unwrap();
 
     // Assert that the note is the same
-    let received_note: InputNote = client_2.get_input_note(note.id()).unwrap().try_into().unwrap();
-    assert_eq!(received_note.note().authentication_hash(), note.authentication_hash());
+    let received_note: InputNote = client_2
+        .get_input_note(note.id())
+        .unwrap()
+        .try_into()
+        .unwrap();
+    assert_eq!(
+        received_note.note().authentication_hash(),
+        note.authentication_hash()
+    );
     assert_eq!(received_note.note(), &note);
-    assert!(client_3.get_input_notes(NoteFilter::All).unwrap().is_empty());
+    assert!(client_3
+        .get_input_notes(NoteFilter::All)
+        .unwrap()
+        .is_empty());
 }

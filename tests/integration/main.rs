@@ -58,7 +58,13 @@ async fn test_p2id_transfer() {
     let faucet_account_id = faucet_account_stub.id();
 
     // First Mint necesary token
-    let note = mint_note(&mut client, from_account_id, faucet_account_id, NoteType::OffChain).await;
+    let note = mint_note(
+        &mut client,
+        from_account_id,
+        faucet_account_id,
+        NoteType::OffChain,
+    )
+    .await;
     consume_notes(&mut client, from_account_id, &[note]).await;
     assert_account_has_single_asset(&client, from_account_id, faucet_account_id, MINT_AMOUNT).await;
 
@@ -127,7 +133,13 @@ async fn test_p2idr_transfer_consumed_by_target() {
     let faucet_account_id = faucet_account_stub.id();
 
     // First Mint necesary token
-    let note = mint_note(&mut client, from_account_id, faucet_account_id, NoteType::OffChain).await;
+    let note = mint_note(
+        &mut client,
+        from_account_id,
+        faucet_account_id,
+        NoteType::OffChain,
+    )
+    .await;
     println!("about to consume");
 
     //Check that the note is not consumed by the target account
@@ -199,7 +211,10 @@ async fn test_p2idr_transfer_consumed_by_target() {
 
     // Validate the transfered amounts
     if let Asset::Fungible(fungible_asset) = asset {
-        assert_eq!(fungible_asset.amount(), from_account_balance - TRANSFER_AMOUNT);
+        assert_eq!(
+            fungible_asset.amount(),
+            from_account_balance - TRANSFER_AMOUNT
+        );
     } else {
         panic!("Error: Account should have a fungible asset");
     }
@@ -209,7 +224,10 @@ async fn test_p2idr_transfer_consumed_by_target() {
     let asset = regular_account.vault().assets().next().unwrap();
 
     if let Asset::Fungible(fungible_asset) = asset {
-        assert_eq!(fungible_asset.amount(), to_account_balance + TRANSFER_AMOUNT);
+        assert_eq!(
+            fungible_asset.amount(),
+            to_account_balance + TRANSFER_AMOUNT
+        );
     } else {
         panic!("Error: Account should have a fungible asset");
     }
@@ -230,7 +248,13 @@ async fn test_p2idr_transfer_consumed_by_sender() {
     let faucet_account_id = faucet_account_stub.id();
 
     // First Mint necesary token
-    let note = mint_note(&mut client, from_account_id, faucet_account_id, NoteType::OffChain).await;
+    let note = mint_note(
+        &mut client,
+        from_account_id,
+        faucet_account_id,
+        NoteType::OffChain,
+    )
+    .await;
 
     consume_notes(&mut client, from_account_id, &[note]).await;
     assert_account_has_single_asset(&client, from_account_id, faucet_account_id, MINT_AMOUNT).await;
@@ -322,12 +346,24 @@ async fn test_get_consumable_notes() {
     assert!(client.get_consumable_notes(None).unwrap().is_empty());
 
     // First Mint necesary token
-    let note = mint_note(&mut client, from_account_id, faucet_account_id, NoteType::OffChain).await;
+    let note = mint_note(
+        &mut client,
+        from_account_id,
+        faucet_account_id,
+        NoteType::OffChain,
+    )
+    .await;
 
     // Check that note is consumable by the account that minted
     assert!(!client.get_consumable_notes(None).unwrap().is_empty());
-    assert!(!client.get_consumable_notes(Some(from_account_id)).unwrap().is_empty());
-    assert!(client.get_consumable_notes(Some(to_account_id)).unwrap().is_empty());
+    assert!(!client
+        .get_consumable_notes(Some(from_account_id))
+        .unwrap()
+        .is_empty());
+    assert!(client
+        .get_consumable_notes(Some(to_account_id))
+        .unwrap()
+        .is_empty());
 
     consume_notes(&mut client, from_account_id, &[note]).await;
 
@@ -349,8 +385,14 @@ async fn test_get_consumable_notes() {
     let consumable_notes = client.get_consumable_notes(None).unwrap();
     let relevant_accounts = &consumable_notes.first().unwrap().1;
     assert_eq!(relevant_accounts.len(), 2);
-    assert!(!client.get_consumable_notes(Some(from_account_id)).unwrap().is_empty());
-    assert!(!client.get_consumable_notes(Some(to_account_id)).unwrap().is_empty());
+    assert!(!client
+        .get_consumable_notes(Some(from_account_id))
+        .unwrap()
+        .is_empty());
+    assert!(!client
+        .get_consumable_notes(Some(to_account_id))
+        .unwrap()
+        .is_empty());
 
     // Check that the note is only consumable after block 100 for the account that sent the transaction
     let from_account_relevance = relevant_accounts
@@ -384,16 +426,28 @@ async fn test_get_output_notes() {
     assert!(client.get_output_notes(NoteFilter::All).unwrap().is_empty());
 
     // First Mint necesary token
-    let note = mint_note(&mut client, from_account_id, faucet_account_id, NoteType::OffChain).await;
+    let note = mint_note(
+        &mut client,
+        from_account_id,
+        faucet_account_id,
+        NoteType::OffChain,
+    )
+    .await;
 
     // Check that there was an output note but it wasn't consumed
-    assert!(client.get_output_notes(NoteFilter::Consumed).unwrap().is_empty());
+    assert!(client
+        .get_output_notes(NoteFilter::Consumed)
+        .unwrap()
+        .is_empty());
     assert!(!client.get_output_notes(NoteFilter::All).unwrap().is_empty());
 
     consume_notes(&mut client, from_account_id, &[note]).await;
 
     //After consuming, the note is returned when using the [NoteFilter::Consumed] filter
-    assert!(!client.get_output_notes(NoteFilter::Consumed).unwrap().is_empty());
+    assert!(!client
+        .get_output_notes(NoteFilter::Consumed)
+        .unwrap()
+        .is_empty());
 
     // Do a transfer from first account to second account
     let asset = FungibleAsset::new(faucet_account_id, TRANSFER_AMOUNT).unwrap();
@@ -443,14 +497,20 @@ async fn test_import_expected_notes() {
     client_2.sync_state().await.unwrap();
 
     // If the verification is requested before execution then the import should fail
-    assert!(client_2.import_input_note(note.clone().into(), true).await.is_err());
+    assert!(client_2
+        .import_input_note(note.clone().into(), true)
+        .await
+        .is_err());
     execute_tx_and_sync(&mut client_1, tx_request).await;
 
     // Use client 1 to wait until a couple of blocks have passed
     wait_for_blocks(&mut client_1, 3).await;
 
     let new_sync_data = client_2.sync_state().await.unwrap();
-    client_2.import_input_note(note.clone().into(), true).await.unwrap();
+    client_2
+        .import_input_note(note.clone().into(), true)
+        .await
+        .unwrap();
     let input_note = client_2.get_input_note(note.id()).unwrap();
     assert!(new_sync_data.block_num > input_note.inclusion_proof().unwrap().origin().block_num + 1);
 
@@ -458,7 +518,12 @@ async fn test_import_expected_notes() {
     assert!(input_note.inclusion_proof().is_some());
 
     // If client 2 succesfully consumes the note, we confirm we have MMR and block header data
-    consume_notes(&mut client_2, client_2_account.id(), &[input_note.try_into().unwrap()]).await;
+    consume_notes(
+        &mut client_2,
+        client_2_account.id(),
+        &[input_note.try_into().unwrap()],
+    )
+    .await;
 
     let tx_template = TransactionTemplate::MintFungibleAsset(
         FungibleAsset::new(faucet_account.id(), MINT_AMOUNT).unwrap(),
@@ -470,7 +535,10 @@ async fn test_import_expected_notes() {
     let note = tx_request.expected_output_notes()[0].clone();
 
     // Import an uncommited note without verification
-    client_2.import_input_note(note.clone().into(), false).await.unwrap();
+    client_2
+        .import_input_note(note.clone().into(), false)
+        .await
+        .unwrap();
     let input_note = client_2.get_input_note(note.id()).unwrap();
 
     // If imported before execution then the inclusion proof should be None
@@ -484,7 +552,12 @@ async fn test_import_expected_notes() {
     assert!(input_note.inclusion_proof().is_some());
 
     // If inclusion proof is invalid this should panic
-    consume_notes(&mut client_1, first_basic_account.id(), &[input_note.try_into().unwrap()]).await;
+    consume_notes(
+        &mut client_1,
+        first_basic_account.id(),
+        &[input_note.try_into().unwrap()],
+    )
+    .await;
 }
 
 #[tokio::test]
@@ -503,10 +576,20 @@ async fn test_get_account_update() {
         .unwrap();
 
     // Mint and consume notes with both accounts so they are included in the node.
-    let note1 =
-        mint_note(&mut client, basic_wallet_1.id(), faucet_account.id(), NoteType::OffChain).await;
-    let note2 =
-        mint_note(&mut client, basic_wallet_2.id(), faucet_account.id(), NoteType::OffChain).await;
+    let note1 = mint_note(
+        &mut client,
+        basic_wallet_1.id(),
+        faucet_account.id(),
+        NoteType::OffChain,
+    )
+    .await;
+    let note2 = mint_note(
+        &mut client,
+        basic_wallet_2.id(),
+        faucet_account.id(),
+        NoteType::OffChain,
+    )
+    .await;
 
     client.sync_state().await.unwrap();
 
@@ -521,8 +604,14 @@ async fn test_get_account_update() {
     // TODO: should we expose the `get_account_update` endpoint from the Client?
     let (rpc_config, _) = get_client_config();
     let mut rpc_api = TonicRpcClient::new(&rpc_config);
-    let details1 = rpc_api.get_account_update(basic_wallet_1.id()).await.unwrap();
-    let details2 = rpc_api.get_account_update(basic_wallet_2.id()).await.unwrap();
+    let details1 = rpc_api
+        .get_account_update(basic_wallet_1.id())
+        .await
+        .unwrap();
+    let details2 = rpc_api
+        .get_account_update(basic_wallet_2.id())
+        .await
+        .unwrap();
 
     assert!(matches!(details1, AccountDetails::OffChain(_, _)));
     assert!(matches!(details2, AccountDetails::Public(_, _)));
@@ -550,8 +639,13 @@ async fn test_sync_detail_values() {
     let faucet_account_id = faucet_account_stub.id();
 
     // First Mint necesary token
-    let note =
-        mint_note(&mut client1, from_account_id, faucet_account_id, NoteType::OffChain).await;
+    let note = mint_note(
+        &mut client1,
+        from_account_id,
+        faucet_account_id,
+        NoteType::OffChain,
+    )
+    .await;
     consume_notes(&mut client1, from_account_id, &[note]).await;
     assert_account_has_single_asset(&client1, from_account_id, faucet_account_id, MINT_AMOUNT)
         .await;
