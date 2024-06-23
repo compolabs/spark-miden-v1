@@ -59,3 +59,13 @@ When partially consuming a SWAPp note, two notes are outputted:
 ```
 cargo test --test mock_integration
 ```
+
+### Formatting MASM
+```
+cargo masm-fmt "src/**/*.masm"
+```
+
+#### Installing masm-formatter
+```
+cargo install masm-formatter
+```
