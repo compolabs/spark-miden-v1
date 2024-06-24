@@ -8,6 +8,8 @@ make clean-node
 make node
 # This command will run the node
 make start-node
+# This will run the integration test 
+make integration-test-full
 ```
 
 ## Running Mock Integration Tests

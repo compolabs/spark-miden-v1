@@ -1,3 +1,6 @@
-# place holder
+# use.miden::contracts::auth::basic->auth_tx
+
 begin
+    # call.auth_tx::auth_tx_rpo_falcon512
+    # debug.stack
 end
