@@ -11,7 +11,7 @@ export.basic_eoa::auth_tx_rpo_falcon512
 export.account::get_balance
 
 ### Notice ####
-# The following procedures need to be hidden
+# The following procedures may need to be hidden
 
 # create note
 export.tx::create_note

@@ -132,7 +132,11 @@ async fn test_swap_fully_onchain() {
     assert_eq!(expected_output_notes.len(), 1);
     assert_eq!(expected_payback_note_details.len(), 1);
 
+    // add a timer here
+    let time_0 = std::time::Instant::now();
     execute_tx_and_sync(&mut client1, tx_request).await;
+    let time_1 = std::time::Instant::now();
+    println!("Time to execute swap tx: {:?}", time_1 - time_0);
 
     let payback_note_tag = build_swap_tag(
         NoteType::Public,

@@ -280,6 +280,13 @@ end
 #   greater than 2^63
 
 proc.execute_SWAPp
+
+    # if user does not supply amount token B in via note args
+    # then we use the amount of tokens B in their wallet
+    # @dev TODO: research pros and cons of this
+    #
+    mem_store.TOKEN_B_AMT_IN
+
     # store asset into memory at address 3
     exec.note::get_assets assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS
     # => [ptr]
@@ -315,13 +322,25 @@ proc.execute_SWAPp
     # store token_b_AMT to mem addr 9
     drop drop drop mem_store.TOKEN_B_AMT
 
-    # TODO use note args to get amount consumer wants to sell
+    # Users can supply the amount of token B they would like to sell
+    # via note args. If they don't supply TOKEN_B_AMT_IN via note args
+    # by default we read the balance of token B in the consuming account
+    # this is to maintain backwards compatibility with the standard SWAP note
+
     # get token b amt out
-    mem_load.TOKEN_B_ID call.account::get_balance
+    mem_load.TOKEN_B_AMT_IN
+    push.0
+    eq
+    if.true
+        mem_load.TOKEN_B_ID call.account::get_balance
+        mem_store.TOKEN_B_AMT_IN
+    end
+    mem_load.TOKEN_B_AMT_IN
     # => [token_b_AMT_IN]
 
     # store token_b_AMT_IN @ mem addr 10
-    dup mem_store.TOKEN_B_AMT_IN
+    # dup mem_store.TOKEN_B_AMT_IN
+    mem_load.TOKEN_B_AMT_IN
     # => [token_b_AMT_IN]
 
     mem_load.TOKEN_B_AMT mem_load.TOKEN_A_AMT
