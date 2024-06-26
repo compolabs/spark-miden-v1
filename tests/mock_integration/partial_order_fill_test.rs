@@ -875,15 +875,20 @@ fn test_partial_swap_fill_with_note_args() {
         .unwrap();
 
     // amount to consume
-    let note_args = [
-        [Felt::new(swap_consumer_balance_token_b), Felt::new(0), Felt::new(0), Felt::new(0)],
-    ];
+    let note_args = [[
+        Felt::new(swap_consumer_balance_token_b),
+        Felt::new(0),
+        Felt::new(0),
+        Felt::new(0),
+    ]];
 
-    let note_args_map = BTreeMap::from([
-        (note_ids[0], note_args[0]),
-    ]);
+    let note_args_map = BTreeMap::from([(note_ids[0], note_args[0])]);
 
-    let tx_args_target = TransactionArgs::new(Some(tx_script_target), Some(note_args_map), AdviceMap::default());
+    let tx_args_target = TransactionArgs::new(
+        Some(tx_script_target),
+        Some(note_args_map),
+        AdviceMap::default(),
+    );
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
