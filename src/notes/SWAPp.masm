@@ -398,18 +398,14 @@ proc.execute_SWAPp
     push.OFFCHAIN_NOTE push.0 mem_load.PAYBACK_TAG
     # => [payback_tag, aux, note_type, RECIPIENT_SWAPP]
 
-    call.tx::create_note
-    # => [swapp_ptr]
-
-    # 4) add token_a' and token_b' to SWAPp'
     mem_load.TOKEN_A_AMT mem_load.TOKEN_A_AMT_OUT sub push.0.0 mem_load.TOKEN_A_ID
-    # => [OFFERED_ASSET_REMAINING, swapp_ptr]
+    # => [ASSET, payback_tag, aux, note_type, RECIPIENT_SWAPP]
 
-    movup.4
-    # => [swapp_ptr, OFFERED_ASSET_REMAINING]
+    dupw call.wallet::receive_asset dropw
+    # => [ASSET, payback_tag, aux, note_type, RECIPIENT_SWAPP]
 
-    call.tx::add_asset_to_note
-    # => [swapp_ptr]
+    call.wallet::send_asset
+    # => [note_idx]
 
     # increment account nonce
     push.1 call.account::incr_nonce

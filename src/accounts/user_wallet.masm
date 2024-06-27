@@ -7,24 +7,15 @@ export.basic_wallet::receive_asset
 export.basic_wallet::send_asset
 export.basic_eoa::auth_tx_rpo_falcon512
 
+# SWAPP OWNER REQUIRED PROC
+# get account id
+export.account::get_id
+
 # get token balance
 export.account::get_balance
 
 ### Notice ####
-# The following procedures may need to be hidden
-
-# create note
-export.tx::create_note
-
-# add asset to note
-export.tx::add_asset_to_note
-
-# remove asset from account
-export.account::remove_asset
+# The following procedure may need to be hidden
 
 # increment counter
 export.account::incr_nonce
-
-# SWAPP OWNER REQUIRED PROC
-# get account id
-export.account::get_id
