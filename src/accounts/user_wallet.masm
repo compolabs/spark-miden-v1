@@ -1,16 +1,10 @@
 use.miden::contracts::wallets::basic->basic_wallet
 use.miden::contracts::auth::basic->basic_eoa
-use.miden::tx
 use.miden::account
 
 export.basic_wallet::receive_asset
 export.basic_wallet::send_asset
 export.basic_eoa::auth_tx_rpo_falcon512
 
-# SWAPP OWNER REQUIRED PROC
-# get account id
-export.account::get_id
-
-# get token balance
 export.account::get_balance
-
+export.account::get_id

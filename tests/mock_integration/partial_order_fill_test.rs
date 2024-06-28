@@ -9,7 +9,6 @@ use miden_objects::{
         Note, NoteAssets, NoteDetails, NoteExecutionHint, NoteHeader, NoteInputs, NoteMetadata,
         NoteRecipient, NoteScript, NoteTag, NoteType,
     },
-    testing::account::MockAccountType,
     transaction::TransactionArgs,
     vm::CodeBlock,
     Felt, NoteError, Word, ZERO,
@@ -173,6 +172,7 @@ fn format_value_with_decimals(value: u64, decimals: u32) -> u64 {
     value * 10u64.pow(decimals)
 }
 
+// @dev Test that a SWAPp note can be filled with a partial amount of the requested asset
 #[test]
 fn test_partial_swap_fill() {
     // ASSETS
@@ -228,11 +228,6 @@ fn test_partial_swap_fill() {
         Some(swap_consumer_wallet.clone()),
         Some(vec![swap_note.clone()]),
     );
-
-    /*     let mut executor: TransactionExecutor<_, ()> =
-           TransactionExecutor::new(data_store.clone(), Some(target_falcon_auth.clone())).with_debug_mode(true);
-       executor.load_account(swapp_consumer_account_id).unwrap();
-    */
 
     let mut executor =
         TransactionExecutor::new(data_store.clone(), Some(target_falcon_auth.clone()))
@@ -314,6 +309,7 @@ fn test_partial_swap_fill() {
     );
 }
 
+// @dev Test that a SWAPp note can be filled with the entire amount of the requested asset
 #[test]
 fn test_complete_swapp_fill() {
     // ASSETS
@@ -343,7 +339,7 @@ fn test_complete_swapp_fill() {
     let swap_consumer_token_b = FungibleAsset::new(faucet_id_2, swap_consumer_balance_token_b)
         .unwrap()
         .into();
-    let (target_pub_key, _target_falcon_auth) = get_new_pk_and_authenticator();
+    let (target_pub_key, target_falcon_auth) = get_new_pk_and_authenticator();
 
     // SWAPp note consumer wallet
     let swap_consumer_wallet = get_custom_account_code(
@@ -370,8 +366,9 @@ fn test_complete_swapp_fill() {
         Some(vec![swap_note.clone()]),
     );
 
-    let mut executor: TransactionExecutor<_, ()> =
-        TransactionExecutor::new(data_store.clone(), None).with_debug_mode(true);
+    let mut executor =
+        TransactionExecutor::new(data_store.clone(), Some(target_falcon_auth.clone()))
+            .with_debug_mode(true);
     executor.load_account(swapp_consumer_account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num();
@@ -451,6 +448,7 @@ fn test_complete_swapp_fill() {
     prove_and_verify_transaction(executed_transaction.clone()).unwrap();
 }
 
+// @dev Test that a SWAPp note can be partially filled by multiple users
 #[test]
 fn test_partial_swap_fill_multiple_consumers() {
     // ASSETS
@@ -480,12 +478,12 @@ fn test_partial_swap_fill_multiple_consumers() {
     let swap_consumer_token_b = FungibleAsset::new(faucet_id_2, swap_consumer_balance_token_b)
         .unwrap()
         .into();
-    let (target_pub_key, _target_falcon_auth) = get_new_pk_and_authenticator();
+    let (target_pub_key_1, target_falcon_auth_1) = get_new_pk_and_authenticator();
 
     // SWAPp note consumer 1 wallet
     let swap_consumer_wallet = get_custom_account_code(
         swapp_consumer_account_id,
-        target_pub_key,
+        target_pub_key_1,
         Some(swap_consumer_token_b),
     );
 
@@ -507,8 +505,9 @@ fn test_partial_swap_fill_multiple_consumers() {
         Some(vec![swap_note.clone()]),
     );
 
-    let mut executor: TransactionExecutor<_, ()> =
-        TransactionExecutor::new(data_store.clone(), None).with_debug_mode(true);
+    let mut executor =
+        TransactionExecutor::new(data_store.clone(), Some(target_falcon_auth_1.clone()))
+            .with_debug_mode(true);
     executor.load_account(swapp_consumer_account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num();
@@ -600,12 +599,12 @@ fn test_partial_swap_fill_multiple_consumers() {
         FungibleAsset::new(faucet_id_2, swap_consumer_2_balance_token_b)
             .unwrap()
             .into();
-    let (target_pub_key, _target_falcon_auth) = get_new_pk_and_authenticator();
+    let (target_pub_key_2, target_falcon_auth_2) = get_new_pk_and_authenticator();
 
     // SWAPp note consumer 2 wallet
     let swap_consumer_wallet_1 = get_custom_account_code(
         swapp_consumer_account_id_2,
-        target_pub_key,
+        target_pub_key_2,
         Some(swap_consumer_token_b_1),
     );
 
@@ -614,8 +613,8 @@ fn test_partial_swap_fill_multiple_consumers() {
         Some(vec![expected_swapp_note.clone()]),
     );
 
-    let mut executor: TransactionExecutor<_, ()> =
-        TransactionExecutor::new(data_store_1.clone(), None).with_debug_mode(true);
+    let mut executor = TransactionExecutor::new(data_store_1.clone(), Some(target_falcon_auth_2))
+        .with_debug_mode(true);
     executor.load_account(swapp_consumer_account_id_2).unwrap();
 
     let block_ref = data_store_1.block_header.block_num();
@@ -688,37 +687,7 @@ fn test_partial_swap_fill_multiple_consumers() {
     // assert!(prove_and_verify_transaction(executed_transaction_1.clone()).is_ok());
 }
 
-#[test]
-pub fn get_note_script_hash() {
-    // SWAPp note creator
-    let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
-
-    // Offered Asset
-    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-    let offered_asset: Asset = FungibleAsset::new(faucet_id, 100).unwrap().into();
-
-    // Requested Asset
-    let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
-    let requested_asset: Asset = FungibleAsset::new(faucet_id_2, 100).unwrap().into();
-
-    let (swap_note, _payback_note, note_script_hash) = create_partial_swap_note(
-        sender_account_id,
-        sender_account_id,
-        offered_asset,
-        requested_asset,
-        NoteType::OffChain,
-        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
-    )
-    .unwrap();
-
-    let tag = swap_note.clone().metadata().tag();
-    let note_type = swap_note.clone().metadata().note_type();
-
-    println!("{:?}", tag);
-    println!("{:?}", note_type);
-    println!("Note script hash: {:?}", note_script_hash);
-}
-
+// @dev Test that a SWAPp note is reclaimable by the creator
 #[test]
 fn test_swap_reclaim() {
     // ASSETS
@@ -748,7 +717,7 @@ fn test_swap_reclaim() {
     let swap_consumer_token_b = FungibleAsset::new(faucet_id_2, swap_consumer_balance_token_b)
         .unwrap()
         .into();
-    let (target_pub_key, _target_falcon_auth) = get_new_pk_and_authenticator();
+    let (target_pub_key, target_falcon_auth) = get_new_pk_and_authenticator();
 
     // SWAPp note consumer wallet
     let swap_consumer_wallet = get_custom_account_code(
@@ -775,8 +744,8 @@ fn test_swap_reclaim() {
         Some(vec![swap_note.clone()]),
     );
 
-    let mut executor: TransactionExecutor<_, ()> =
-        TransactionExecutor::new(data_store.clone(), None).with_debug_mode(true);
+    let mut executor = TransactionExecutor::new(data_store.clone(), Some(target_falcon_auth))
+        .with_debug_mode(true);
     executor.load_account(swapp_consumer_account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num();
@@ -804,8 +773,10 @@ fn test_swap_reclaim() {
     );
 
     assert!(tx_result.is_ok());
+    // assert!(prove_and_verify_transaction(tx_result.unwrap()).is_ok());
 }
 
+// @dev Test that a SWAPp note consumer can specify the amount to consume via note args
 #[test]
 fn test_partial_swap_fill_with_note_args() {
     // ASSETS
@@ -835,7 +806,7 @@ fn test_partial_swap_fill_with_note_args() {
     let swap_consumer_token_b = FungibleAsset::new(faucet_id_2, swap_consumer_balance_token_b)
         .unwrap()
         .into();
-    let (target_pub_key, _target_falcon_auth) = get_new_pk_and_authenticator();
+    let (target_pub_key, target_falcon_auth) = get_new_pk_and_authenticator();
 
     // SWAPp note consumer wallet
     let swap_consumer_wallet = get_custom_account_code(
@@ -862,8 +833,8 @@ fn test_partial_swap_fill_with_note_args() {
         Some(vec![swap_note.clone()]),
     );
 
-    let mut executor: TransactionExecutor<_, ()> =
-        TransactionExecutor::new(data_store.clone(), None).with_debug_mode(true);
+    let mut executor = TransactionExecutor::new(data_store.clone(), Some(target_falcon_auth))
+        .with_debug_mode(true);
     executor.load_account(swapp_consumer_account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num();
@@ -953,4 +924,36 @@ fn test_partial_swap_fill_with_note_args() {
         NoteHeader::from(swapp_output_note),
         NoteHeader::from(expected_swapp_note.clone())
     );
+}
+
+// @dev Demonstrate how to get hte note script hash of the SWAPp note
+#[test]
+pub fn get_note_script_hash() {
+    // SWAPp note creator
+    let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+
+    // Offered Asset
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+    let offered_asset: Asset = FungibleAsset::new(faucet_id, 100).unwrap().into();
+
+    // Requested Asset
+    let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
+    let requested_asset: Asset = FungibleAsset::new(faucet_id_2, 100).unwrap().into();
+
+    let (swap_note, _payback_note, note_script_hash) = create_partial_swap_note(
+        sender_account_id,
+        sender_account_id,
+        offered_asset,
+        requested_asset,
+        NoteType::OffChain,
+        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+    )
+    .unwrap();
+
+    let tag = swap_note.clone().metadata().tag();
+    let note_type = swap_note.clone().metadata().note_type();
+
+    println!("{:?}", tag);
+    println!("{:?}", note_type);
+    println!("Note script hash: {:?}", note_script_hash);
 }

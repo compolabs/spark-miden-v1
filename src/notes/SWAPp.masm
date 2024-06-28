@@ -211,9 +211,11 @@ proc.handle_reclaim
 
     mem_loadw.0
 
-    call.wallet::receive_asset dropw
+    push.111 debug.stack drop
 
-    push.1 call.account::incr_nonce
+    call.wallet::receive_asset # dropw
+
+    # push.1 call.account::incr_nonce
 
     exec.sys::truncate_stack
 end
@@ -446,4 +448,5 @@ begin
         exec.execute_SWAPp
     end
 
+    push.333 debug.stack drop
 end

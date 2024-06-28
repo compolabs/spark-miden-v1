@@ -22,6 +22,7 @@ use crate::utils::{
     prove_and_verify_transaction,
 };
 
+// @dev This test is a mock integration test that tests the standard (not SWAPp) swap script.
 #[test]
 fn prove_swap_script() {
     // Create assets
