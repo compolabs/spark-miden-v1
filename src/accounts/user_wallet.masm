@@ -14,8 +14,3 @@ export.account::get_id
 # get token balance
 export.account::get_balance
 
-### Notice ####
-# The following procedure may need to be hidden
-
-# increment counter
-export.account::incr_nonce

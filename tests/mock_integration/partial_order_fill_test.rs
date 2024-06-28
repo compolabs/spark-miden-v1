@@ -202,7 +202,7 @@ fn test_partial_swap_fill() {
     let swap_consumer_token_b = FungibleAsset::new(faucet_id_2, swap_consumer_balance_token_b)
         .unwrap()
         .into();
-    let (target_pub_key, _target_falcon_auth) = get_new_pk_and_authenticator();
+    let (target_pub_key, target_falcon_auth) = get_new_pk_and_authenticator();
 
     // SWAPp note consumer wallet
     let swap_consumer_wallet = get_custom_account_code(
@@ -229,8 +229,14 @@ fn test_partial_swap_fill() {
         Some(vec![swap_note.clone()]),
     );
 
-    let mut executor: TransactionExecutor<_, ()> =
-        TransactionExecutor::new(data_store.clone(), None).with_debug_mode(true);
+    /*     let mut executor: TransactionExecutor<_, ()> =
+           TransactionExecutor::new(data_store.clone(), Some(target_falcon_auth.clone())).with_debug_mode(true);
+       executor.load_account(swapp_consumer_account_id).unwrap();
+    */
+
+    let mut executor =
+        TransactionExecutor::new(data_store.clone(), Some(target_falcon_auth.clone()))
+            .with_debug_mode(true);
     executor.load_account(swapp_consumer_account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num();

@@ -407,9 +407,6 @@ proc.execute_SWAPp
     call.wallet::send_asset
     # => [note_idx]
 
-    # increment account nonce
-    push.1 call.account::incr_nonce
-
     # clean stack
     exec.sys::truncate_stack
 end
@@ -446,9 +443,6 @@ begin
     if.true
         exec.handle_reclaim
     else
-        push.111
-        debug.stack
-        drop
         exec.execute_SWAPp
     end
 
