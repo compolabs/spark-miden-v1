@@ -215,8 +215,6 @@ proc.handle_reclaim
 
     call.wallet::receive_asset # dropw
 
-    # push.1 call.account::incr_nonce
-
     exec.sys::truncate_stack
 end
 
