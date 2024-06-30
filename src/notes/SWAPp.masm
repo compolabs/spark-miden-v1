@@ -184,7 +184,7 @@ end
 #! Inputs: []
 #! Outputs: [is_creator]
 #!
-proc.check_if_consumer_is_creator
+proc.is_consumer_is_creator
     # get consuming account id
     exec.account::get_id
 
@@ -206,14 +206,17 @@ proc.check_if_consumer_is_creator
     swap.8 dropw dropw
 end
 
+#! Sends Assets in Note to Consuming Account
+#!
+#! Inputs: []
+#! Outputs: []
+#!
 proc.handle_reclaim
     push.0 exec.note::get_assets
 
     mem_loadw.0
 
-    push.111 debug.stack drop
-
-    call.wallet::receive_asset # dropw
+    call.wallet::receive_asset
 
     exec.sys::truncate_stack
 end
@@ -261,7 +264,6 @@ end
 # - Account vault does not contain the requested asset
 # - Adding a fungible asset would result in amount overflow, i.e., the total amount would be
 #   greater than 2^63
-
 proc.execute_SWAPp
 
     # if user does not supply amount token B in via note args
@@ -317,11 +319,6 @@ proc.execute_SWAPp
         mem_load.TOKEN_B_ID call.account::get_balance
         mem_store.TOKEN_B_AMT_IN
     end
-    mem_load.TOKEN_B_AMT_IN
-    # => [token_b_AMT_IN]
-
-    # store token_b_AMT_IN @ mem addr 10
-    # dup mem_store.TOKEN_B_AMT_IN
     mem_load.TOKEN_B_AMT_IN
     # => [token_b_AMT_IN]
 
@@ -415,6 +412,7 @@ begin
     # STEPS:
     # 1) Check if consuming account is creator account (check if reclaim)
 
+    # If not reclaim
     # 2) Get token_a, token_b, and token_b_in amounts
 
     # 3) Calculate price ratio:
@@ -438,7 +436,8 @@ begin
     mem_storew.SWAPP_SCRIPT_HASH dropw
     # => []
 
-    exec.check_if_consumer_is_creator
+    exec.is_consumer_is_creator
+    # => [is_creator]
 
     if.true
         exec.handle_reclaim
@@ -446,5 +445,4 @@ begin
         exec.execute_SWAPp
     end
 
-    push.333 debug.stack drop
 end
