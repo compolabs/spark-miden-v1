@@ -43,6 +43,9 @@ const.ERR_SWAP_WRONG_NUMBER_OF_ASSETS=0x00020008
 # SWAP amount must not exceed 184467440694145
 const.ERR_INVALID_SWAP_AMOUNT=0x00020009
 
+# SWAPp amount must not be 0
+const.ERR_INVALID_SWAP_AMOUT_ZERO=0x0002000A
+
 # PRICE CALCULATION
 # =================================================================================================
 
@@ -311,13 +314,21 @@ proc.execute_SWAPp
     # by default we read the balance of token B in the consuming account
     # this is to maintain backwards compatibility with the standard SWAP note
 
-    # get token b amt out
-    mem_load.TOKEN_B_AMT_IN
-    push.0
+    # get token_b_AMT_IN, if supplied via note args
+    mem_load.TOKEN_B_AMT_IN push.0
     eq
+
+    # if amount to swap not supplied via note_args
     if.true
         mem_load.TOKEN_B_ID call.account::get_balance
+        # => [token_b_AMT_IN]
+
+        # token_b_AMT_IN must not be 0
+        dup push.0 neq assert.err=ERR_INVALID_SWAP_AMOUT_ZERO
+        # => [token_b_AMT_IN]
+
         mem_store.TOKEN_B_AMT_IN
+        # => []
     end
     mem_load.TOKEN_B_AMT_IN
     # => [token_b_AMT_IN]

@@ -1,0 +1,76 @@
+use.miden::note
+use.miden::contracts::wallets::basic->wallet
+use.miden::tx
+use.miden::account
+use.std::sys
+use.std::crypto::hashes::native
+use.std::math::u64
+
+### Constants
+const.FAIL=111
+
+#! Returns the P2ID RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and account_id
+#!
+#! Inputs: [SERIAL_NUM, SCRIPT_HASH, account_id]
+#! Outputs: [RECIPIENT]
+#!
+#! Only allows a single input currently
+proc.build_p2id_recipient_hash
+    padw hmerge
+    # => [SERIAL_NUM_HASH, SCRIPT_HASH, account_id]
+
+    # merge SERIAL_NUM_HASH and SCRIPT_HASH
+    swapw hmerge
+    # => [SERIAL_SCRIPT_HASH, account_id]
+
+    # compute the INPUT_HASH. Note: only one input is allowed
+    swapw swap.3 padw hmerge
+    # => [INPUT_HASH, SERIAL_SCRIPT_HASH]
+
+    hmerge
+    # [RECIPIENT]
+end
+
+#! Returns if the currently consuming account is the creator of the note
+#!
+#! Inputs: []
+#! Outputs: [is_creator]
+#!
+proc.is_consumer_is_creator
+    # get consuming account id
+    exec.account::get_id
+
+    # P2ID SCRIPT HASH
+    push.10602532918680875325.6675127147439709234.18374149518996115046.17430228962309045350
+
+    # serial num
+    exec.note::get_serial_number
+
+    exec.build_p2id_recipient_hash
+
+    # write inputs to mem drop num inputs & ptr
+    push.0 exec.note::get_inputs drop drop
+
+    padw mem_loadw.0
+
+    eqw
+
+    swap.8 dropw dropw
+end
+
+# for testing is_consumer_is_creator only
+begin
+    dropw
+
+    exec.is_consumer_is_creator
+
+    if.true
+        push.0 exec.note::get_assets
+        mem_loadw.0
+        call.wallet::receive_asset
+        exec.sys::truncate_stack
+    else
+        assert.err=FAIL
+    end
+
+end
