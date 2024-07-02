@@ -58,7 +58,7 @@ const.ERR_INVALID_SWAP_AMOUT_ZERO=0x0002000A
 #! Inputs: [tokens_a, tokens_b, tokens_b_in]
 #! Outputs: [tokens_a_out]
 #!
-proc.calculate_tokens_a_for_b.3
+proc.calculate_tokens_a_for_b
     mem_store.AMT_TOKENS_A
     mem_store.AMT_TOKENS_B
     mem_store.AMT_TOKENS_B_IN
@@ -253,10 +253,7 @@ end
 #  basic_wallet::send_asset
 #  basic_eoa::auth_tx_rpo_falcon512
 #  account::get_balance
-#  tx::create_note
-#  tx::add_asset_to_note
-#  account::remove_asset
-#  account::incr_nonce
+#  account::get_id
 #
 # Inputs: [SCRIPT_ROOT]
 # Outputs: []
