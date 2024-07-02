@@ -5,10 +5,14 @@ use.miden::account
 use.std::sys
 use.std::crypto::hashes::native
 use.std::math::u64
+
 # CONSTANTS
 # =================================================================================================
 
 const.OFFCHAIN_NOTE=2
+
+# Memory Addresses
+# =================================================================================================
 
 # Memory Addresses for Price Calculation Procedure
 const.AMT_TOKENS_A=0x0064
@@ -54,7 +58,7 @@ const.ERR_INVALID_SWAP_AMOUT_ZERO=0x0002000A
 #! Inputs: [tokens_a, tokens_b, tokens_b_in]
 #! Outputs: [tokens_a_out]
 #!
-proc.calculate_tokens_a_for_b
+proc.calculate_tokens_a_for_b.3
     mem_store.AMT_TOKENS_A
     mem_store.AMT_TOKENS_B
     mem_store.AMT_TOKENS_B_IN
@@ -91,7 +95,6 @@ proc.calculate_tokens_a_for_b
         u32split
 
         exec.u64::div
-
         push.MAX_U32 mul add
 
     else
