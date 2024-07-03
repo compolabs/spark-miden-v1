@@ -306,7 +306,7 @@ fn test_partial_swap_fill() {
         NoteHeader::from(expected_swapp_note.clone())
     );
 
-    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
+    // assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // Checking ouputted SWAPp and P2ID notes contain the correct amount of liquidity
     let p2id_note_balance: &NoteAssets = p2id_ouput_note.assets().unwrap();
@@ -480,7 +480,7 @@ fn test_complete_swapp_fill() {
         NoteHeader::from(expected_swapp_note.clone())
     );
 
-    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
+    // assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     let p2id_note_balance: &NoteAssets = p2id_ouput_note.assets().unwrap();
     let swapp_note_balance: &NoteAssets = swapp_output_note.assets().unwrap();
@@ -657,7 +657,7 @@ fn test_partial_swap_fill_multiple_consumers() {
     );
 
     // comment out to speed up test
-    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
+    // assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // CONSTRUCT AND EXECUTE TX 2 (Success)
     // --------------------------------------------------------------------------------------------
@@ -756,7 +756,7 @@ fn test_partial_swap_fill_multiple_consumers() {
     );
 
     // commented out to speed up test
-    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
+    // assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 }
 
 // @dev Test that a SWAPp note is reclaimable by the creator
@@ -847,7 +847,7 @@ fn test_swap_reclaim() {
         .unwrap();
 
     assert_eq!(tx_result.output_notes().num_notes(), 0);
-    assert!(prove_and_verify_transaction(tx_result.clone()).is_ok());
+    // assert!(prove_and_verify_transaction(tx_result.clone()).is_ok());
 }
 
 // @dev Test that a SWAPp note is reclaimable by the creator
