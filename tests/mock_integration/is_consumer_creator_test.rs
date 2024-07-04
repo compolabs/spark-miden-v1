@@ -14,7 +14,7 @@ use miden_objects::{
     Felt, NoteError, Word, ZERO,
 };
 use miden_processor::AdviceMap;
-use miden_tx::{testing::data_store::MockDataStore, TransactionExecutor};
+use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
 use miden_vm::Assembler;
 use std::collections::BTreeMap;
 
@@ -211,19 +211,19 @@ fn test_is_consumer_creator_success() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(
-        Some(swap_consumer_wallet.clone()),
-        Some(vec![swap_note.clone()]),
-    );
+    let tx_context = TransactionContextBuilder::new(swap_consumer_wallet.clone())
+        .input_notes(vec![swap_note.clone()])
+        .build();
 
     let mut executor =
-        TransactionExecutor::new(data_store.clone(), Some(target_falcon_auth.clone()))
+        TransactionExecutor::new(tx_context.clone(), Some(target_falcon_auth.clone()))
             .with_debug_mode(true);
     executor.load_account(swapp_consumer_account_id).unwrap();
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store
-        .notes
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
+        .input_notes()
         .iter()
         .map(|note| note.id())
         .collect::<Vec<_>>();
@@ -299,19 +299,19 @@ fn test_is_consumer_creator_unauthorized() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(
-        Some(swap_consumer_wallet.clone()),
-        Some(vec![swap_note.clone()]),
-    );
+    let tx_context = TransactionContextBuilder::new(swap_consumer_wallet.clone())
+        .input_notes(vec![swap_note.clone()])
+        .build();
 
     let mut executor =
-        TransactionExecutor::new(data_store.clone(), Some(target_falcon_auth.clone()))
+        TransactionExecutor::new(tx_context.clone(), Some(target_falcon_auth.clone()))
             .with_debug_mode(true);
     executor.load_account(swapp_consumer_account_id).unwrap();
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store
-        .notes
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
+        .input_notes()
         .iter()
         .map(|note| note.id())
         .collect::<Vec<_>>();

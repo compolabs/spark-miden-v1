@@ -15,14 +15,13 @@ use miden_objects::{
     transaction::TransactionArgs,
     Felt, ZERO,
 };
-use miden_tx::{testing::data_store::MockDataStore, TransactionExecutor};
+use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
 
 use crate::utils::{
     get_account_with_default_account_code, get_new_pk_and_authenticator,
     prove_and_verify_transaction,
 };
 
-// @dev This test is a mock integration test that tests the standard (not SWAPp) swap script.
 #[test]
 fn prove_swap_script() {
     // Create assets
@@ -61,16 +60,18 @@ fn prove_swap_script() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store =
-        MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]));
+    let tx_context = TransactionContextBuilder::new(target_account.clone())
+        .input_notes(vec![note.clone()])
+        .build();
 
     let mut executor =
-        TransactionExecutor::new(data_store.clone(), Some(target_falcon_auth.clone()));
+        TransactionExecutor::new(tx_context.clone(), Some(target_falcon_auth.clone()));
     executor.load_account(target_account_id).unwrap();
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store
-        .notes
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
+        .input_notes()
         .iter()
         .map(|note| note.id())
         .collect::<Vec<_>>();

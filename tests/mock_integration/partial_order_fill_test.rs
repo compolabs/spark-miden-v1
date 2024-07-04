@@ -15,7 +15,7 @@ use miden_objects::{
     Felt, NoteError, Word, ZERO,
 };
 use miden_processor::AdviceMap;
-use miden_tx::{testing::data_store::MockDataStore, TransactionExecutor};
+use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
 use miden_vm::Assembler;
 use std::collections::BTreeMap;
 
@@ -225,19 +225,19 @@ fn test_partial_swap_fill() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(
-        Some(swap_consumer_wallet.clone()),
-        Some(vec![swap_note.clone()]),
-    );
+    let tx_context = TransactionContextBuilder::new(swap_consumer_wallet.clone())
+        .input_notes(vec![swap_note.clone()])
+        .build();
 
     let mut executor =
-        TransactionExecutor::new(data_store.clone(), Some(target_falcon_auth.clone()))
+        TransactionExecutor::new(tx_context.clone(), Some(target_falcon_auth.clone()))
             .with_debug_mode(true);
     executor.load_account(swapp_consumer_account_id).unwrap();
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store
-        .notes
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
+        .input_notes()
         .iter()
         .map(|note| note.id())
         .collect::<Vec<_>>();
@@ -399,19 +399,19 @@ fn test_complete_swapp_fill() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(
-        Some(swap_consumer_wallet.clone()),
-        Some(vec![swap_note.clone()]),
-    );
+    let tx_context = TransactionContextBuilder::new(swap_consumer_wallet.clone())
+        .input_notes(vec![swap_note.clone()])
+        .build();
 
     let mut executor =
-        TransactionExecutor::new(data_store.clone(), Some(target_falcon_auth.clone()))
+        TransactionExecutor::new(tx_context.clone(), Some(target_falcon_auth.clone()))
             .with_debug_mode(true);
     executor.load_account(swapp_consumer_account_id).unwrap();
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store
-        .notes
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
+        .input_notes()
         .iter()
         .map(|note| note.id())
         .collect::<Vec<_>>();
@@ -572,19 +572,19 @@ fn test_partial_swap_fill_multiple_consumers() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(
-        Some(swap_consumer_wallet.clone()),
-        Some(vec![swap_note.clone()]),
-    );
+    let tx_context = TransactionContextBuilder::new(swap_consumer_wallet.clone())
+        .input_notes(vec![swap_note.clone()])
+        .build();
 
     let mut executor =
-        TransactionExecutor::new(data_store.clone(), Some(target_falcon_auth_1.clone()))
+        TransactionExecutor::new(tx_context.clone(), Some(target_falcon_auth_1.clone()))
             .with_debug_mode(true);
     executor.load_account(swapp_consumer_account_id).unwrap();
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store
-        .notes
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
+        .input_notes()
         .iter()
         .map(|note| note.id())
         .collect::<Vec<_>>();
@@ -680,20 +680,20 @@ fn test_partial_swap_fill_multiple_consumers() {
         Some(swap_consumer_token_b_1),
     );
 
-    let data_store_1 = MockDataStore::with_existing(
-        Some(swap_consumer_wallet_1.clone()),
-        Some(vec![expected_swapp_note.clone()]),
-    );
+    let tx_context_1 = TransactionContextBuilder::new(swap_consumer_wallet_1.clone())
+        .input_notes(vec![expected_swapp_note.clone()])
+        .build();
 
-    let mut executor = TransactionExecutor::new(data_store_1.clone(), Some(target_falcon_auth_2))
+    let mut executor = TransactionExecutor::new(tx_context_1.clone(), Some(target_falcon_auth_2))
         .with_debug_mode(true);
     executor.load_account(swapp_consumer_account_id_2).unwrap();
 
-    let block_ref = data_store_1.block_header.block_num();
-    let note_ids_1 = data_store_1
-        .notes
+    let block_ref = tx_context_1.tx_inputs().block_header().block_num();
+    let note_ids_1 = tx_context_1
+        .tx_inputs()
+        .input_notes()
         .iter()
-        .map(|expected_swapp_note| expected_swapp_note.id())
+        .map(|note| note.id())
         .collect::<Vec<_>>();
 
     // Execute the second transaction and get the witness
@@ -811,18 +811,19 @@ fn test_swap_reclaim() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(
-        Some(swap_consumer_wallet.clone()),
-        Some(vec![swap_note.clone()]),
-    );
+    let tx_context = TransactionContextBuilder::new(swap_consumer_wallet.clone())
+        .input_notes(vec![swap_note.clone()])
+        .build();
 
-    let mut executor = TransactionExecutor::new(data_store.clone(), Some(target_falcon_auth))
-        .with_debug_mode(true);
+    let mut executor =
+        TransactionExecutor::new(tx_context.clone(), Some(target_falcon_auth.clone()))
+            .with_debug_mode(true);
     executor.load_account(swapp_consumer_account_id).unwrap();
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store
-        .notes
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
+        .input_notes()
         .iter()
         .map(|note| note.id())
         .collect::<Vec<_>>();
@@ -902,18 +903,19 @@ fn test_swap_zero_amount() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(
-        Some(swap_consumer_wallet.clone()),
-        Some(vec![swap_note.clone()]),
-    );
+    let tx_context = TransactionContextBuilder::new(swap_consumer_wallet.clone())
+        .input_notes(vec![swap_note.clone()])
+        .build();
 
-    let mut executor = TransactionExecutor::new(data_store.clone(), Some(target_falcon_auth))
-        .with_debug_mode(true);
+    let mut executor =
+        TransactionExecutor::new(tx_context.clone(), Some(target_falcon_auth.clone()))
+            .with_debug_mode(true);
     executor.load_account(swapp_consumer_account_id).unwrap();
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store
-        .notes
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
+        .input_notes()
         .iter()
         .map(|note| note.id())
         .collect::<Vec<_>>();
@@ -990,18 +992,19 @@ fn test_partial_swap_fill_with_note_args() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(
-        Some(swap_consumer_wallet.clone()),
-        Some(vec![swap_note.clone()]),
-    );
+    let tx_context = TransactionContextBuilder::new(swap_consumer_wallet.clone())
+        .input_notes(vec![swap_note.clone()])
+        .build();
 
-    let mut executor = TransactionExecutor::new(data_store.clone(), Some(target_falcon_auth))
-        .with_debug_mode(true);
+    let mut executor =
+        TransactionExecutor::new(tx_context.clone(), Some(target_falcon_auth.clone()))
+            .with_debug_mode(true);
     executor.load_account(swapp_consumer_account_id).unwrap();
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store
-        .notes
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
+        .input_notes()
         .iter()
         .map(|note| note.id())
         .collect::<Vec<_>>();

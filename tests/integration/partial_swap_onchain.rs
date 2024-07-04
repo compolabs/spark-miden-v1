@@ -1,13 +1,13 @@
 use std::collections::BTreeMap;
 
 use miden_client::{
-    AccountTemplate, transactions::transaction_request::TransactionRequest,
+    accounts::AccountTemplate, transactions::transaction_request::TransactionRequest,
+    utils::Serializable,
 };
-use miden_tx::utils::Serializable;
 use miden_objects::{
     accounts::{AccountId, AccountStorageType, AuthSecretKey},
     assembly::ProgramAst,
-    assets::{FungibleAsset, TokenSymbol},
+    assets::{Asset, FungibleAsset, TokenSymbol},
     crypto::rand::{FeltRng, RpoRandomCoin},
     notes::{
         Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient, NoteTag,
@@ -37,16 +37,13 @@ async fn test_transaction_request() {
     let mut client = create_test_client();
     wait_for_node(&mut client).await;
 
-    // Additional detailed logging or debug prints
-    println!("Syncing state...");
-    client.sync_state().await.unwrap();
-
-    // Create accounts
-    println!("Creating accounts...");
     let account_template = AccountTemplate::BasicWallet {
         mutable_code: false,
         storage_type: AccountStorageType::OffChain,
     };
+
+    client.sync_state().await.unwrap();
+    // Insert Account
     let (regular_account, _seed) = client.new_account(account_template).unwrap();
 
     let account_template = AccountTemplate::FungibleFaucet {
@@ -57,16 +54,18 @@ async fn test_transaction_request() {
     };
     let (fungible_faucet, _seed) = client.new_account(account_template).unwrap();
 
-    // Mint custom note
-    println!("Minting custom note...");
+    // Execute mint transaction in order to create custom note
     let note = mint_custom_note(&mut client, fungible_faucet.id(), regular_account.id()).await;
     client.sync_state().await.unwrap();
+
+    // Prepare transaction
+
+    // If these args were to be modified, the transaction would fail because the note code expects
+    // these exact arguments
     let note_args = [[Felt::new(9), Felt::new(12), Felt::new(18), Felt::new(3)]];
 
     let note_args_map = BTreeMap::from([(note.id(), Some(note_args[0]))]);
 
-    // Prepare and execute the failing transaction first
-    println!("Preparing failing transaction...");
     let code = "
         use.miden::contracts::auth::basic->auth_tx
         use.miden::kernels::tx::prologue
@@ -74,10 +73,15 @@ async fn test_transaction_request() {
 
         begin
             push.0 push.{asserted_value}
+            # => [0, {asserted_value}]
             assert_eq
+
             call.auth_tx::auth_tx_rpo_falcon512
         end
         ";
+
+    // FAILURE ATTEMPT
+
     let failure_code = code.replace("{asserted_value}", "1");
     let program = ProgramAst::parse(&failure_code).unwrap();
 
@@ -86,11 +90,17 @@ async fn test_transaction_request() {
         let (pubkey_input, advice_map): (Word, Vec<Felt>) = match account_auth {
             AuthSecretKey::RpoFalcon512(key) => (
                 key.public_key().into(),
-                key.to_bytes().iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>(),
+                key.to_bytes()
+                    .iter()
+                    .map(|a| Felt::new(*a as u64))
+                    .collect::<Vec<Felt>>(),
             ),
         };
+
         let script_inputs = vec![(pubkey_input, advice_map)];
-        client.compile_tx_script(program, script_inputs, vec![]).unwrap()
+        client
+            .compile_tx_script(program, script_inputs, vec![])
+            .unwrap()
     };
 
     let transaction_request = TransactionRequest::new(
@@ -101,15 +111,11 @@ async fn test_transaction_request() {
         Some(tx_script),
     );
 
-    // Execute the failing transaction
-    println!("Executing failing transaction...");
-    match client.new_transaction(transaction_request) {
-        Ok(_) => println!("Unexpected success for failing transaction"),
-        Err(e) => println!("Expected failure for failing transaction: {:?}", e),
-    }
+    // This fails becuase of {asserted_value} having the incorrect number passed in
+    assert!(client.new_transaction(transaction_request).is_err());
 
-    // Prepare and execute the successful transaction
-    println!("Preparing successful transaction...");
+    // SUCCESS EXECUTION
+
     let success_code = code.replace("{asserted_value}", "0");
     let program = ProgramAst::parse(&success_code).unwrap();
 
@@ -118,11 +124,17 @@ async fn test_transaction_request() {
         let (pubkey_input, advice_map): (Word, Vec<Felt>) = match account_auth {
             AuthSecretKey::RpoFalcon512(key) => (
                 key.public_key().into(),
-                key.to_bytes().iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>(),
+                key.to_bytes()
+                    .iter()
+                    .map(|a| Felt::new(*a as u64))
+                    .collect::<Vec<Felt>>(),
             ),
         };
+
         let script_inputs = vec![(pubkey_input, advice_map)];
-        client.compile_tx_script(program, script_inputs, vec![]).unwrap()
+        client
+            .compile_tx_script(program, script_inputs, vec![])
+            .unwrap()
     };
 
     let transaction_request = TransactionRequest::new(
@@ -133,10 +145,62 @@ async fn test_transaction_request() {
         Some(tx_script),
     );
 
-    println!("Executing successful transaction...");
     execute_tx_and_sync(&mut client, transaction_request).await;
 
     client.sync_state().await.unwrap();
+}
+
+async fn create_partial_swap_note(
+    sender: AccountId,
+    last_consumer: AccountId,
+    offered_asset: Asset,
+    requested_asset: Asset,
+    note_type: NoteType,
+    serial_num: [Felt; 4],
+) -> Result<(Note, NoteDetails, RpoDigest), NoteError> {
+    let note_code = include_str!("../../src/notes/SWAPp.masm");
+    let (note_script, _code_block) = new_note_script(
+        ProgramAst::parse(note_code).unwrap(),
+        &TransactionKernel::assembler().with_debug_mode(true),
+    )
+    .unwrap();
+
+    let payback_recipient = build_p2id_recipient(sender, serial_num)?;
+
+    let payback_recipient_word: Word = payback_recipient.digest().into();
+    let requested_asset_word: Word = requested_asset.into();
+    // let payback_tag = NoteTag::from_account_id(sender, NoteExecutionHint::Local)?;
+
+    // build the tag for the SWAP use case
+    let tag = build_swap_tag(note_type, &offered_asset, &requested_asset)?;
+
+    let inputs = NoteInputs::new(vec![
+        payback_recipient_word[0],
+        payback_recipient_word[1],
+        payback_recipient_word[2],
+        payback_recipient_word[3],
+        requested_asset_word[0],
+        requested_asset_word[1],
+        requested_asset_word[2],
+        requested_asset_word[3],
+        tag.inner().into(),
+    ])?;
+
+    let aux = ZERO;
+
+    // build the outgoing note
+    let metadata = NoteMetadata::new(last_consumer, note_type, tag, aux)?;
+    let assets = NoteAssets::new(vec![offered_asset])?;
+    let recipient = NoteRecipient::new(serial_num, note_script.clone(), inputs.clone());
+    let note = Note::new(assets.clone(), metadata, recipient.clone());
+
+    // build the payback note details
+    let payback_assets = NoteAssets::new(vec![requested_asset])?;
+    let payback_note = NoteDetails::new(payback_assets, payback_recipient);
+
+    let note_script_hash = note_script.hash();
+
+    Ok((note, payback_note, note_script_hash))
 }
 
 async fn mint_custom_note(
@@ -146,7 +210,12 @@ async fn mint_custom_note(
 ) -> Note {
     // Prepare transaction
     let mut random_coin = RpoRandomCoin::new(Default::default());
-    let note = create_custom_note(client, faucet_account_id, target_account_id, &mut random_coin);
+    let note = create_custom_note(
+        client,
+        faucet_account_id,
+        target_account_id,
+        &mut random_coin,
+    );
 
     let recipient = note
         .recipient()
@@ -175,7 +244,10 @@ async fn mint_custom_note(
     end
     "
     .replace("{recipient}", &recipient)
-    .replace("{note_type}", &Felt::new(NoteType::OffChain as u64).to_string())
+    .replace(
+        "{note_type}",
+        &Felt::new(NoteType::OffChain as u64).to_string(),
+    )
     .replace("{tag}", &Felt::new(note_tag.into()).to_string())
     .replace("{amount}", &Felt::new(10).to_string());
 
@@ -221,8 +293,10 @@ fn create_custom_note(
         Default::default(),
     )
     .unwrap();
-    let note_assets =
-        NoteAssets::new(vec![FungibleAsset::new(faucet_account_id, 10).unwrap().into()]).unwrap();
+    let note_assets = NoteAssets::new(vec![FungibleAsset::new(faucet_account_id, 10)
+        .unwrap()
+        .into()])
+    .unwrap();
     let note_recipient = NoteRecipient::new(serial_num, note_script, inputs);
     Note::new(note_assets, note_metadata, note_recipient)
 }
