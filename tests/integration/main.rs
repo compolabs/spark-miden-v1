@@ -18,6 +18,9 @@ use miden_objects::{
 mod common;
 use common::*;
 
+mod custom_transactions_test;
+mod partial_swap_onchain;
+
 #[tokio::test]
 async fn test_added_notes() {
     let mut client = create_test_client();
