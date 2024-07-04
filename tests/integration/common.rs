@@ -5,6 +5,8 @@ use figment::{
     Figment,
 };
 use miden_client::{
+    accounts::AccountTemplate,
+    auth::StoreAuthenticator,
     config::RpcConfig,
     errors::{ClientError, RpcError},
     rpc::TonicRpcClient,
@@ -12,8 +14,12 @@ use miden_client::{
         sqlite_store::{config::SqliteStoreConfig, SqliteStore},
         NoteFilter, TransactionFilter,
     },
-    transactions::transaction_request::{TransactionRequest, TransactionTemplate},
-    AccountTemplate, Client, StoreAuthenticator, SyncSummary,
+    sync::SyncSummary,
+    transactions::{
+        transaction_request::{TransactionRequest, TransactionTemplate},
+        DataStoreError, TransactionExecutorError,
+    },
+    Client,
 };
 use miden_objects::{
     accounts::{
@@ -26,7 +32,6 @@ use miden_objects::{
     transaction::InputNote,
     Felt,
 };
-use miden_tx::{DataStoreError, TransactionExecutorError};
 use rand::Rng;
 use uuid::Uuid;
 
