@@ -2,7 +2,7 @@
 
 ### Settlement of Spot Order Trades with SWAPp
 
-Settlement of spot order trades on Spark-Miden-v1 is achieved through the use of SWAPp (partial swap) notes. SWAPp notes have the following characteristics:
+Settlement of spot order trades on Spark-Miden-v1 is achieved through the use of SWAPp (partially fillable swap) notes. SWAPp notes have the following characteristics:
 
 ### SWAPp Characteristics
 1. Can function as a regular SWAP note (as defined in the Miden-base repository).

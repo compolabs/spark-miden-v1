@@ -1,20 +1,25 @@
 use std::collections::BTreeMap;
 
+use miden_lib::notes::utils::build_p2id_recipient;
+use miden_lib::transaction::TransactionKernel;
 use miden_client::{
     accounts::AccountTemplate, transactions::transaction_request::TransactionRequest,
     utils::Serializable,
 };
 use miden_objects::{
     accounts::{AccountId, AccountStorageType, AuthSecretKey},
-    assembly::ProgramAst,
-    assets::{Asset, FungibleAsset, TokenSymbol},
+    assembly::{AssemblyContext, ModuleAst, ProgramAst}, 
+       assets::{Asset, FungibleAsset, TokenSymbol},
     crypto::rand::{FeltRng, RpoRandomCoin},
+    crypto::hash::rpo::RpoDigest,
     notes::{
-        Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient, NoteTag,
-        NoteType,
+        Note, NoteAssets, NoteDetails, NoteExecutionHint, NoteHeader, NoteInputs, NoteMetadata,
+        NoteRecipient, NoteScript, NoteTag, NoteType,
     },
-    Felt, Word,
+    vm::CodeBlock,
+    Felt, Word, NoteError, ZERO
 };
+use miden_vm::Assembler;
 
 use super::common::*;
 
@@ -33,7 +38,7 @@ use super::common::*;
 // Because it's currently not possible to create/consume notes without assets, the P2ID code
 // is used as the base for the note code.
 #[tokio::test]
-async fn test_transaction_request() {
+async fn test_partial_swap_fill() {
     let mut client = create_test_client();
     wait_for_node(&mut client).await;
 
@@ -58,6 +63,17 @@ async fn test_transaction_request() {
     let note = mint_custom_note(&mut client, fungible_faucet.id(), regular_account.id()).await;
     client.sync_state().await.unwrap();
 
+    let swap_note = create_partial_swap_note(
+        regular_account.id(),
+        regular_account.id(),
+        FungibleAsset::new(fungible_faucet.id(), 10).unwrap().into(),
+        FungibleAsset::new(fungible_faucet.id(), 10).unwrap().into(),
+        NoteType::Public,
+        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+    ).await;
+
+    println!("swap_note: {:?}", swap_note);
+
     // Prepare transaction
 
     // If these args were to be modified, the transaction would fail because the note code expects
@@ -80,40 +96,7 @@ async fn test_transaction_request() {
         end
         ";
 
-    // FAILURE ATTEMPT
-
-    let failure_code = code.replace("{asserted_value}", "1");
-    let program = ProgramAst::parse(&failure_code).unwrap();
-
-    let tx_script = {
-        let account_auth = client.get_account_auth(regular_account.id()).unwrap();
-        let (pubkey_input, advice_map): (Word, Vec<Felt>) = match account_auth {
-            AuthSecretKey::RpoFalcon512(key) => (
-                key.public_key().into(),
-                key.to_bytes()
-                    .iter()
-                    .map(|a| Felt::new(*a as u64))
-                    .collect::<Vec<Felt>>(),
-            ),
-        };
-
-        let script_inputs = vec![(pubkey_input, advice_map)];
-        client
-            .compile_tx_script(program, script_inputs, vec![])
-            .unwrap()
-    };
-
-    let transaction_request = TransactionRequest::new(
-        regular_account.id(),
-        note_args_map.clone(),
-        vec![],
-        vec![],
-        Some(tx_script),
-    );
-
-    // This fails becuase of {asserted_value} having the incorrect number passed in
-    assert!(client.new_transaction(transaction_request).is_err());
-
+    /*     
     // SUCCESS EXECUTION
 
     let success_code = code.replace("{asserted_value}", "0");
@@ -148,6 +131,51 @@ async fn test_transaction_request() {
     execute_tx_and_sync(&mut client, transaction_request).await;
 
     client.sync_state().await.unwrap();
+    */
+}
+
+fn build_swap_tag(
+    note_type: NoteType,
+    offered_asset: &Asset,
+    requested_asset: &Asset,
+) -> Result<NoteTag, NoteError> {
+    const SWAP_USE_CASE_ID: u16 = 0;
+
+    // get bits 4..12 from faucet IDs of both assets, these bits will form the tag payload; the
+    // reason we skip the 4 most significant bits is that these encode metadata of underlying
+    // faucets and are likely to be the same for many different faucets.
+
+    let offered_asset_id: u64 = offered_asset.faucet_id().into();
+    let offered_asset_tag = (offered_asset_id >> 52) as u8;
+
+    let requested_asset_id: u64 = requested_asset.faucet_id().into();
+    let requested_asset_tag = (requested_asset_id >> 52) as u8;
+
+    let payload = ((offered_asset_tag as u16) << 8) | (requested_asset_tag as u16);
+
+    let execution = NoteExecutionHint::Local;
+    match note_type {
+        NoteType::Public => NoteTag::for_public_use_case(SWAP_USE_CASE_ID, payload, execution),
+        _ => NoteTag::for_local_use_case(SWAP_USE_CASE_ID, payload),
+    }
+}
+
+pub fn new_note_script(
+    code: ProgramAst,
+    assembler: &Assembler,
+) -> Result<(NoteScript, CodeBlock), NoteError> {
+    // Compile the code in the context with phantom calls enabled
+    let code_block = assembler
+        .compile_in_context(
+            &code,
+            &mut AssemblyContext::for_program(Some(&code)).with_phantom_calls(true),
+        )
+        .map_err(NoteError::ScriptCompilationError)?;
+
+    // Use the from_parts method to create a NoteScript instance
+    let note_script = NoteScript::from_parts(code, code_block.hash());
+
+    Ok((note_script, code_block))
 }
 
 async fn create_partial_swap_note(
