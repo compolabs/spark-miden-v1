@@ -344,6 +344,7 @@ proc.execute_SWAPp
     # => [token_a_AMT, token_a_AMT_out]
 
     gte
+    # => [is_gte]
 
     # if amount_out > amount_a
     # amount_out = amount_a
@@ -386,7 +387,7 @@ proc.execute_SWAPp
     mem_load.PAYBACK_TAG
     # => [payback_tag, ASSET_REQUESTED_REMAINING, PAYBACK_RECIPIENT]
 
-    push.0.0.0.0.0.0.0
+    padw push.0.0.0
     # => [0,0,0,0,0,0,0, payback_tag, ASSET_REQUESTED_REMAINING, PAYBACK_RECIPIENT]
 
     exec.get_note_inputs_commitment
@@ -395,12 +396,14 @@ proc.execute_SWAPp
     padw mem_loadw.SWAPP_SCRIPT_HASH
     # => [SCRIPT_HASH, INPUTS_HASH]
 
+    # @dev TODO research SERIAL_NUM computation
     push.1.2.3.4
     # => [SERIAL_NUM, SCRIPT_HASH, INPUTS_HASH]
 
     exec.tx::build_recipient_hash
     # => [RECIPIENT_SWAPP]
 
+    # @dev TODO research aux computation
     push.OFFCHAIN_NOTE push.0 mem_load.PAYBACK_TAG
     # => [payback_tag, aux, note_type, RECIPIENT_SWAPP]
 
@@ -422,24 +425,25 @@ begin
     # 1) Check if consuming account is creator account (check if reclaim)
 
     # If not reclaim
-    # 2) Get token_a, token_b, and token_b_in amounts
+    # 2) Get amt_a, amt_b, and amt_b_in amounts
 
     # 3) Calculate price ratio:
-    # => ratio = token_b / token_a
+    # => ratio = amt_a / amt_b
 
     # 4) Calculate token_a amount out to consumer
-    # => token_a_out = balance_b * ratio
+    # => amt_a_out = amt_b_in * ratio
 
     # 5) Calculate token_b amount to creator
 
     # 6) calculate token a remaining for new SWAPp note
-    # => token_a_remaining = token_a - token_a_out
+    # => amt_a_remaining = amt_a - amt_a_out
 
     # 7) calculate updated token b requested amount (input hash)
-    # => token_b_requested_remaining = token_a_remaining * ratio
+    # => amt_b_reqeusted_remaining = amt_b - amt_b_in (used in SWAPp)
+    # => amt_b_requested_remaining = amt_a_remaining / ratio (same thing, but has precision errors in MASM)
 
     # 8) verify price ratio is constant within some margin (precision loss depends on fixed point lib precision)
-    # => assert_eq(token_b_requested_remaining / token_a_remaining , token_b / token_a)
+    # => assert_eq(amt_a_remaining / amt_b_requested_remaining, amt_a / amt_b)
 
     # store SWAPp script hash to mem addr 4 & drop
     mem_storew.SWAPP_SCRIPT_HASH dropw
