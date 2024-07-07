@@ -1,23 +1,23 @@
 use std::collections::BTreeMap;
 
-use miden_lib::notes::utils::build_p2id_recipient;
-use miden_lib::transaction::TransactionKernel;
 use miden_client::{
     accounts::AccountTemplate, transactions::transaction_request::TransactionRequest,
     utils::Serializable,
 };
+use miden_lib::notes::utils::build_p2id_recipient;
+use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::{AccountId, AccountStorageType, AuthSecretKey},
-    assembly::{AssemblyContext, ModuleAst, ProgramAst}, 
-       assets::{Asset, FungibleAsset, TokenSymbol},
-    crypto::rand::{FeltRng, RpoRandomCoin},
+    assembly::{AssemblyContext, ModuleAst, ProgramAst},
+    assets::{Asset, FungibleAsset, TokenSymbol},
     crypto::hash::rpo::RpoDigest,
+    crypto::rand::{FeltRng, RpoRandomCoin},
     notes::{
         Note, NoteAssets, NoteDetails, NoteExecutionHint, NoteHeader, NoteInputs, NoteMetadata,
         NoteRecipient, NoteScript, NoteTag, NoteType,
     },
     vm::CodeBlock,
-    Felt, Word, NoteError, ZERO
+    Felt, NoteError, Word, ZERO,
 };
 use miden_vm::Assembler;
 
@@ -70,37 +70,30 @@ async fn test_partial_swap_fill() {
         FungibleAsset::new(fungible_faucet.id(), 10).unwrap().into(),
         NoteType::Public,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
-    ).await;
+    )
+    .await;
 
     println!("swap_note: {:?}", swap_note);
 
     // Prepare transaction
 
-    // If these args were to be modified, the transaction would fail because the note code expects
-    // these exact arguments
-    let note_args = [[Felt::new(9), Felt::new(12), Felt::new(18), Felt::new(3)]];
-
+    // SWAPp note args
+    let note_args: [[Felt; 4]; 1] = [[Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(0)]];
     let note_args_map = BTreeMap::from([(note.id(), Some(note_args[0]))]);
 
-    let code = "
-        use.miden::contracts::auth::basic->auth_tx
-        use.miden::kernels::tx::prologue
-        use.miden::kernels::tx::memory
+    let account_wallet = "
+        use.miden::contracts::wallets::basic->basic_wallet
+        use.miden::contracts::auth::basic->basic_eoa
 
-        begin
-            push.0 push.{asserted_value}
-            # => [0, {asserted_value}]
-            assert_eq
+        export.basic_wallet::receive_asset
+        export.basic_wallet::send_asset
+        export.basic_eoa::auth_tx_rpo_falcon512
+    ";
 
-            call.auth_tx::auth_tx_rpo_falcon512
-        end
-        ";
-
-    /*     
     // SUCCESS EXECUTION
 
-    let success_code = code.replace("{asserted_value}", "0");
-    let program = ProgramAst::parse(&success_code).unwrap();
+    // let success_code = code.replace("{asserted_value}", "0");
+    let program = ProgramAst::parse(&account_wallet).unwrap();
 
     let tx_script = {
         let account_auth = client.get_account_auth(regular_account.id()).unwrap();
@@ -120,6 +113,7 @@ async fn test_partial_swap_fill() {
             .unwrap()
     };
 
+    
     let transaction_request = TransactionRequest::new(
         regular_account.id(),
         note_args_map,
@@ -131,7 +125,7 @@ async fn test_partial_swap_fill() {
     execute_tx_and_sync(&mut client, transaction_request).await;
 
     client.sync_state().await.unwrap();
-    */
+    
 }
 
 fn build_swap_tag(
