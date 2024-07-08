@@ -60,8 +60,7 @@ async fn test_partial_swap_fill() {
     let (fungible_faucet, _seed) = client.new_account(account_template).unwrap();
 
     // Execute mint transaction in order to create custom note
-    let note = mint_custom_note(&mut client, fungible_faucet.id(), regular_account.id()).await;
-    client.sync_state().await.unwrap();
+    // let note = mint_custom_note(&mut client, fungible_faucet.id(), regular_account.id()).await;
 
     let swap_note = create_partial_swap_note(
         regular_account.id(),
@@ -71,15 +70,16 @@ async fn test_partial_swap_fill() {
         NoteType::Public,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
     )
-    .await;
+    .await
+    .unwrap();
 
-    println!("swap_note: {:?}", swap_note);
+    client.sync_state().await.unwrap();
 
     // Prepare transaction
 
     // SWAPp note args
     let note_args: [[Felt; 4]; 1] = [[Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(0)]];
-    let note_args_map = BTreeMap::from([(note.id(), Some(note_args[0]))]);
+    let note_args_map = BTreeMap::from([(swap_note.id(), Some(note_args[0]))]);
 
     let account_wallet = "
         use.miden::contracts::wallets::basic->basic_wallet
@@ -113,7 +113,6 @@ async fn test_partial_swap_fill() {
             .unwrap()
     };
 
-    
     let transaction_request = TransactionRequest::new(
         regular_account.id(),
         note_args_map,
@@ -125,7 +124,6 @@ async fn test_partial_swap_fill() {
     execute_tx_and_sync(&mut client, transaction_request).await;
 
     client.sync_state().await.unwrap();
-    
 }
 
 fn build_swap_tag(
@@ -179,7 +177,7 @@ async fn create_partial_swap_note(
     requested_asset: Asset,
     note_type: NoteType,
     serial_num: [Felt; 4],
-) -> Result<(Note, NoteDetails, RpoDigest), NoteError> {
+) -> Result<(Note), NoteError> {
     let note_code = include_str!("../../src/notes/SWAPp.masm");
     let (note_script, _code_block) = new_note_script(
         ProgramAst::parse(note_code).unwrap(),
@@ -217,108 +215,9 @@ async fn create_partial_swap_note(
     let note = Note::new(assets.clone(), metadata, recipient.clone());
 
     // build the payback note details
-    let payback_assets = NoteAssets::new(vec![requested_asset])?;
-    let payback_note = NoteDetails::new(payback_assets, payback_recipient);
+    // let payback_assets = NoteAssets::new(vec![requested_asset])?;
+    // let payback_note = NoteDetails::new(payback_assets, payback_recipient);
+    // let note_script_hash = note_script.hash();
 
-    let note_script_hash = note_script.hash();
-
-    Ok((note, payback_note, note_script_hash))
-}
-
-async fn mint_custom_note(
-    client: &mut TestClient,
-    faucet_account_id: AccountId,
-    target_account_id: AccountId,
-) -> Note {
-    // Prepare transaction
-    let mut random_coin = RpoRandomCoin::new(Default::default());
-    let note = create_custom_note(
-        client,
-        faucet_account_id,
-        target_account_id,
-        &mut random_coin,
-    );
-
-    let recipient = note
-        .recipient()
-        .digest()
-        .iter()
-        .map(|x| x.as_int().to_string())
-        .collect::<Vec<_>>()
-        .join(".");
-
-    let note_tag = note.metadata().tag().inner();
-
-    let code = "
-    use.miden::contracts::faucets::basic_fungible->faucet
-    use.miden::contracts::auth::basic->auth_tx
-    
-    begin
-        push.{recipient}
-        push.{note_type}
-        push.0
-        push.{tag}
-        push.{amount}
-        call.faucet::distribute
-    
-        call.auth_tx::auth_tx_rpo_falcon512
-        dropw dropw
-    end
-    "
-    .replace("{recipient}", &recipient)
-    .replace(
-        "{note_type}",
-        &Felt::new(NoteType::OffChain as u64).to_string(),
-    )
-    .replace("{tag}", &Felt::new(note_tag.into()).to_string())
-    .replace("{amount}", &Felt::new(10).to_string());
-
-    let program = ProgramAst::parse(&code).unwrap();
-
-    let tx_script = client.compile_tx_script(program, vec![], vec![]).unwrap();
-
-    let transaction_request = TransactionRequest::new(
-        faucet_account_id,
-        BTreeMap::new(),
-        vec![note.clone()],
-        vec![],
-        Some(tx_script),
-    );
-
-    let _ = execute_tx_and_sync(client, transaction_request).await;
-    note
-}
-
-fn create_custom_note(
-    client: &TestClient,
-    faucet_account_id: AccountId,
-    target_account_id: AccountId,
-    rng: &mut RpoRandomCoin,
-) -> Note {
-    let expected_note_arg = [Felt::new(9), Felt::new(12), Felt::new(18), Felt::new(3)]
-        .iter()
-        .map(|x| x.as_int().to_string())
-        .collect::<Vec<_>>()
-        .join(".");
-
-    let note_script =
-        include_str!("asm/custom_p2id.masm").replace("{expected_note_arg}", &expected_note_arg);
-    let note_script = ProgramAst::parse(&note_script).unwrap();
-    let note_script = client.compile_note_script(note_script, vec![]).unwrap();
-
-    let inputs = NoteInputs::new(vec![target_account_id.into()]).unwrap();
-    let serial_num = rng.draw_word();
-    let note_metadata = NoteMetadata::new(
-        faucet_account_id,
-        NoteType::OffChain,
-        NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local).unwrap(),
-        Default::default(),
-    )
-    .unwrap();
-    let note_assets = NoteAssets::new(vec![FungibleAsset::new(faucet_account_id, 10)
-        .unwrap()
-        .into()])
-    .unwrap();
-    let note_recipient = NoteRecipient::new(serial_num, note_script, inputs);
-    Note::new(note_assets, note_metadata, note_recipient)
+    Ok(note)
 }
