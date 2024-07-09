@@ -69,3 +69,6 @@ cargo masm-fmt "src/**/*.masm"
 ```
 cargo install masm-formatter
 ```
+
+ratio = amt_a / amt_b
+amt_a_out = amt_b_in * ratio

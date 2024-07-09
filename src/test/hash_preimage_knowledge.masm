@@ -1,0 +1,78 @@
+use.miden::note
+use.miden::contracts::wallets::basic->wallet
+use.miden::tx
+use.miden::account
+use.std::sys
+use.std::crypto::hashes::native
+use.std::math::u64
+
+#! Computs the note inputs commitment for up to 16 inputs
+#!
+#! Inputs: [INPUTS_4, INPUTS_3, INPUTS_2, INPUTS_1]
+#! Outputs: [INPUTS_HASH]
+proc.hash_secret
+
+    # Initialize the capacity portion of the hasher state.
+    # Absorb the first 8 values into the hasher state.
+    swapdw padw movupw.2 movupw.2
+    # => [8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0]
+
+    # Execute the RPO permutation.
+    hperm
+    # => Permuted state [R2, R1, C]
+
+    # Drop the two capacity elements to absorb the 9th element.
+    dropw dropw
+    # => [R2, R1]
+
+    # Absorb the 9th element and apply padding.
+    movupw.2 movupw.2
+    # => [0, 0, 0, 0, 0, 0, 0, 9, R2, R1]
+
+    # Execute the RPO permutation.
+    hperm
+    # => Permuted state [R2, R1, C]
+
+    # Convert the state to the digest.
+    exec.native::state_to_digest
+    # => [Digest]
+end
+
+begin
+    dropw
+
+    # => [SECRET]
+
+    mem_storew.0
+    dropw
+
+    push.4.0
+
+    push.111 debug.stack debug.mem drop
+
+    # TODO: can compute_inputs_hash hash < 5 values? 
+    # exec.hash_secret
+    exec.note::compute_inputs_hash
+
+    push.222 debug.stack drop
+
+    push.0 exec.note::get_inputs drop drop
+
+    push.333
+    debug.stack
+    debug.mem
+    drop
+
+    # get secret hash
+    mem_loadw.3
+
+    push.333
+    debug.stack
+    drop
+
+    push.0 exec.note::get_assets
+    mem_loadw.0
+    call.wallet::receive_asset
+    exec.sys::truncate_stack
+
+end
