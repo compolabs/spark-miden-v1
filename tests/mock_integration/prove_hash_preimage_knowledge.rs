@@ -223,7 +223,12 @@ fn test_prove_hash_preimage_knowlegde() {
     );
 
     let serial_num: [Felt; 4] = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-    let secret: [Felt; 4] = [Felt::new(303), Felt::new(303), Felt::new(303), Felt::new(303)];
+    let secret: [Felt; 4] = [
+        Felt::new(303),
+        Felt::new(303),
+        Felt::new(303),
+        Felt::new(303),
+    ];
 
     // SWAPp note
     let (swap_note, _payback_note, _note_script_hash) = create_partial_swap_note_with_secret(
@@ -264,12 +269,7 @@ fn test_prove_hash_preimage_knowlegde() {
         .unwrap();
 
     // amount to consume
-    let note_args = [[
-        secret[0],
-        secret[1], 
-        secret[2], 
-        secret[3], 
-    ]];
+    let note_args = [[secret[0], secret[1], secret[2], secret[3]]];
 
     let note_args_map = BTreeMap::from([(note_ids[0], note_args[0])]);
 

@@ -173,6 +173,12 @@ fn format_value_with_decimals(value: u64, decimals: u32) -> u64 {
     value * 10u64.pow(decimals)
 }
 
+fn format_value_to_float(value: u64, decimals: u32) -> f32 {
+    let scale = 10f32.powi(decimals as i32);
+    let result: f32 = ((value as f32) / scale) as f32;
+    result
+}
+
 // @dev Test that a SWAPp note can be filled with a partial amount of the requested asset
 #[test]
 fn test_partial_swap_fill() {
@@ -347,6 +353,241 @@ fn test_partial_swap_fill() {
     assert_eq!(token_b_amount_in_p2id_note, token_b_amount_in);
 }
 
+// @dev Test that a SWAPp note can be filled with a partial amount of the requested asset
+#[test]
+fn test_partial_swap_fill_graphical() {
+    // ASSETS
+    // Offered Asset (tokenA)
+    let amount_a: u64 = 10;
+
+    let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+    let amount_token_a: u64 = format_value_with_decimals(amount_a, 8);
+    let offered_token_a: Asset = FungibleAsset::new(faucet_id_1, amount_token_a)
+        .unwrap()
+        .into();
+
+    // Requested Asset (tokenB)
+    let amount_b: u64 = 20;
+
+    let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
+    let requested_amount_token_b = format_value_with_decimals(amount_b, 8);
+    let requested_token_b: Asset = FungibleAsset::new(faucet_id_2, requested_amount_token_b)
+        .unwrap()
+        .into();
+
+    // ACCOUNT IDs
+    // SWAPp note creator
+    let swapp_creator_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+
+    // SWAPp note consumer
+    let swapp_consumer_account_id = AccountId::try_from(ACCOUNT_ID_SENDER_1).unwrap();
+
+    // SWAPp note consumer wallet balance
+    let amount_b_in: u64 = 5;
+
+    let token_b_amount_in = format_value_with_decimals(amount_b_in, 8);
+    let swap_consumer_token_b = FungibleAsset::new(faucet_id_2, token_b_amount_in)
+        .unwrap()
+        .into();
+    let (target_pub_key, target_falcon_auth) = get_new_pk_and_authenticator();
+
+    // SWAPp note consumer wallet
+    let swap_consumer_wallet = get_custom_account_code(
+        swapp_consumer_account_id,
+        target_pub_key,
+        Some(swap_consumer_token_b),
+    );
+
+    // SWAPp note
+    let (swap_note, _payback_note, _note_script_hash) = create_partial_swap_note(
+        swapp_creator_account_id.clone(),
+        swapp_creator_account_id.clone(),
+        offered_token_a,
+        requested_token_b,
+        NoteType::OffChain,
+        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+    )
+    .unwrap();
+
+    // CONSTRUCT AND EXECUTE TX (Success)
+    // --------------------------------------------------------------------------------------------
+    let tx_context = TransactionContextBuilder::new(swap_consumer_wallet.clone())
+        .input_notes(vec![swap_note.clone()])
+        .build();
+
+    let mut executor =
+        TransactionExecutor::new(tx_context.clone(), Some(target_falcon_auth.clone()))
+            .with_debug_mode(true);
+    executor.load_account(swapp_consumer_account_id).unwrap();
+
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
+
+    let tx_script_code = include_str!("../../src/tx_scripts/tx_script.masm");
+    let tx_script_ast = ProgramAst::parse(tx_script_code).unwrap();
+
+    let tx_script_target = executor
+        .compile_tx_script(tx_script_ast.clone(), vec![], vec![])
+        .unwrap();
+
+    let tx_args_target = TransactionArgs::new(Some(tx_script_target), None, AdviceMap::default());
+
+    // TRANSACTION EXECUTION
+    // --------------------------------------------------------------------------------------------
+    let executed_transaction = executor
+        .execute_transaction(
+            swapp_consumer_account_id,
+            block_ref,
+            &note_ids,
+            tx_args_target.clone(),
+        )
+        .unwrap();
+
+    // EXECUTION OUTPUT NOTES
+    // P2ID & SWAPp notes outputted by the transaction
+    let p2id_ouput_note = executed_transaction.output_notes().get_note(0);
+    let swapp_output_note = executed_transaction.output_notes().get_note(1);
+
+    // Calculate the expected amount of tokens A that are given to the consumer account
+    let expected_token_a_out_amount =
+        calculate_tokens_a_for_b(amount_token_a, requested_amount_token_b, token_b_amount_in);
+
+    // Calculate the remaining tokens A and B
+    let expected_token_a_amount_remaining = amount_token_a - expected_token_a_out_amount;
+    let remaining_token_a: Asset =
+        FungibleAsset::new(faucet_id_1, expected_token_a_amount_remaining)
+            .unwrap()
+            .into();
+
+    let requested_token_b_amount_remaining = requested_amount_token_b - token_b_amount_in;
+    let remaining_token_b: Asset =
+        FungibleAsset::new(faucet_id_2, requested_token_b_amount_remaining)
+            .unwrap()
+            .into();
+
+    // Note expected to be outputted by the transaction
+    let (expected_swapp_note, _payback_note, _note_script_hash) = create_partial_swap_note(
+        swapp_creator_account_id,
+        swapp_consumer_account_id,
+        remaining_token_a,
+        remaining_token_b,
+        NoteType::OffChain,
+        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+    )
+    .unwrap();
+
+    assert_eq!(executed_transaction.output_notes().num_notes(), 2);
+
+    // Check that the output note is the same as the expected note
+    assert_eq!(
+        NoteHeader::from(swapp_output_note).metadata(),
+        NoteHeader::from(expected_swapp_note.clone()).metadata()
+    );
+
+    assert_eq!(
+        NoteHeader::from(swapp_output_note),
+        NoteHeader::from(expected_swapp_note.clone())
+    );
+
+    // Comment out to speed up test
+    // assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
+
+    // Checking ouputted SWAPp and P2ID notes contain the correct amount of liquidity
+    let p2id_note_balance: &NoteAssets = p2id_ouput_note.assets().unwrap();
+    let swapp_note_balance: &NoteAssets = swapp_output_note.assets().unwrap();
+
+    let mut asset_iter = swapp_note_balance.iter();
+    let swap_note_asset = asset_iter.next().expect("Expected at least one asset");
+
+    let token_a_remaining_in_swap = match swap_note_asset {
+        Asset::Fungible(fa) => fa,
+        _ => panic!("Expected a fungible asset, but found a non-fungible asset."),
+    };
+
+    let asset_id_in_swapp_note = token_a_remaining_in_swap.faucet_id();
+    let token_a_amount_in_swapp_note = token_a_remaining_in_swap.amount();
+
+    let mut asset_iter = p2id_note_balance.iter();
+    let p2id_note_asset = asset_iter.next().expect("Expected at least one asset");
+
+    let token_b_output_in_p2id = match p2id_note_asset {
+        Asset::Fungible(fa) => fa,
+        _ => panic!("Expected a fungible asset, but found a non-fungible asset."),
+    };
+
+    let asset_id_in_p2id_note = token_b_output_in_p2id.faucet_id();
+    let token_b_amount_in_p2id_note = token_b_output_in_p2id.amount();
+
+    // ASSERT BALANCES OF OUTPUTTED NOTES
+    assert_eq!(p2id_note_balance.num_assets(), 1);
+    assert_eq!(swapp_note_balance.num_assets(), 1);
+    assert_eq!(asset_id_in_swapp_note, faucet_id_1);
+    assert_eq!(asset_id_in_p2id_note, faucet_id_2);
+
+    assert_eq!(
+        token_a_amount_in_swapp_note,
+        expected_token_a_amount_remaining
+    );
+    assert_eq!(token_b_amount_in_p2id_note, token_b_amount_in);
+
+    println!("SWAPp NOTE BALANCE A: {}", amount_a);
+    println!("SWAPp NOTE REQUESTED B: {}", amount_b);
+    println!(
+        "TOKEN B AMOUNT IN: {}",
+        format_value_to_float(token_b_amount_in, 8)
+    );
+
+    println!(
+        "P2ID NOTE BALANCE: {}",
+        format_value_to_float(token_b_amount_in_p2id_note, 8)
+    );
+    println!(
+        "SWAPp' NOTE BALANCE TOKEN A: {}",
+        format_value_to_float(token_a_amount_in_swapp_note, 8)
+    );
+
+    println!("/* ______________________________________ */ ");
+    println!("\n");
+    println!("          ______________________");
+    println!("          | SWAPp NOTE (Alice) |");
+    println!("          |   {} tokens A      |", amount_a);
+    println!("          |         for        |");
+    println!("          |   {} tokens B      | ", amount_b);
+    println!("          |____________________|");
+    println!("                     |");
+    println!("                     |");
+    println!("                     V");
+    println!("         ___________________________");
+    println!("         |  Consuming Account (Bob) |");
+    println!(
+        "         |       {} tokens B         |",
+        amount_b_in.clone()
+    );
+    println!("         |__________________________|");
+    println!("          |                       |   ");
+    println!("          |                       |   ");
+    println!("          V                       V   ");
+    println!("    _____________           ________________");
+    println!("   |    P2ID     |         |    SWAPp'      |");
+    println!("   |             |         |                |");
+    println!(
+        "   | {} tokens B |         |  {} tokens A   |",
+        amount_b_in.clone(),
+        format_value_to_float(expected_token_a_amount_remaining, 8)
+    );
+    println!("   |_____________|         |     for        |");
+    println!(
+        "                           | {} tokens B    |",
+        format_value_to_float(requested_token_b_amount_remaining, 8)
+    );
+    println!("                           |________________|");
+}
+
 // @dev Test that a SWAPp note can be filled with the entire amount of the requested asset
 #[test]
 fn test_complete_swapp_fill() {
@@ -444,9 +685,9 @@ fn test_complete_swapp_fill() {
         calculate_tokens_a_for_b(amount_token_a, requested_amount_token_b, token_b_amount_in);
 
     // Calculate the remaining tokens A and B
-    let offered_token_a_amount_remaining = amount_token_a - offered_token_a_out_amount;
+    let expected_token_a_amount_remaining = amount_token_a - offered_token_a_out_amount;
     let remaining_token_a: Asset =
-        FungibleAsset::new(faucet_id_1, offered_token_a_amount_remaining)
+        FungibleAsset::new(faucet_id_1, expected_token_a_amount_remaining)
             .unwrap()
             .into();
 
@@ -513,7 +754,7 @@ fn test_complete_swapp_fill() {
     assert_eq!(asset_id_in_swapp_note, faucet_id_1);
     assert_eq!(
         token_a_amount_in_swapp_note,
-        offered_token_a_amount_remaining
+        expected_token_a_amount_remaining
     );
 
     assert_eq!(asset_id_in_p2id_note, faucet_id_2);
