@@ -50,7 +50,7 @@ begin
 
     push.111 debug.stack debug.mem drop
 
-    # TODO: can compute_inputs_hash hash < 5 values? 
+    # TODO: can compute_inputs_hash hash < 5 values?
     # exec.hash_secret
     exec.note::compute_inputs_hash
 
