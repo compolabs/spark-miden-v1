@@ -553,7 +553,7 @@ fn test_partial_swap_fill_graphical() {
 
     println!("/* ______________________________________ */ ");
     println!("\n");
-    println!("          ______________________");
+    println!("          _____________________");
     println!("          | SWAPp NOTE (Alice) |");
     println!("          |   {} tokens A      |", amount_a);
     println!("          |         for        |");
@@ -573,7 +573,7 @@ fn test_partial_swap_fill_graphical() {
     println!("          |                       |   ");
     println!("          V                       V   ");
     println!("    _____________           ________________");
-    println!("   |    P2ID     |         |    SWAPp'      |");
+    println!("   |  P2ID Note  |         |  SWAPp'  Note  |");
     println!("   |             |         |                |");
     println!(
         "   | {} tokens B |         |  {} tokens A   |",
