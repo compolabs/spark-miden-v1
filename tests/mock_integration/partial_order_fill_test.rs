@@ -551,17 +551,22 @@ fn test_partial_swap_fill_graphical() {
         format_value_to_float(token_a_amount_in_swapp_note, 8)
     );
 
-    println!("/* ______________________________________ */ ");
+    println!("/* ______________________________________ */");
     println!("\n");
-    println!("          _____________________");
-    println!("          | SWAPp NOTE (Alice) |");
-    println!("          |   {} tokens A      |", amount_a);
-    println!("          |         for        |");
-    println!("          |   {} tokens B      | ", amount_b);
-    println!("          |____________________|");
+    
+    // Circle representation for SWAPp NOTE
+    println!("              ________________");
+    println!("            /                  \\");
+    println!("           | SWAPp NOTE (Alice)|");
+    println!("           |  {} tokens A      |", amount_a);
+    println!("           |        for        |");
+    println!("           |  {} tokens B      |", amount_b);
+    println!("            \\__________________/");
     println!("                     |");
     println!("                     |");
     println!("                     V");
+    
+    // Rectangle for Consuming Account
     println!("         ___________________________");
     println!("         |  Consuming Account (Bob) |");
     println!(
@@ -572,20 +577,17 @@ fn test_partial_swap_fill_graphical() {
     println!("          |                       |   ");
     println!("          |                       |   ");
     println!("          V                       V   ");
-    println!("    _____________           ________________");
-    println!("   |  P2ID Note  |         |  SWAPp'  Note  |");
-    println!("   |             |         |                |");
-    println!(
-        "   | {} tokens B |         |  {} tokens A   |",
-        amount_b_in.clone(),
-        format_value_to_float(expected_token_a_amount_remaining, 8)
-    );
-    println!("   |_____________|         |     for        |");
-    println!(
-        "                           | {} tokens B    |",
-        format_value_to_float(requested_token_b_amount_remaining, 8)
-    );
-    println!("                           |________________|");
+    
+    // Circle for P2ID Note
+    println!("          ______________     ______________");
+    println!("         /              \\   /              \\");
+    println!("        |  P2ID Note    |  |  SWAPp'  Note |");
+    println!("        |  {} tokens B   |  |               |", amount_b_in.clone());
+    println!("        |               |  |  {} tokens A |", format_value_to_float(expected_token_a_amount_remaining, 8));
+    println!("         \\______________/  |     for       |");
+    println!("                           | {} tokens B   |", format_value_to_float(requested_token_b_amount_remaining, 8));
+    println!("                            \\_____________/");
+    
 }
 
 // @dev Test that a SWAPp note can be filled with the entire amount of the requested asset
