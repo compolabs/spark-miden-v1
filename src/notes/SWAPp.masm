@@ -206,8 +206,10 @@ proc.is_consumer_is_creator
     push.0 exec.note::get_inputs drop drop
 
     padw mem_loadw.0
+    # => [RECIPIENT]
 
     eqw
+    # => [is_equal]
 
     swap.8 dropw dropw
 end
