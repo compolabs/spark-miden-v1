@@ -236,8 +236,8 @@ end
 # Partially Fillable Swap Script (SWAPp): adds an asset from the note into consumers account and
 # creates a note consumable by note issuer containing requested ASSET.
 #
-# If the consuming account does not have the sufficient liquidity to completely
-# fulfill the amount of the SWAPp creator's requested asset, then it:
+# If the consuming account does not have sufficient liquidity to completely
+# fill the amount of the SWAPp creator's requested asset, then the SWAPp note:
 #  1) Computes the ratio of token_a to token_b, where token_a is the offered asset,
 #     and where token_b is the requested asset
 #  2) Calculates the amount of token_a to send to the consumer based on the the
@@ -245,18 +245,19 @@ end
 #  3) Outputs a new SWAPp note with the remaining liquidity of token_a, and the updated
 #     amount of token_b
 #
-# Note:
+# If the consuming account completely fills the amount requested by the SWAPp creator,
+# only a single P2ID note is outputted.
+#
+# Definitions:
 # 1) the offered asset is referred to as token_a,
 # 2) the requested asset is referred to as token_b,
-# 3) token_b_in is the amount of token_b sent to the SWAPp creator via P2ID
-# 4) token_a_out is the amount of token_a sent to the consuming wallet
+# 3) token_b_in is the amount of token_b sent to the SWAPp creator via P2ID from the consuming account
+# 4) token_a_out is the amount of token_a sent to the consuming account
 #
 # Requires that the consuming account exposes:
 #  basic_wallet::receive_asset
 #  basic_wallet::send_asset
 #  basic_eoa::auth_tx_rpo_falcon512
-#  account::get_balance
-#  account::get_id
 #
 # Inputs: [SCRIPT_ROOT]
 # Outputs: []
@@ -274,7 +275,6 @@ proc.execute_SWAPp
 
     # if user does not supply amount token B in via note args
     # then we use the amount of tokens B in their wallet
-    # @dev TODO: research pros and cons of this
     mem_store.TOKEN_B_AMT_IN
 
     # store asset into memory at address 3
@@ -305,12 +305,12 @@ proc.execute_SWAPp
     # => [REQUESTED_ASSET]
 
     # store token_b_id to memory addr 7
-    dup mem_store.TOKEN_B_ID
-    # => [REQUESTED_ASSET]
+    mem_store.TOKEN_B_ID
+    # => [0, 0, TOKEN_B_AMT]
 
     # store token_b_AMT to mem addr 9
-    drop drop drop mem_store.TOKEN_B_AMT
-    # => [REQUESTED_ASSET]
+    drop drop mem_store.TOKEN_B_AMT
+    # => []
 
     # Users can supply the amount of token B they would like to sell
     # via note args. If they don't supply TOKEN_B_AMT_IN via note args
@@ -349,20 +349,25 @@ proc.execute_SWAPp
     mem_load.TOKEN_A_AMT
     # => [token_a_AMT, token_a_AMT_out]
 
-    gte
-    # => [is_gte]
+    push.101 debug.stack drop
 
-    # if amount_out > amount_a
-    # amount_out = amount_a
+    lt
+    # => [is_lt]
+
+    push.111 debug.stack drop
+
+    # if amount_out < amount_a
     if.true
-        # complete order fill
-        mem_load.TOKEN_A_AMT
-        push.0 mem_store.IS_PARTIAL_FILL
-    else
         # partial order fill
         mem_load.TOKEN_A_AMT_OUT
         push.1 mem_store.IS_PARTIAL_FILL
+    else
+        # complete order fill
+        mem_load.TOKEN_A_AMT
+        push.0 mem_store.IS_PARTIAL_FILL
     end
+
+    debug.mem
 
     # 1) send token_b_in amt in to creator
     # 2) send token_a_out amt to consumer
@@ -388,6 +393,8 @@ proc.execute_SWAPp
     # check if partial fill
     mem_load.IS_PARTIAL_FILL
     # => [is_partial_fill]
+
+    push.222 debug.stack drop
 
     if.true
 
@@ -435,7 +442,7 @@ proc.execute_SWAPp
         # => [note_idx]
 
     else
-        # does not output SWAPp'
+        # do not output SWAPp'
     end
 
     # clean stack
@@ -474,14 +481,10 @@ begin
     exec.is_consumer_is_creator
     # => [is_creator]
 
-    push.111 debug.stack drop
-
     if.true
         exec.handle_reclaim
     else
         exec.execute_SWAPp
     end
-
-    push.505 debug.stack drop
 
 end
