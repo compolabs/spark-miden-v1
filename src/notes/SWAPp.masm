@@ -216,7 +216,7 @@ proc.is_consumer_is_creator
     # => [is_equal, RECIPIENT_mem, RECIPIENT]
 
     swap.8 dropw dropw
-    # => [is_creator] 
+    # => [is_creator]
 end
 
 #! Sends Assets in Note to Consuming Account
