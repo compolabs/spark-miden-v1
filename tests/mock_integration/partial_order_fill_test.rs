@@ -267,6 +267,8 @@ fn test_partial_swap_fill() {
         )
         .unwrap();
 
+    // println!("{:?}", executed_transaction);
+
     // P2ID & SWAPp note outputted by the transaction
     let p2id_ouput_note = executed_transaction.output_notes().get_note(0);
     let swapp_output_note = executed_transaction.output_notes().get_note(1);
@@ -688,7 +690,6 @@ fn test_complete_swapp_fill() {
 
     // P2ID & SWAPp note outputted by the transaction
     let p2id_ouput_note = executed_transaction.output_notes().get_note(0);
-    let swapp_output_note = executed_transaction.output_notes().get_note(1);
 
     // Calculate the amount of tokens A that are given to the consumer account
     let offered_token_a_out_amount =
@@ -708,7 +709,7 @@ fn test_complete_swapp_fill() {
             .into();
 
     // Note expected to be outputted by the transaction
-    let (expected_swapp_note, _payback_note, _note_script_hash) = create_partial_swap_note(
+    let (_expected_swapp_note, _payback_note, _note_script_hash) = create_partial_swap_note(
         swapp_creator_account_id,
         swapp_consumer_account_id,
         remaining_token_a,
@@ -718,34 +719,11 @@ fn test_complete_swapp_fill() {
     )
     .unwrap();
 
-    assert_eq!(executed_transaction.output_notes().num_notes(), 2);
-
-    // Check that the output note is the same as the expected note
-    assert_eq!(
-        NoteHeader::from(swapp_output_note).metadata(),
-        NoteHeader::from(expected_swapp_note.clone()).metadata()
-    );
-
-    assert_eq!(
-        NoteHeader::from(swapp_output_note),
-        NoteHeader::from(expected_swapp_note.clone())
-    );
+    assert_eq!(executed_transaction.output_notes().num_notes(), 1);
 
     // assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     let p2id_note_balance: &NoteAssets = p2id_ouput_note.assets().unwrap();
-    let swapp_note_balance: &NoteAssets = swapp_output_note.assets().unwrap();
-
-    let mut asset_iter = swapp_note_balance.iter();
-    let swap_note_asset = asset_iter.next().expect("Expected at least one asset");
-
-    let token_a_remaining_in_swap = match swap_note_asset {
-        Asset::Fungible(fa) => fa,
-        _ => panic!("Expected a fungible asset, but found a non-fungible asset."),
-    };
-
-    let asset_id_in_swapp_note = token_a_remaining_in_swap.faucet_id();
-    let token_a_amount_in_swapp_note = token_a_remaining_in_swap.amount();
 
     let mut asset_iter = p2id_note_balance.iter();
     let p2id_note_asset = asset_iter.next().expect("Expected at least one asset");
@@ -759,13 +737,6 @@ fn test_complete_swapp_fill() {
     let token_b_amount_in_p2id_note = token_b_output_in_p2id.amount();
 
     assert_eq!(p2id_note_balance.num_assets(), 1);
-    assert_eq!(swapp_note_balance.num_assets(), 1);
-
-    assert_eq!(asset_id_in_swapp_note, faucet_id_1);
-    assert_eq!(
-        token_a_amount_in_swapp_note,
-        expected_token_a_amount_remaining
-    );
 
     assert_eq!(asset_id_in_p2id_note, faucet_id_2);
     assert_eq!(token_b_amount_in_p2id_note, token_b_amount_in);
