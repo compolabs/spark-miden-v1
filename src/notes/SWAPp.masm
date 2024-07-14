@@ -169,21 +169,18 @@ end
 #! Inputs: [SERIAL_NUM, SCRIPT_HASH, account_id]
 #! Outputs: [RECIPIENT]
 #!
-#! Only allows a single input currently
 proc.build_p2id_recipient_hash
     padw hmerge
     # => [SERIAL_NUM_HASH, SCRIPT_HASH, account_id]
 
-    # merge SERIAL_NUM_HASH and SCRIPT_HASH
     swapw hmerge
     # => [SERIAL_SCRIPT_HASH, account_id]
 
-    # compute the INPUT_HASH. Note: only one input is allowed
     swapw swap.3 padw hmerge
     # => [INPUT_HASH, SERIAL_SCRIPT_HASH]
 
     hmerge
-    # [RECIPIENT]
+    # => [RECIPIENT]
 end
 
 #! Returns if the currently consuming account is the creator of the note
@@ -231,7 +228,9 @@ proc.handle_reclaim
 
     call.wallet::receive_asset
 
-    exec.sys::truncate_stack
+    debug.stack
+
+    dropw
 end
 
 # Partially Fillable Swap Script (SWAPp)
