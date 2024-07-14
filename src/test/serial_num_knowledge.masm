@@ -1,0 +1,33 @@
+use.miden::note
+use.miden::contracts::wallets::basic->wallet
+use.miden::tx
+use.miden::account
+use.std::sys
+use.std::crypto::hashes::native
+use.std::math::u64
+
+begin
+    # RECIPIENT HASH OF NOTE
+    dropw
+
+    push.111 debug.stack drop
+    # => [NOTE_ARGS]
+
+    mem_storew.0 dropw
+    # => []
+
+    exec.note::get_serial_number
+    # => [SERIAL_NUM]
+
+    padw mem_loadw.0
+    # => [NOTE_ARGS, SERIAL_NUM]
+
+    push.222 debug.stack debug.mem drop
+
+    assert_eqw
+
+    push.0 exec.note::get_assets
+    mem_loadw.0
+    call.wallet::receive_asset
+    exec.sys::truncate_stack
+end

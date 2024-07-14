@@ -553,7 +553,7 @@ fn test_partial_swap_fill_graphical() {
 
     println!("/* ______________________________________ */");
     println!("\n");
-    
+
     // Circle representation for SWAPp NOTE
     println!("              ________________");
     println!("            /                  \\");
@@ -565,7 +565,7 @@ fn test_partial_swap_fill_graphical() {
     println!("                     |");
     println!("                     |");
     println!("                     V");
-    
+
     // Rectangle for Consuming Account
     println!("         ___________________________");
     println!("         |  Consuming Account (Bob) |");
@@ -577,17 +577,25 @@ fn test_partial_swap_fill_graphical() {
     println!("          |                       |   ");
     println!("          |                       |   ");
     println!("          V                       V   ");
-    
+
     // Circle for P2ID Note
     println!("          ______________     ______________");
     println!("         /              \\   /              \\");
     println!("        |  P2ID Note    |  |  SWAPp'  Note |");
-    println!("        |  {} tokens B   |  |               |", amount_b_in.clone());
-    println!("        |               |  |  {} tokens A |", format_value_to_float(expected_token_a_amount_remaining, 8));
+    println!(
+        "        |  {} tokens B   |  |               |",
+        amount_b_in.clone()
+    );
+    println!(
+        "        |               |  |  {} tokens A |",
+        format_value_to_float(expected_token_a_amount_remaining, 8)
+    );
     println!("         \\______________/  |     for       |");
-    println!("                           | {} tokens B   |", format_value_to_float(requested_token_b_amount_remaining, 8));
+    println!(
+        "                           | {} tokens B   |",
+        format_value_to_float(requested_token_b_amount_remaining, 8)
+    );
     println!("                            \\_____________/");
-    
 }
 
 // @dev Test that a SWAPp note can be filled with the entire amount of the requested asset
