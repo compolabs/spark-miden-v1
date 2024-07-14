@@ -344,10 +344,11 @@ proc.execute_SWAPp
     # => [token_a_AMT, token_b_AMT, token_b_AMT_IN]
 
     exec.calculate_tokens_a_for_b
-    # [token_a_AMT_out]
+    # => [token_a_AMT_out]
 
     # store token_a_AMT_out @ mem addr 11
     dup mem_store.TOKEN_A_AMT_OUT
+    # => [token_a_AMT_out]
 
     mem_load.TOKEN_A_AMT
     # => [token_a_AMT, token_a_AMT_out]
@@ -403,7 +404,7 @@ proc.execute_SWAPp
         # => [token_b_AMT', PAYBACK_RECIPIENT]
 
         push.0.0 mem_load.TOKEN_B_ID
-        # [REQUESTED_ASSET_REMAINING, PAYBACK_RECIPIENT]
+        # => [REQUESTED_ASSET_REMAINING, PAYBACK_RECIPIENT]
 
         mem_load.PAYBACK_TAG
         # => [payback_tag, ASSET_REQUESTED_REMAINING, PAYBACK_RECIPIENT]
