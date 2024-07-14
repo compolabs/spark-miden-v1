@@ -6,6 +6,7 @@ use.std::sys
 use.std::crypto::hashes::native
 use.std::math::u64
 
+# @dev Is this even required bc to consume you need the serial_num
 begin
     # RECIPIENT HASH OF NOTE
     dropw

@@ -305,9 +305,11 @@ proc.execute_SWAPp
 
     # store token_b_id to memory addr 7
     dup mem_store.TOKEN_B_ID
+    # => [REQUESTED_ASSET]
 
     # store token_b_AMT to mem addr 9
     drop drop drop mem_store.TOKEN_B_AMT
+    # => [REQUESTED_ASSET]
 
     # Users can supply the amount of token B they would like to sell
     # via note args. If they don't supply TOKEN_B_AMT_IN via note args
@@ -317,8 +319,9 @@ proc.execute_SWAPp
     # get token_b_AMT_IN, if supplied via note args
     mem_load.TOKEN_B_AMT_IN push.0
     eq
+    # => [is_TOKEN_B_AMT_IN_USER_BAL]
 
-    # if amount to swap not supplied via note_args
+    # if amount to swap is user wallet balance
     if.true
         mem_load.TOKEN_B_ID call.account::get_balance
         # => [token_b_AMT_IN]
@@ -366,6 +369,7 @@ proc.execute_SWAPp
     mem_loadw.PAYBACK_RECIPIENT push.OFFCHAIN_NOTE push.0 mem_load.PAYBACK_TAG mem_load.TOKEN_B_AMT_IN push.0.0 mem_load.TOKEN_B_ID
     # => [requested_token_id, 0, 0, token_b_AMT_IN, tag, note_type, aux, RECIPIENT_P2ID]
 
+    # @dev P2ID creation
     call.wallet::send_asset dropw
     # => []
 
@@ -415,6 +419,7 @@ proc.execute_SWAPp
     dupw call.wallet::receive_asset dropw
     # => [ASSET, payback_tag, aux, note_type, RECIPIENT_SWAPP]
 
+    # SWAPp' creation
     call.wallet::send_asset
     # => [note_idx]
 
