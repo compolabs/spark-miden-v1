@@ -200,19 +200,23 @@ proc.is_consumer_is_creator
 
     # serial num
     exec.note::get_serial_number
+    # => [SERIAL_NUM]
 
     exec.build_p2id_recipient_hash
+    # => [RECIPIENT]
 
     # write inputs to mem drop num inputs & ptr
     push.0 exec.note::get_inputs drop drop
-
-    padw mem_loadw.0
     # => [RECIPIENT]
 
+    padw mem_loadw.0
+    # => [RECIPIENT_mem, RECIPIENT]
+
     eqw
-    # => [is_equal]
+    # => [is_equal, RECIPIENT_mem, RECIPIENT]
 
     swap.8 dropw dropw
+    # => [is_creator] 
 end
 
 #! Sends Assets in Note to Consuming Account
@@ -349,12 +353,8 @@ proc.execute_SWAPp
     mem_load.TOKEN_A_AMT
     # => [token_a_AMT, token_a_AMT_out]
 
-    push.101 debug.stack drop
-
     lt
     # => [is_lt]
-
-    push.111 debug.stack drop
 
     # if amount_out < amount_a
     if.true
@@ -367,10 +367,10 @@ proc.execute_SWAPp
         push.0 mem_store.IS_PARTIAL_FILL
     end
 
-    debug.mem
-
     # 1) send token_b_in amt in to creator
     # 2) send token_a_out amt to consumer
+
+    # If Partial Fill:
     # 3) create SWAPp' and calculate token_a' & token_b'
     # 4) add token_a' and token_b' to SWAPp'
 
@@ -393,8 +393,6 @@ proc.execute_SWAPp
     # check if partial fill
     mem_load.IS_PARTIAL_FILL
     # => [is_partial_fill]
-
-    push.222 debug.stack drop
 
     if.true
 
