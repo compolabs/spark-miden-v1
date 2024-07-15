@@ -45,6 +45,8 @@ async fn test_partial_swap_fill() {
     let mut client = create_test_client();
     wait_for_node(&mut client).await;
 
+    println!("Creating accounts and tokens...");
+
     // Set up accounts and tokens
     let (account_a, asset_a, account_b, asset_b) = setup_with_tokens(&mut client).await;
 
@@ -66,6 +68,8 @@ async fn test_partial_swap_fill() {
     .unwrap();
 
     client.sync_state().await.unwrap();
+
+    println!("Swap note created. SwapID: {:?}", swap_note.id());
 
     // Prepare the transaction to consume the SWAPp note
     const NOTE_ARGS: [Felt; 8] = [
@@ -133,22 +137,6 @@ async fn test_partial_swap_fill() {
     client.sync_state().await.unwrap();
 }
 
-/* async fn create_account_with_token(
-    client: &mut TestClient,
-    token_symbol: &str,
-    decimals: u8,
-    max_supply: u64,
-) -> (Account, [Felt; 4]) {
-    let account_template = AccountTemplate::FungibleFaucet {
-        token_symbol: TokenSymbol::new(token_symbol).unwrap(),
-        decimals,
-        max_supply,
-        storage_type: AccountStorageType::OffChain,
-    };
-    client.sync_state().await.unwrap();
-    client.new_account(account_template).unwrap()
-}
- */
 
 fn build_swap_tag(
     note_type: NoteType,
@@ -238,13 +226,35 @@ async fn create_partial_swap_note(
     let recipient = NoteRecipient::new(serial_num, note_script.clone(), inputs.clone());
     let note = Note::new(assets.clone(), metadata, recipient.clone());
 
+    let recipient = note
+        .recipient()
+        .digest()
+        .iter()
+        .map(|x| x.as_int().to_string())
+        .collect::<Vec<_>>()
+        .join(".");
+
     let code = "
     use.miden::contracts::auth::basic->auth_tx
-    
+    use.miden::contracts::wallets::basic->wallet
+
     begin
+        push.{recipient}
+        push.2
+        push.0
+        push.{tag}
+        push.{amount}
+        push.0.0
+        push.{token_id}
+
+        call.wallet::send_asset
+
         call.auth_tx::auth_tx_rpo_falcon512
     end
-    ";
+    ".replace("{recipient}", &recipient.clone())
+    .replace("{tag}", &Felt::new(tag.clone().into()).to_string())
+    .replace("{amount}", &offered_asset.unwrap_fungible().amount().to_string())
+    .replace("{token_id}", &Felt::new(offered_asset.faucet_id().into()).to_string());
 
     let program = ProgramAst::parse(&code).unwrap();
     let tx_script = client.compile_tx_script(program, vec![], vec![]).unwrap();
@@ -260,7 +270,11 @@ async fn create_partial_swap_note(
     )
     .unwrap();
 
+    println!("Attempting to create SWAPp note...");
+
     let _ = execute_tx_and_sync(client, transaction_request).await;
+
+    println!("SWAPp note created!");
 
     Ok(note)
 }
