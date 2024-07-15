@@ -8,11 +8,15 @@ use miden_objects::{
     accounts::{AccountId, AccountStorageType, AuthSecretKey},
     assembly::ProgramAst,
     assets::{FungibleAsset, TokenSymbol},
-    crypto::rand::{FeltRng, RpoRandomCoin},
+    crypto::{
+        hash::rpo::Rpo256,
+        rand::{FeltRng, RpoRandomCoin},
+    },
     notes::{
         Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient, NoteTag,
         NoteType,
     },
+    vm::AdviceMap,
     Felt, Word,
 };
 
@@ -24,7 +28,8 @@ use super::common::*;
 // The following functions are for testing custom transaction code. What the test does is:
 //
 // - Create a custom tx that mints a custom note which checks that the note args are as expected
-//   (ie, a word of 4 felts that represent [9, 12, 18, 3])
+//   (ie, a word of 8 felts that represent [9, 12, 18, 3, 3, 18, 12, 9])
+//      - The args will be provided via the advice map
 //
 // - Create another transaction that consumes this note with custom code. This custom code only
 //   asserts that the {asserted_value} parameter is 0. To test this we first execute with
@@ -32,6 +37,18 @@ use super::common::*;
 //
 // Because it's currently not possible to create/consume notes without assets, the P2ID code
 // is used as the base for the note code.
+
+const NOTE_ARGS: [Felt; 8] = [
+    Felt::new(9),
+    Felt::new(12),
+    Felt::new(18),
+    Felt::new(3),
+    Felt::new(3),
+    Felt::new(18),
+    Felt::new(12),
+    Felt::new(9),
+];
+
 #[tokio::test]
 async fn test_transaction_request() {
     let mut client = create_test_client();
@@ -62,9 +79,11 @@ async fn test_transaction_request() {
 
     // If these args were to be modified, the transaction would fail because the note code expects
     // these exact arguments
-    let note_args = [[Felt::new(9), Felt::new(12), Felt::new(18), Felt::new(3)]];
+    let note_args_commitment = Rpo256::hash_elements(&NOTE_ARGS);
 
-    let note_args_map = BTreeMap::from([(note.id(), Some(note_args[0]))]);
+    let note_args_map = BTreeMap::from([(note.id(), Some(note_args_commitment.into()))]);
+    let mut advice_map = AdviceMap::new();
+    advice_map.insert(note_args_commitment, NOTE_ARGS.to_vec());
 
     let code = "
         use.miden::contracts::auth::basic->auth_tx
@@ -90,26 +109,24 @@ async fn test_transaction_request() {
         let (pubkey_input, advice_map): (Word, Vec<Felt>) = match account_auth {
             AuthSecretKey::RpoFalcon512(key) => (
                 key.public_key().into(),
-                key.to_bytes()
-                    .iter()
-                    .map(|a| Felt::new(*a as u64))
-                    .collect::<Vec<Felt>>(),
+                key.to_bytes().iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>(),
             ),
         };
 
         let script_inputs = vec![(pubkey_input, advice_map)];
-        client
-            .compile_tx_script(program, script_inputs, vec![])
-            .unwrap()
+        client.compile_tx_script(program, script_inputs, vec![]).unwrap()
     };
 
     let transaction_request = TransactionRequest::new(
         regular_account.id(),
+        vec![],
         note_args_map.clone(),
         vec![],
         vec![],
         Some(tx_script),
-    );
+        Some(advice_map.clone()),
+    )
+    .unwrap();
 
     // This fails becuase of {asserted_value} having the incorrect number passed in
     assert!(client.new_transaction(transaction_request).is_err());
@@ -124,26 +141,24 @@ async fn test_transaction_request() {
         let (pubkey_input, advice_map): (Word, Vec<Felt>) = match account_auth {
             AuthSecretKey::RpoFalcon512(key) => (
                 key.public_key().into(),
-                key.to_bytes()
-                    .iter()
-                    .map(|a| Felt::new(*a as u64))
-                    .collect::<Vec<Felt>>(),
+                key.to_bytes().iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>(),
             ),
         };
 
         let script_inputs = vec![(pubkey_input, advice_map)];
-        client
-            .compile_tx_script(program, script_inputs, vec![])
-            .unwrap()
+        client.compile_tx_script(program, script_inputs, vec![]).unwrap()
     };
 
     let transaction_request = TransactionRequest::new(
         regular_account.id(),
+        vec![],
         note_args_map,
         vec![],
         vec![],
         Some(tx_script),
-    );
+        Some(advice_map),
+    )
+    .unwrap();
 
     execute_tx_and_sync(&mut client, transaction_request).await;
 
@@ -157,12 +172,7 @@ async fn mint_custom_note(
 ) -> Note {
     // Prepare transaction
     let mut random_coin = RpoRandomCoin::new(Default::default());
-    let note = create_custom_note(
-        client,
-        faucet_account_id,
-        target_account_id,
-        &mut random_coin,
-    );
+    let note = create_custom_note(client, faucet_account_id, target_account_id, &mut random_coin);
 
     let recipient = note
         .recipient()
@@ -191,10 +201,7 @@ async fn mint_custom_note(
     end
     "
     .replace("{recipient}", &recipient)
-    .replace(
-        "{note_type}",
-        &Felt::new(NoteType::OffChain as u64).to_string(),
-    )
+    .replace("{note_type}", &Felt::new(NoteType::OffChain as u64).to_string())
     .replace("{tag}", &Felt::new(note_tag.into()).to_string())
     .replace("{amount}", &Felt::new(10).to_string());
 
@@ -204,11 +211,14 @@ async fn mint_custom_note(
 
     let transaction_request = TransactionRequest::new(
         faucet_account_id,
+        vec![],
         BTreeMap::new(),
         vec![note.clone()],
         vec![],
         Some(tx_script),
-    );
+        None,
+    )
+    .unwrap();
 
     let _ = execute_tx_and_sync(client, transaction_request).await;
     note
@@ -220,14 +230,15 @@ fn create_custom_note(
     target_account_id: AccountId,
     rng: &mut RpoRandomCoin,
 ) -> Note {
-    let expected_note_arg = [Felt::new(9), Felt::new(12), Felt::new(18), Felt::new(3)]
-        .iter()
-        .map(|x| x.as_int().to_string())
-        .collect::<Vec<_>>()
-        .join(".");
+    let expected_note_args = NOTE_ARGS.iter().map(|x| x.as_int().to_string()).collect::<Vec<_>>();
 
-    let note_script =
-        include_str!("asm/custom_p2id.masm").replace("{expected_note_arg}", &expected_note_arg);
+    let mem_addr: u32 = 1000;
+
+    let note_script = include_str!("asm/custom_p2id.masm")
+        .replace("{expected_note_arg_1}", &expected_note_args[0..=3].join("."))
+        .replace("{expected_note_arg_2}", &expected_note_args[4..=7].join("."))
+        .replace("{mem_address}", &mem_addr.to_string())
+        .replace("{mem_address_2}", &(mem_addr + 1).to_string());
     let note_script = ProgramAst::parse(&note_script).unwrap();
     let note_script = client.compile_note_script(note_script, vec![]).unwrap();
 
@@ -240,10 +251,8 @@ fn create_custom_note(
         Default::default(),
     )
     .unwrap();
-    let note_assets = NoteAssets::new(vec![FungibleAsset::new(faucet_account_id, 10)
-        .unwrap()
-        .into()])
-    .unwrap();
+    let note_assets =
+        NoteAssets::new(vec![FungibleAsset::new(faucet_account_id, 10).unwrap().into()]).unwrap();
     let note_recipient = NoteRecipient::new(serial_num, note_script, inputs);
     Note::new(note_assets, note_metadata, note_recipient)
 }

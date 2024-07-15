@@ -8,8 +8,7 @@ use miden_client::{
     accounts::AccountTemplate,
     auth::StoreAuthenticator,
     config::RpcConfig,
-    errors::{ClientError, RpcError},
-    rpc::TonicRpcClient,
+    rpc::{RpcError, TonicRpcClient},
     store::{
         sqlite_store::{config::SqliteStoreConfig, SqliteStore},
         NoteFilter, TransactionFilter,
@@ -19,7 +18,7 @@ use miden_client::{
         transaction_request::{TransactionRequest, TransactionTemplate},
         DataStoreError, TransactionExecutorError,
     },
-    Client,
+    Client, ClientError,
 };
 use miden_objects::{
     accounts::{
@@ -29,7 +28,7 @@ use miden_objects::{
     assets::{Asset, FungibleAsset, TokenSymbol},
     crypto::rand::RpoRandomCoin,
     notes::{NoteId, NoteType},
-    transaction::InputNote,
+    transaction::{InputNote, TransactionId},
     Felt,
 };
 use rand::Rng;
@@ -67,13 +66,7 @@ pub fn create_test_client() -> TestClient {
     let rng = RpoRandomCoin::new(coin_seed.map(Felt::new));
 
     let authenticator = StoreAuthenticator::new_with_rng(store.clone(), rng);
-    TestClient::new(
-        TonicRpcClient::new(&rpc_config),
-        rng,
-        store,
-        authenticator,
-        true,
-    )
+    TestClient::new(TonicRpcClient::new(&rpc_config), rng, store, authenticator, true)
 }
 
 pub fn get_client_config() -> (RpcConfig, SqliteStoreConfig) {
@@ -97,7 +90,7 @@ pub fn create_test_store_path() -> std::path::PathBuf {
     temp_file
 }
 
-pub async fn execute_tx_and_sync(client: &mut TestClient, tx_request: TransactionRequest) {
+pub async fn execute_tx(client: &mut TestClient, tx_request: TransactionRequest) -> TransactionId {
     println!("Executing transaction...");
     let transaction_execution_result = client.new_transaction(tx_request).unwrap();
     let transaction_id = transaction_execution_result.executed_transaction().id();
@@ -111,15 +104,23 @@ pub async fn execute_tx_and_sync(client: &mut TestClient, tx_request: Transactio
         .await
         .unwrap();
 
+    transaction_id
+}
+
+pub async fn execute_tx_and_sync(client: &mut TestClient, tx_request: TransactionRequest) {
+    let transaction_id = execute_tx(client, tx_request).await;
+    wait_for_tx(client, transaction_id).await;
+}
+
+pub async fn wait_for_tx(client: &mut TestClient, transaction_id: TransactionId) {
     // wait until tx is committed
     loop {
         println!("Syncing State...");
         client.sync_state().await.unwrap();
 
         // Check if executed transaction got committed by the node
-        let uncommited_transactions = client
-            .get_transactions(TransactionFilter::Uncomitted)
-            .unwrap();
+        let uncommited_transactions =
+            client.get_transactions(TransactionFilter::Uncomitted).unwrap();
         let is_tx_committed = uncommited_transactions
             .iter()
             .all(|uncommited_tx| uncommited_tx.id != transaction_id);
@@ -140,10 +141,7 @@ pub async fn wait_for_blocks(client: &mut TestClient, amount_of_blocks: u32) -> 
     // wait until tx is committed
     loop {
         let summary = client.sync_state().await.unwrap();
-        println!(
-            "Synced to block {} (syncing until {})...",
-            summary.block_num, final_block
-        );
+        println!("Synced to block {} (syncing until {})...", summary.block_num, final_block);
 
         if summary.block_num >= final_block {
             return summary;
@@ -167,12 +165,12 @@ pub async fn wait_for_node(client: &mut TestClient) {
 
     for _try_number in 0..NUMBER_OF_NODE_ATTEMPTS {
         match client.sync_state().await {
-            Err(ClientError::NodeRpcClientError(RpcError::ConnectionError(_))) => {
+            Err(ClientError::RpcError(RpcError::ConnectionError(_))) => {
                 std::thread::sleep(Duration::from_secs(NODE_TIME_BETWEEN_ATTEMPTS));
-            }
+            },
             Err(other_error) => {
                 panic!("Unexpected error: {other_error}");
-            }
+            },
             _ => return,
         }
     }
@@ -190,10 +188,7 @@ pub async fn setup(
 ) -> (Account, Account, Account) {
     // Enusre clean state
     assert!(client.get_account_stubs().unwrap().is_empty());
-    assert!(client
-        .get_transactions(TransactionFilter::All)
-        .unwrap()
-        .is_empty());
+    assert!(client.get_transactions(TransactionFilter::All).unwrap().is_empty());
     assert!(client.get_input_notes(NoteFilter::All).unwrap().is_empty());
 
     // Create faucet account
@@ -237,9 +232,6 @@ pub async fn mint_note(
     faucet_account_id: AccountId,
     note_type: NoteType,
 ) -> InputNote {
-    let (regular_account, _seed) = client.get_account(basic_account_id).unwrap();
-    assert_eq!(regular_account.vault().assets().count(), 0);
-
     // Create a Mint Tx for 1000 units of our fungible asset
     let fungible_asset = FungibleAsset::new(faucet_account_id, MINT_AMOUNT).unwrap();
     let tx_template =
@@ -306,8 +298,8 @@ pub async fn assert_note_cannot_be_consumed_twice(
             TransactionExecutorError::FetchTransactionInputsFailed(
                 DataStoreError::NoteAlreadyConsumed(_),
             ),
-        )) => {}
+        )) => {},
         Ok(_) => panic!("Double-spend error: Note should not be consumable!"),
-        _ => panic!("Unexpected error: {}", note_to_consume_id.to_hex()),
+        err => panic!("Unexpected error {:?} for note ID: {}", err, note_to_consume_id.to_hex()),
     }
 }
