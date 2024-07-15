@@ -228,8 +228,6 @@ proc.handle_reclaim
 
     call.wallet::receive_asset
 
-    debug.stack
-
     dropw
 end
 

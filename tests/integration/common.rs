@@ -66,7 +66,13 @@ pub fn create_test_client() -> TestClient {
     let rng = RpoRandomCoin::new(coin_seed.map(Felt::new));
 
     let authenticator = StoreAuthenticator::new_with_rng(store.clone(), rng);
-    TestClient::new(TonicRpcClient::new(&rpc_config), rng, store, authenticator, true)
+    TestClient::new(
+        TonicRpcClient::new(&rpc_config),
+        rng,
+        store,
+        authenticator,
+        true,
+    )
 }
 
 pub fn get_client_config() -> (RpcConfig, SqliteStoreConfig) {
@@ -119,8 +125,9 @@ pub async fn wait_for_tx(client: &mut TestClient, transaction_id: TransactionId)
         client.sync_state().await.unwrap();
 
         // Check if executed transaction got committed by the node
-        let uncommited_transactions =
-            client.get_transactions(TransactionFilter::Uncomitted).unwrap();
+        let uncommited_transactions = client
+            .get_transactions(TransactionFilter::Uncomitted)
+            .unwrap();
         let is_tx_committed = uncommited_transactions
             .iter()
             .all(|uncommited_tx| uncommited_tx.id != transaction_id);
@@ -141,7 +148,10 @@ pub async fn wait_for_blocks(client: &mut TestClient, amount_of_blocks: u32) -> 
     // wait until tx is committed
     loop {
         let summary = client.sync_state().await.unwrap();
-        println!("Synced to block {} (syncing until {})...", summary.block_num, final_block);
+        println!(
+            "Synced to block {} (syncing until {})...",
+            summary.block_num, final_block
+        );
 
         if summary.block_num >= final_block {
             return summary;
@@ -167,10 +177,10 @@ pub async fn wait_for_node(client: &mut TestClient) {
         match client.sync_state().await {
             Err(ClientError::RpcError(RpcError::ConnectionError(_))) => {
                 std::thread::sleep(Duration::from_secs(NODE_TIME_BETWEEN_ATTEMPTS));
-            },
+            }
             Err(other_error) => {
                 panic!("Unexpected error: {other_error}");
-            },
+            }
             _ => return,
         }
     }
@@ -188,7 +198,10 @@ pub async fn setup(
 ) -> (Account, Account, Account) {
     // Enusre clean state
     assert!(client.get_account_stubs().unwrap().is_empty());
-    assert!(client.get_transactions(TransactionFilter::All).unwrap().is_empty());
+    assert!(client
+        .get_transactions(TransactionFilter::All)
+        .unwrap()
+        .is_empty());
     assert!(client.get_input_notes(NoteFilter::All).unwrap().is_empty());
 
     // Create faucet account
@@ -222,6 +235,48 @@ pub async fn setup(
     // Get Faucet and regular accounts
     println!("Fetching Accounts...");
     (first_basic_account, second_basic_account, faucet_account)
+}
+
+pub async fn setup_with_tokens(
+    client: &mut TestClient,
+) -> (Account, FungibleAsset, Account, FungibleAsset) {
+    // Ensure clean state
+    assert!(client.get_account_stubs().unwrap().is_empty());
+    assert!(client
+        .get_transactions(TransactionFilter::All)
+        .unwrap()
+        .is_empty());
+    assert!(client.get_input_notes(NoteFilter::All).unwrap().is_empty());
+
+    // Create account A with tokenA
+    let (account_a, asset_a) = create_account_with_token(client, "TOKA", 8, 1_000_000_000).await;
+
+    // Create account B with tokenB
+    let (account_b, asset_b) = create_account_with_token(client, "TOKB", 8, 1_000_000_000).await;
+
+    println!("Syncing State...");
+    client.sync_state().await.unwrap();
+
+    // Return the created accounts and their respective tokens
+    (account_a, asset_a, account_b, asset_b)
+}
+
+async fn create_account_with_token(
+    client: &mut TestClient,
+    token_symbol: &str,
+    decimals: u8,
+    max_supply: u64,
+) -> (Account, FungibleAsset) {
+    let account_template = AccountTemplate::FungibleFaucet {
+        token_symbol: TokenSymbol::new(token_symbol).unwrap(),
+        decimals,
+        max_supply,
+        storage_type: AccountStorageType::OffChain,
+    };
+    client.sync_state().await.unwrap();
+    let (account, _) = client.new_account(account_template).unwrap();
+    let asset = FungibleAsset::new(account.id(), max_supply).unwrap();
+    (account, asset)
 }
 
 /// Mints a note from faucet_account_id for basic_account_id, waits for inclusion and returns it
@@ -298,8 +353,12 @@ pub async fn assert_note_cannot_be_consumed_twice(
             TransactionExecutorError::FetchTransactionInputsFailed(
                 DataStoreError::NoteAlreadyConsumed(_),
             ),
-        )) => {},
+        )) => {}
         Ok(_) => panic!("Double-spend error: Note should not be consumable!"),
-        err => panic!("Unexpected error {:?} for note ID: {}", err, note_to_consume_id.to_hex()),
+        err => panic!(
+            "Unexpected error {:?} for note ID: {}",
+            err,
+            note_to_consume_id.to_hex()
+        ),
     }
 }

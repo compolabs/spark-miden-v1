@@ -7,16 +7,19 @@ use miden_client::{
 use miden_lib::notes::utils::build_p2id_recipient;
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{AccountId, AccountStorageType, AuthSecretKey},
+    accounts::{Account, AccountId, AccountStorageType, AuthSecretKey},
     assembly::{AssemblyContext, ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset, TokenSymbol},
     crypto::hash::rpo::RpoDigest,
-    crypto::rand::{FeltRng, RpoRandomCoin},
+    crypto::{
+        hash::rpo::Rpo256,
+        rand::{FeltRng, RpoRandomCoin},
+    },
     notes::{
         Note, NoteAssets, NoteDetails, NoteExecutionHint, NoteHeader, NoteInputs, NoteMetadata,
         NoteRecipient, NoteScript, NoteTag, NoteType,
     },
-    vm::CodeBlock,
+    vm::{AdviceMap, CodeBlock},
     Felt, NoteError, Word, ZERO,
 };
 use miden_vm::Assembler;
@@ -42,31 +45,20 @@ async fn test_partial_swap_fill() {
     let mut client = create_test_client();
     wait_for_node(&mut client).await;
 
-    let account_template = AccountTemplate::BasicWallet {
-        mutable_code: false,
-        storage_type: AccountStorageType::OffChain,
-    };
+    // Set up accounts and tokens
+    let (account_a, asset_a, account_b, asset_b) = setup_with_tokens(&mut client).await;
 
-    client.sync_state().await.unwrap();
-    // Insert Account
-    let (regular_account, _seed) = client.new_account(account_template).unwrap();
-
-    let account_template = AccountTemplate::FungibleFaucet {
-        token_symbol: TokenSymbol::new("TEST").unwrap(),
-        decimals: 5u8,
-        max_supply: 10_000u64,
-        storage_type: AccountStorageType::OffChain,
-    };
-    let (fungible_faucet, _seed) = client.new_account(account_template).unwrap();
-
-    // Execute mint transaction in order to create custom note
-    // let note = mint_custom_note(&mut client, fungible_faucet.id(), regular_account.id()).await;
-
+    // Create a SWAPp note using account A
     let swap_note = create_partial_swap_note(
-        regular_account.id(),
-        regular_account.id(),
-        FungibleAsset::new(fungible_faucet.id(), 10).unwrap().into(),
-        FungibleAsset::new(fungible_faucet.id(), 10).unwrap().into(),
+        &mut client,
+        account_a.id(),
+        account_b.id(),
+        FungibleAsset::new(asset_a.faucet_id(), 10000000)
+            .unwrap()
+            .into(),
+        FungibleAsset::new(asset_b.faucet_id(), 10000000)
+            .unwrap()
+            .into(),
         NoteType::Public,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
     )
@@ -75,28 +67,37 @@ async fn test_partial_swap_fill() {
 
     client.sync_state().await.unwrap();
 
-    // Prepare transaction
+    // Prepare the transaction to consume the SWAPp note
+    const NOTE_ARGS: [Felt; 8] = [
+        Felt::new(0),
+        Felt::new(0),
+        Felt::new(0),
+        Felt::new(0),
+        Felt::new(0),
+        Felt::new(0),
+        Felt::new(0),
+        Felt::new(0),
+    ];
+    let note_args_commitment = Rpo256::hash_elements(&NOTE_ARGS);
 
-    // SWAPp note args
-    let note_args: [[Felt; 4]; 1] = [[Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(0)]];
-    let note_args_map = BTreeMap::from([(swap_note.id(), Some(note_args[0]))]);
+    let note_args_map = BTreeMap::from([(swap_note.id(), Some(note_args_commitment.into()))]);
+    let mut advice_map = AdviceMap::new();
+    advice_map.insert(note_args_commitment, NOTE_ARGS.to_vec());
 
-    let account_wallet = "
-        use.miden::contracts::wallets::basic->basic_wallet
-        use.miden::contracts::auth::basic->basic_eoa
+    // Define account tx script for account B
+    let account_wallet_b = "
+        use.miden::contracts::auth::basic->auth_tx
 
-        export.basic_wallet::receive_asset
-        export.basic_wallet::send_asset
-        export.basic_eoa::auth_tx_rpo_falcon512
+        begin
+            call.auth_tx::auth_tx_rpo_falcon512
+        end
     ";
 
-    // SUCCESS EXECUTION
+    let program = ProgramAst::parse(&account_wallet_b).unwrap();
 
-    // let success_code = code.replace("{asserted_value}", "0");
-    let program = ProgramAst::parse(&account_wallet).unwrap();
-
+    // Compile transaction script for account B
     let tx_script = {
-        let account_auth = client.get_account_auth(regular_account.id()).unwrap();
+        let account_auth = client.get_account_auth(account_b.id()).unwrap();
         let (pubkey_input, advice_map): (Word, Vec<Felt>) = match account_auth {
             AuthSecretKey::RpoFalcon512(key) => (
                 key.public_key().into(),
@@ -113,18 +114,41 @@ async fn test_partial_swap_fill() {
             .unwrap()
     };
 
+    // Define the transaction request for account B to consume the note
     let transaction_request = TransactionRequest::new(
-        regular_account.id(),
+        account_b.id(),
+        vec![],
         note_args_map,
         vec![],
         vec![],
         Some(tx_script),
-    );
+        Some(advice_map.clone()),
+    )
+    .unwrap();
 
+    // Execute the transaction
     execute_tx_and_sync(&mut client, transaction_request).await;
 
+    // Ensure synchronization of client state
     client.sync_state().await.unwrap();
 }
+
+/* async fn create_account_with_token(
+    client: &mut TestClient,
+    token_symbol: &str,
+    decimals: u8,
+    max_supply: u64,
+) -> (Account, [Felt; 4]) {
+    let account_template = AccountTemplate::FungibleFaucet {
+        token_symbol: TokenSymbol::new(token_symbol).unwrap(),
+        decimals,
+        max_supply,
+        storage_type: AccountStorageType::OffChain,
+    };
+    client.sync_state().await.unwrap();
+    client.new_account(account_template).unwrap()
+}
+ */
 
 fn build_swap_tag(
     note_type: NoteType,
@@ -171,13 +195,14 @@ pub fn new_note_script(
 }
 
 async fn create_partial_swap_note(
+    client: &mut TestClient,
     sender: AccountId,
     last_consumer: AccountId,
     offered_asset: Asset,
     requested_asset: Asset,
     note_type: NoteType,
     serial_num: [Felt; 4],
-) -> Result<(Note), NoteError> {
+) -> Result<Note, NoteError> {
     let note_code = include_str!("../../src/notes/SWAPp.masm");
     let (note_script, _code_block) = new_note_script(
         ProgramAst::parse(note_code).unwrap(),
@@ -189,7 +214,6 @@ async fn create_partial_swap_note(
 
     let payback_recipient_word: Word = payback_recipient.digest().into();
     let requested_asset_word: Word = requested_asset.into();
-    // let payback_tag = NoteTag::from_account_id(sender, NoteExecutionHint::Local)?;
 
     // build the tag for the SWAP use case
     let tag = build_swap_tag(note_type, &offered_asset, &requested_asset)?;
@@ -214,10 +238,29 @@ async fn create_partial_swap_note(
     let recipient = NoteRecipient::new(serial_num, note_script.clone(), inputs.clone());
     let note = Note::new(assets.clone(), metadata, recipient.clone());
 
-    // build the payback note details
-    // let payback_assets = NoteAssets::new(vec![requested_asset])?;
-    // let payback_note = NoteDetails::new(payback_assets, payback_recipient);
-    // let note_script_hash = note_script.hash();
+    let code = "
+    use.miden::contracts::auth::basic->auth_tx
+    
+    begin
+        call.auth_tx::auth_tx_rpo_falcon512
+    end
+    ";
+
+    let program = ProgramAst::parse(&code).unwrap();
+    let tx_script = client.compile_tx_script(program, vec![], vec![]).unwrap();
+
+    let transaction_request = TransactionRequest::new(
+        sender,
+        vec![],
+        BTreeMap::new(),
+        vec![note.clone()],
+        vec![],
+        Some(tx_script),
+        None,
+    )
+    .unwrap();
+
+    let _ = execute_tx_and_sync(client, transaction_request).await;
 
     Ok(note)
 }
