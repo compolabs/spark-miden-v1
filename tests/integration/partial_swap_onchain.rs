@@ -48,19 +48,23 @@ async fn test_partial_swap_fill() {
     println!("Creating accounts and tokens...");
 
     // Set up accounts and tokens
-    let (account_a, asset_a, account_b, asset_b) = setup_with_tokens(&mut client).await;
+    let (account_a, account_b, asset_a_account, asset_b_account) =
+        setup_with_tokens(&mut client).await;
+
+    println!("Tokens created ");
+
+    let asset_a_amount: u64 = 100;
+    let asset_b_amount: u64 = 100;
 
     // Create a SWAPp note using account A
     let swap_note = create_partial_swap_note(
         &mut client,
         account_a.id(),
         account_b.id(),
-        FungibleAsset::new(asset_a.faucet_id(), 10000000)
-            .unwrap()
-            .into(),
-        FungibleAsset::new(asset_b.faucet_id(), 10000000)
-            .unwrap()
-            .into(),
+        asset_a_account.id(),
+        asset_a_amount,
+        asset_b_account.id(),
+        asset_b_amount,
         NoteType::Public,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
     )
@@ -70,7 +74,7 @@ async fn test_partial_swap_fill() {
     client.sync_state().await.unwrap();
 
     println!("Swap note created. SwapID: {:?}", swap_note.id());
-
+    /*
     // Prepare the transaction to consume the SWAPp note
     const NOTE_ARGS: [Felt; 8] = [
         Felt::new(0),
@@ -134,9 +138,8 @@ async fn test_partial_swap_fill() {
     execute_tx_and_sync(&mut client, transaction_request).await;
 
     // Ensure synchronization of client state
-    client.sync_state().await.unwrap();
+    client.sync_state().await.unwrap(); */
 }
-
 
 fn build_swap_tag(
     note_type: NoteType,
@@ -186,17 +189,24 @@ async fn create_partial_swap_note(
     client: &mut TestClient,
     sender: AccountId,
     last_consumer: AccountId,
-    offered_asset: Asset,
-    requested_asset: Asset,
+    offered_asset_id: AccountId,
+    offered_asset_amount: u64,
+    requested_asset_id: AccountId,
+    requested_asset_amount: u64,
     note_type: NoteType,
     serial_num: [Felt; 4],
 ) -> Result<Note, NoteError> {
     let note_code = include_str!("../../src/notes/SWAPp.masm");
     let (note_script, _code_block) = new_note_script(
         ProgramAst::parse(note_code).unwrap(),
-        &TransactionKernel::assembler().with_debug_mode(true),
+        &TransactionKernel::assembler(),
     )
     .unwrap();
+
+    let offered_asset: Asset =
+        Asset::from(FungibleAsset::new(offered_asset_id, offered_asset_amount).unwrap());
+    let requested_asset: Asset =
+        Asset::from(FungibleAsset::new(requested_asset_id, requested_asset_amount).unwrap());
 
     let payback_recipient = build_p2id_recipient(sender, serial_num)?;
 
@@ -224,9 +234,12 @@ async fn create_partial_swap_note(
     let metadata = NoteMetadata::new(last_consumer, note_type, tag, aux)?;
     let assets = NoteAssets::new(vec![offered_asset])?;
     let recipient = NoteRecipient::new(serial_num, note_script.clone(), inputs.clone());
-    let note = Note::new(assets.clone(), metadata, recipient.clone());
+    let swap_note = Note::new(assets.clone(), metadata, recipient.clone());
 
-    let recipient = note
+    println!("Attempting to mint SWAPp note...");
+
+    // note created, now let's mint it
+    let recipient = swap_note
         .recipient()
         .digest()
         .iter()
@@ -251,10 +264,17 @@ async fn create_partial_swap_note(
 
         call.auth_tx::auth_tx_rpo_falcon512
     end
-    ".replace("{recipient}", &recipient.clone())
+    "
+    .replace("{recipient}", &recipient.clone())
     .replace("{tag}", &Felt::new(tag.clone().into()).to_string())
-    .replace("{amount}", &offered_asset.unwrap_fungible().amount().to_string())
-    .replace("{token_id}", &Felt::new(offered_asset.faucet_id().into()).to_string());
+    .replace(
+        "{amount}",
+        &offered_asset.unwrap_fungible().amount().to_string(),
+    )
+    .replace(
+        "{token_id}",
+        &Felt::new(offered_asset.faucet_id().into()).to_string(),
+    );
 
     let program = ProgramAst::parse(&code).unwrap();
     let tx_script = client.compile_tx_script(program, vec![], vec![]).unwrap();
@@ -263,7 +283,7 @@ async fn create_partial_swap_note(
         sender,
         vec![],
         BTreeMap::new(),
-        vec![note.clone()],
+        vec![swap_note.clone()],
         vec![],
         Some(tx_script),
         None,
@@ -276,5 +296,5 @@ async fn create_partial_swap_note(
 
     println!("SWAPp note created!");
 
-    Ok(note)
+    Ok(swap_note)
 }

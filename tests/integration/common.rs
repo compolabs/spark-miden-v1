@@ -237,9 +237,7 @@ pub async fn setup(
     (first_basic_account, second_basic_account, faucet_account)
 }
 
-pub async fn setup_with_tokens(
-    client: &mut TestClient,
-) -> (Account, FungibleAsset, Account, FungibleAsset) {
+pub async fn setup_with_tokens(client: &mut TestClient) -> (Account, Account, Account, Account) {
     // Ensure clean state
     assert!(client.get_account_stubs().unwrap().is_empty());
     assert!(client
@@ -248,35 +246,43 @@ pub async fn setup_with_tokens(
         .is_empty());
     assert!(client.get_input_notes(NoteFilter::All).unwrap().is_empty());
 
-    // Create account A with tokenA
-    let (account_a, asset_a) = create_account_with_token(client, "TOKA", 8, 1_000_000_000).await;
+    // Create faucet account A
+    let (asset_a, _) = client
+        .new_account(AccountTemplate::FungibleFaucet {
+            token_symbol: TokenSymbol::new("TOK_A").unwrap(),
+            decimals: 8,
+            max_supply: 1_000_000_000,
+            storage_type: AccountStorageType::OffChain,
+        })
+        .unwrap();
 
-    // Create account B with tokenB
-    let (account_b, asset_b) = create_account_with_token(client, "TOKB", 8, 1_000_000_000).await;
+    // Create faucet account A
+    let (asset_b, _) = client
+        .new_account(AccountTemplate::FungibleFaucet {
+            token_symbol: TokenSymbol::new("TOK_B").unwrap(),
+            decimals: 8,
+            max_supply: 1_000_000_000,
+            storage_type: AccountStorageType::OffChain,
+        })
+        .unwrap();
 
-    println!("Syncing State...");
-    client.sync_state().await.unwrap();
+    // Create regular accounts
+    let (account_a, _) = client
+        .new_account(AccountTemplate::BasicWallet {
+            mutable_code: false,
+            storage_type: AccountStorageType::OffChain,
+        })
+        .unwrap();
+
+    let (account_b, _) = client
+        .new_account(AccountTemplate::BasicWallet {
+            mutable_code: false,
+            storage_type: AccountStorageType::OffChain,
+        })
+        .unwrap();
 
     // Return the created accounts and their respective tokens
-    (account_a, asset_a, account_b, asset_b)
-}
-
-async fn create_account_with_token(
-    client: &mut TestClient,
-    token_symbol: &str,
-    decimals: u8,
-    max_supply: u64,
-) -> (Account, FungibleAsset) {
-    let account_template = AccountTemplate::FungibleFaucet {
-        token_symbol: TokenSymbol::new(token_symbol).unwrap(),
-        decimals,
-        max_supply,
-        storage_type: AccountStorageType::OffChain,
-    };
-    client.sync_state().await.unwrap();
-    let (account, _) = client.new_account(account_template).unwrap();
-    let asset = FungibleAsset::new(account.id(), max_supply).unwrap();
-    (account, asset)
+    (account_a, account_b, asset_a, asset_b)
 }
 
 /// Mints a note from faucet_account_id for basic_account_id, waits for inclusion and returns it
