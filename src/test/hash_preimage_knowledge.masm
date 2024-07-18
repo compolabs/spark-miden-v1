@@ -16,7 +16,7 @@ begin
     # => []
 
     # @dev hashing 8 inputs
-    
+
     push.8.5
     # => [mem_ptr, num_inputs]
 

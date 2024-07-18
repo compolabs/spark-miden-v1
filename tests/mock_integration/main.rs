@@ -11,3 +11,5 @@ mod swap_math_test;
 mod is_consumer_creator_test;
 
 mod prove_hash_preimage_knowledge;
+
+mod revert_procedure_test;
