@@ -50,13 +50,8 @@ pub fn test_input_hash() {
     ];
 
     let inputs = NoteInputs::new(vec_inputs.clone()).unwrap();
-    // println!("input commitment : {:?}", inputs.commitment());
-
     let padded_values = pad_inputs(&vec_inputs);
-    println!("padded values: {:?}", padded_values);
-
     let inputs_commitment = Hasher::hash_elements(&padded_values);
-    println!("inputs commitment: {:?}", inputs_commitment);
 
     assert_eq!(inputs.commitment(), inputs_commitment);
 
@@ -90,13 +85,12 @@ pub fn test_input_hash() {
         .0;
 
     let note_script_hash: Digest = note_script.hash();
-
     let serial_script_hash = Hasher::merge(&[serial_num_hash, note_script_hash]);
 
-    let recipient_1 = Hasher::merge(&[serial_script_hash, inputs.commitment()]);
+    let hasher_recipient = Hasher::merge(&[serial_script_hash, inputs.commitment()]);
     let recipient = NoteRecipient::new(serial_num, note_script.clone(), inputs.clone());
 
-    assert_eq!(recipient_1, recipient.digest());
+    assert_eq!(hasher_recipient, recipient.digest());
 
     let serial_num_hash = Hasher::merge(&[serial_num.into(), Digest::default()]);
     let merge_script = Hasher::merge(&[serial_num_hash, note_script.hash()]);
