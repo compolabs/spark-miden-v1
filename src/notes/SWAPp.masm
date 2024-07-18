@@ -133,6 +133,7 @@ end
 #!
 #! Inputs: [INPUTS_4, INPUTS_3, INPUTS_2, INPUTS_1]
 #! Outputs: [INPUTS_HASH]
+#!
 proc.get_note_inputs_commitment
 
     # Initialize the capacity portion of the hasher state.
@@ -272,6 +273,7 @@ end
 # - Account vault does not contain the requested asset
 # - Adding a fungible asset would result in amount overflow, i.e., the total amount would be
 #   greater than 2^63
+#!
 proc.execute_SWAPp
 
     # if user does not supply amount token B in via note args
@@ -335,6 +337,7 @@ proc.execute_SWAPp
         mem_store.TOKEN_B_AMT_IN
         # => []
     end
+
     mem_load.TOKEN_B_AMT_IN
     # => [token_b_AMT_IN]
 
@@ -393,7 +396,6 @@ proc.execute_SWAPp
     # => [is_partial_fill]
 
     if.true
-
         # 3) create SWAPp' and calculate token_a' & token_b'
         padw mem_loadw.PAYBACK_RECIPIENT
         # => [PAYBACK_RECIPIENT]
@@ -439,6 +441,7 @@ proc.execute_SWAPp
 
     else
         # do not output SWAPp'
+        # P2ID already created
     end
 
     # clean stack

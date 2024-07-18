@@ -122,7 +122,6 @@ pub fn create_partial_swap_note(
 
     let payback_recipient_word: Word = payback_recipient.digest().into();
     let requested_asset_word: Word = requested_asset.into();
-    // let payback_tag = NoteTag::from_account_id(sender, NoteExecutionHint::Local)?;
 
     // build the tag for the SWAP use case
     let tag = build_swap_tag(note_type, &offered_asset, &requested_asset)?;
@@ -267,8 +266,6 @@ fn test_partial_swap_fill() {
         )
         .unwrap();
 
-    // println!("{:?}", executed_transaction);
-
     // P2ID & SWAPp note outputted by the transaction
     let p2id_ouput_note = executed_transaction.output_notes().get_note(0);
     let swapp_output_note = executed_transaction.output_notes().get_note(1);
@@ -314,6 +311,7 @@ fn test_partial_swap_fill() {
         NoteHeader::from(expected_swapp_note.clone())
     );
 
+    // @dev comment out to speed up test
     // assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // Checking ouputted SWAPp and P2ID notes contain the correct amount of liquidity
@@ -496,7 +494,7 @@ fn test_partial_swap_fill_graphical() {
         NoteHeader::from(expected_swapp_note.clone())
     );
 
-    // Comment out to speed up test
+    // @dev comment out to speed up test
     // assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // Checking ouputted SWAPp and P2ID notes contain the correct amount of liquidity
@@ -721,6 +719,7 @@ fn test_complete_swapp_fill() {
 
     assert_eq!(executed_transaction.output_notes().num_notes(), 1);
 
+    // @dev comment out to speed up test
     // assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     let p2id_note_balance: &NoteAssets = p2id_ouput_note.assets().unwrap();
@@ -878,7 +877,7 @@ fn test_partial_swap_fill_multiple_consumers() {
         NoteHeader::from(expected_swapp_note.clone())
     );
 
-    // comment out to speed up test
+    // @dev comment out to speed up test
     // assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // CONSTRUCT AND EXECUTE TX 2 (Success)
@@ -977,7 +976,7 @@ fn test_partial_swap_fill_multiple_consumers() {
         NoteHeader::from(expected_swapp_note_1.clone())
     );
 
-    // commented out to speed up test
+    // @dev commented out to speed up test
     // assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 }
 
