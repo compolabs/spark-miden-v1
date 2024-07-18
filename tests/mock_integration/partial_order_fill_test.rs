@@ -1233,7 +1233,7 @@ fn test_swap_false_amount_via_note_args() {
     let tx_script_code = include_str!("../../src/tx_scripts/tx_script.masm");
     let tx_script_ast = ProgramAst::parse(tx_script_code).unwrap();
 
-    let invalid_note_args_amount= format_value_with_decimals(100, 6);
+    let invalid_note_args_amount = format_value_with_decimals(100, 6);
 
     // amount to consume
     let note_args = [[
@@ -1252,7 +1252,8 @@ fn test_swap_false_amount_via_note_args() {
     let tx_args_target = TransactionArgs::new(
         Some(tx_script_target),
         Some(note_args_map),
-        AdviceMap::default());
+        AdviceMap::default(),
+    );
 
     // Execute the transaction and get the witness
     let tx_result = executor.execute_transaction(
