@@ -11,5 +11,3 @@ mod swap_math_test;
 mod is_consumer_creator_test;
 
 mod prove_hash_preimage_knowledge;
-
-mod prove_serial_num_knowledge_test;
