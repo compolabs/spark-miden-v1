@@ -11,7 +11,7 @@ use miden_objects::{
     },
     transaction::TransactionArgs,
     vm::CodeBlock,
-    Felt, Hasher, NoteError, Word, ZERO,
+    Felt, NoteError, Word, ZERO,
 };
 use miden_processor::AdviceMap;
 use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
