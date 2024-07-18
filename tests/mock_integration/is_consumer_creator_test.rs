@@ -18,7 +18,7 @@ use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
 use miden_vm::Assembler;
 use std::collections::BTreeMap;
 
-use crate::utils::{
+use crate::common::{
     get_new_pk_and_authenticator, /* prove_and_verify_transaction */
     ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_SENDER,
     ACCOUNT_ID_SENDER_1,
@@ -121,7 +121,6 @@ pub fn create_partial_swap_note(
 
     let payback_recipient_word: Word = payback_recipient.digest().into();
     let requested_asset_word: Word = requested_asset.into();
-    // let payback_tag = NoteTag::from_account_id(sender, NoteExecutionHint::Local)?;
 
     // build the tag for the SWAP use case
     let tag = build_swap_tag(note_type, &offered_asset, &requested_asset)?;

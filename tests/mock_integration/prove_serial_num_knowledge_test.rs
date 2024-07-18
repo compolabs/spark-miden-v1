@@ -18,7 +18,7 @@ use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
 use miden_vm::Assembler;
 use std::collections::BTreeMap;
 
-use crate::utils::{
+use crate::common::{
     get_new_pk_and_authenticator, /* prove_and_verify_transaction */
     ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_SENDER,
 };

@@ -17,7 +17,7 @@ use miden_objects::{
 };
 use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
 
-use crate::utils::{
+use crate::common::{
     get_account_with_default_account_code, get_new_pk_and_authenticator,
     prove_and_verify_transaction,
 };
