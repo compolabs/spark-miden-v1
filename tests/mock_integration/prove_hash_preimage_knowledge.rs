@@ -133,7 +133,6 @@ pub fn create_partial_swap_note_with_secret(
 
     let payback_recipient_word: Word = payback_recipient.digest().into();
     let requested_asset_word: Word = requested_asset.into();
-    // let payback_tag = NoteTag::from_account_id(sender, NoteExecutionHint::Local)?;
 
     // build the tag for the SWAP use case
     let tag = build_swap_tag(note_type, &offered_asset, &requested_asset)?;
@@ -161,6 +160,7 @@ pub fn create_partial_swap_note_with_secret(
     ])?;
 
     println!("tag {:?}", tag.inner());
+    println!("hashed secret {:?}", hashed_secret);
 
     let aux = ZERO;
 
@@ -223,6 +223,7 @@ fn test_prove_hash_preimage_knowlegde() {
     );
 
     let serial_num: [Felt; 4] = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
+
     let secret: [Felt; 4] = [
         Felt::new(303),
         Felt::new(303),

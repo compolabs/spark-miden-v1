@@ -40,39 +40,31 @@ end
 
 begin
     dropw
+    # => [INPUT_SECRET]
 
-    # => [SECRET]
-
-    mem_storew.0
+    # store secret @ mem address 5
+    mem_storew.5
     dropw
+    # => []
 
-    push.4.0
-
-    push.111 debug.stack debug.mem drop
-
-    # TODO: can compute_inputs_hash hash < 5 values?
-    # exec.hash_secret
+    # @dev hashing 8 inputs
+    # [INPUT_SECRET, 0, 0, 0, 0]
+    push.8.5
     exec.note::compute_inputs_hash
-
-    push.222 debug.stack drop
+    # => [INPUT_SECRET_HASH]
 
     push.0 exec.note::get_inputs drop drop
-
-    push.333
-    debug.stack
-    debug.mem
-    drop
+    # => [INPUT_SECRET_HASH]
 
     # get secret hash
-    mem_loadw.3
+    padw mem_loadw.3
+    # => [SECRET_HASH, INPUT_SECRET_HASH]
 
-    push.333
-    debug.stack
-    drop
+    # if this passes, allow asset withdrawl
+    assert_eqw
 
     push.0 exec.note::get_assets
     mem_loadw.0
     call.wallet::receive_asset
     exec.sys::truncate_stack
-
 end
