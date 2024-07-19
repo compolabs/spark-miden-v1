@@ -249,7 +249,7 @@ pub async fn setup_with_tokens(client: &mut TestClient) -> (Account, Account, Ac
     // Create faucet account A
     let (asset_a, _) = client
         .new_account(AccountTemplate::FungibleFaucet {
-            token_symbol: TokenSymbol::new("TOK_A").unwrap(),
+            token_symbol: TokenSymbol::new("TOKA").unwrap(),
             decimals: 8,
             max_supply: 1_000_000_000,
             storage_type: AccountStorageType::OffChain,
@@ -259,7 +259,7 @@ pub async fn setup_with_tokens(client: &mut TestClient) -> (Account, Account, Ac
     // Create faucet account A
     let (asset_b, _) = client
         .new_account(AccountTemplate::FungibleFaucet {
-            token_symbol: TokenSymbol::new("TOK_B").unwrap(),
+            token_symbol: TokenSymbol::new("TOKB").unwrap(),
             decimals: 8,
             max_supply: 1_000_000_000,
             storage_type: AccountStorageType::OffChain,

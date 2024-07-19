@@ -1,26 +1,19 @@
 use std::collections::BTreeMap;
 
-use miden_client::{
-    accounts::AccountTemplate, transactions::transaction_request::TransactionRequest,
-    utils::Serializable,
-};
+use miden_client::
+    transactions::transaction_request::TransactionRequest;
 use miden_lib::notes::utils::build_p2id_recipient;
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{Account, AccountId, AccountStorageType, AuthSecretKey},
-    assembly::{AssemblyContext, ModuleAst, ProgramAst},
-    assets::{Asset, FungibleAsset, TokenSymbol},
-    crypto::hash::rpo::RpoDigest,
-    crypto::{
-        hash::rpo::Rpo256,
-        rand::{FeltRng, RpoRandomCoin},
-    },
+    accounts::AccountId,
+    assembly::{AssemblyContext, ProgramAst},
+    assets::{Asset, FungibleAsset},
     notes::{
-        Note, NoteAssets, NoteDetails, NoteExecutionHint, NoteHeader, NoteInputs, NoteMetadata,
+        Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata,
         NoteRecipient, NoteScript, NoteTag, NoteType,
     },
-    vm::{AdviceMap, CodeBlock},
-    Felt, NoteError, Word, ZERO,
+    vm::CodeBlock,
+    Felt, NoteError, Word, ZERO
 };
 use miden_vm::Assembler;
 
@@ -53,8 +46,8 @@ async fn test_partial_swap_fill() {
 
     println!("Tokens created ");
 
-    let asset_a_amount: u64 = 100;
-    let asset_b_amount: u64 = 100;
+    let asset_a_amount: u64 = 100000000;
+    let asset_b_amount: u64 = 100000000;
 
     // Create a SWAPp note using account A
     let swap_note = create_partial_swap_note(
