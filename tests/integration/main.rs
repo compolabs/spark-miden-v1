@@ -1,18 +1,11 @@
 use miden_client::{
-    accounts::AccountTemplate,
-    notes::NoteRelevance,
-    rpc::{AccountDetails, NodeRpcClient, TonicRpcClient},
-    store::{InputNoteRecord, NoteFilter, NoteStatus, TransactionFilter},
-    transactions::{
-        transaction_request::{PaymentTransactionData, TransactionTemplate},
-        TransactionExecutorError, TransactionStatus,
-    },
-    ClientError,
+    store::NoteFilter,
+    transactions::transaction_request::{PaymentTransactionData, TransactionTemplate},
 };
 use miden_objects::{
     accounts::{AccountId, AccountStorageType},
     assets::{Asset, FungibleAsset},
-    notes::{NoteFile, NoteTag, NoteType},
+    notes::NoteType,
 };
 
 mod common;

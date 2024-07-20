@@ -309,6 +309,30 @@ pub async fn mint_note(
     note.try_into().unwrap()
 }
 
+/// Mints a note from faucet_account_id for basic_account_id, waits for inclusion and returns it
+/// with 1000 units of the corresponding fungible asset
+pub async fn mint_note_with_amount(
+    client: &mut TestClient,
+    basic_account_id: AccountId,
+    faucet_account_id: AccountId,
+    faucet_mint_amount: u64,
+    note_type: NoteType,
+) -> InputNote {
+    let fungible_asset = FungibleAsset::new(faucet_account_id, faucet_mint_amount).unwrap();
+    let tx_template =
+        TransactionTemplate::MintFungibleAsset(fungible_asset, basic_account_id, note_type);
+
+    println!("Minting Asset");
+    let tx_request = client.build_transaction_request(tx_template).unwrap();
+    execute_tx_and_sync(client, tx_request.clone()).await;
+
+    // Check that note is committed and return it
+    println!("Fetching Committed Notes...");
+    let note_id = tx_request.expected_output_notes()[0].id();
+    let note = client.get_input_note(note_id).unwrap();
+    note.try_into().unwrap()
+}
+
 /// Consumes and wait until the transaction gets committed
 /// This assumes the notes contain assets
 pub async fn consume_notes(

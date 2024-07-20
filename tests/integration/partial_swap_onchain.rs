@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 
-use miden_client::
-    transactions::transaction_request::TransactionRequest;
+use miden_client::transactions::transaction_request::TransactionRequest;
 use miden_lib::notes::utils::build_p2id_recipient;
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
@@ -9,11 +8,11 @@ use miden_objects::{
     assembly::{AssemblyContext, ProgramAst},
     assets::{Asset, FungibleAsset},
     notes::{
-        Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata,
-        NoteRecipient, NoteScript, NoteTag, NoteType,
+        Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient, NoteScript,
+        NoteTag, NoteType,
     },
     vm::CodeBlock,
-    Felt, NoteError, Word, ZERO
+    Felt, NoteError, Word, ZERO,
 };
 use miden_vm::Assembler;
 
@@ -44,10 +43,46 @@ async fn test_partial_swap_fill() {
     let (account_a, account_b, asset_a_account, asset_b_account) =
         setup_with_tokens(&mut client).await;
 
-    println!("Tokens created ");
+    println!("Setup completed");
 
     let asset_a_amount: u64 = 100000000;
     let asset_b_amount: u64 = 100000000;
+
+    // mint Asset A in Account A
+    let note = mint_note_with_amount(
+        &mut client,
+        account_a.id(),
+        asset_a_account.id(),
+        asset_a_amount,
+        NoteType::OffChain,
+    )
+    .await;
+    consume_notes(&mut client, account_a.id(), &[note]).await;
+    assert_account_has_single_asset(
+        &client,
+        account_a.id(),
+        asset_a_account.id(),
+        asset_a_amount,
+    ).await;
+
+    // mint Asset B in Account B
+    let note = mint_note_with_amount(
+        &mut client,
+        account_b.id(),
+        asset_b_account.id(),
+        asset_b_amount,
+        NoteType::OffChain,
+    )
+    .await;
+    consume_notes(&mut client, account_b.id(), &[note]).await;
+    assert_account_has_single_asset(
+        &client,
+        account_b.id(),
+        asset_b_account.id(),
+        asset_b_amount,
+    ).await;
+
+    println!("MINT NOTES CREATED");
 
     // Create a SWAPp note using account A
     let swap_note = create_partial_swap_note(
@@ -58,7 +93,7 @@ async fn test_partial_swap_fill() {
         asset_a_amount,
         asset_b_account.id(),
         asset_b_amount,
-        NoteType::Public,
+        NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
     )
     .await
@@ -243,7 +278,8 @@ async fn create_partial_swap_note(
     let code = "
     use.miden::contracts::auth::basic->auth_tx
     use.miden::contracts::wallets::basic->wallet
-
+    use.std::sys
+    
     begin
         push.{recipient}
         push.2
@@ -256,6 +292,8 @@ async fn create_partial_swap_note(
         call.wallet::send_asset
 
         call.auth_tx::auth_tx_rpo_falcon512
+
+        exec.sys::truncate_stack
     end
     "
     .replace("{recipient}", &recipient.clone())
