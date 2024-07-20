@@ -88,7 +88,7 @@ async fn test_partial_swap_fill() {
     let swap_note = create_partial_swap_note(
         &mut client,
         account_a.id(),
-        account_b.id(),
+        account_a.id(),
         asset_a_account.id(),
         asset_a_amount,
         asset_b_account.id(),
@@ -279,7 +279,7 @@ async fn create_partial_swap_note(
     use.miden::contracts::auth::basic->auth_tx
     use.miden::contracts::wallets::basic->wallet
     use.std::sys
-    
+
     begin
         push.{recipient}
         push.2
@@ -322,6 +322,7 @@ async fn create_partial_swap_note(
     .unwrap();
 
     println!("Attempting to create SWAPp note...");
+    println!("SWAPp noteID {:?}", swap_note.id());
 
     let _ = execute_tx_and_sync(client, transaction_request).await;
 
