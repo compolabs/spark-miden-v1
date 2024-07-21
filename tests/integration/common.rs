@@ -392,3 +392,26 @@ pub async fn assert_note_cannot_be_consumed_twice(
         ),
     }
 }
+
+pub fn format_value_with_decimals(value: u64, decimals: u32) -> u64 {
+    value * 10u64.pow(decimals)
+}
+
+pub fn format_value_to_float(value: u64, decimals: u32) -> f32 {
+    let scale = 10f32.powi(decimals as i32);
+    let result: f32 = ((value as f32) / scale) as f32;
+    result
+}
+
+// Helper function to calculate tokens_a for tokens_b
+pub fn calculate_tokens_a_for_b(tokens_a: u64, tokens_b: u64, token_b_amount_in: u64) -> u64 {
+    let scaling_factor: u64 = 100_000;
+
+    if tokens_a < tokens_b {
+        let scaled_ratio = (tokens_b * scaling_factor) / tokens_a;
+        (token_b_amount_in * scaling_factor) / scaled_ratio
+    } else {
+        let scaled_ratio = (tokens_a * scaling_factor) / tokens_b;
+        (scaled_ratio * token_b_amount_in) / scaling_factor
+    }
+}

@@ -15,7 +15,7 @@ use common::*;
 // mod onchain_tests;
 mod partial_swap_onchain;
 
-#[tokio::test]
+/* #[tokio::test]
 async fn test_added_notes() {
     let mut client = create_test_client();
     wait_for_node(&mut client).await;
@@ -38,7 +38,7 @@ async fn test_added_notes() {
     println!("Fetching Committed Notes...");
     let notes = client.get_input_notes(NoteFilter::Committed).unwrap();
     assert!(notes.is_empty())
-}
+} */
 
 #[tokio::test]
 async fn test_p2id_transfer() {

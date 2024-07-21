@@ -232,6 +232,8 @@ pub fn get_note_with_fungible_asset_and_script(
     Note::new(vault, metadata, recipient)
 } */
 
+
+
 pub const DEFAULT_ACCOUNT_CODE: &str = "
     use.miden::contracts::wallets::basic->basic_wallet
     use.miden::contracts::auth::basic->basic_eoa

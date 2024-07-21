@@ -1,17 +1,21 @@
 use std::collections::BTreeMap;
 
-use miden_client::transactions::transaction_request::TransactionRequest;
-use miden_lib::notes::utils::build_p2id_recipient;
+use miden_client::{
+    transactions::transaction_request::TransactionRequest,
+    utils::Serializable,
+};
+use miden_lib::notes::{utils::build_p2id_recipient, create_p2id_note};
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::AccountId,
+    accounts::{AccountId, AuthSecretKey},
     assembly::{AssemblyContext, ProgramAst},
     assets::{Asset, FungibleAsset},
+    crypto::hash::rpo::Rpo256,
     notes::{
         Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient, NoteScript,
         NoteTag, NoteType,
     },
-    vm::CodeBlock,
+    vm::{CodeBlock, AdviceMap},
     Felt, NoteError, Word, ZERO,
 };
 use miden_vm::Assembler;
@@ -45,8 +49,9 @@ async fn test_partial_swap_fill() {
 
     println!("Setup completed");
 
-    let asset_a_amount: u64 = 100000000;
-    let asset_b_amount: u64 = 100000000;
+    let asset_a_amount: u64 = format_value_with_decimals(100, 6);
+    let asset_b_amount: u64 = format_value_with_decimals(100, 6);
+    let asset_b_amount_in: u64 = format_value_with_decimals(80, 6);
 
     // mint Asset A in Account A
     let note = mint_note_with_amount(
@@ -70,7 +75,7 @@ async fn test_partial_swap_fill() {
         &mut client,
         account_b.id(),
         asset_b_account.id(),
-        asset_b_amount,
+        asset_b_amount_in,
         NoteType::OffChain,
     )
     .await;
@@ -79,7 +84,7 @@ async fn test_partial_swap_fill() {
         &client,
         account_b.id(),
         asset_b_account.id(),
-        asset_b_amount,
+        asset_b_amount_in,
     ).await;
 
     println!("MINT NOTES CREATED");
@@ -102,7 +107,7 @@ async fn test_partial_swap_fill() {
     client.sync_state().await.unwrap();
 
     println!("Swap note created. SwapID: {:?}", swap_note.id());
-    /*
+    
     // Prepare the transaction to consume the SWAPp note
     const NOTE_ARGS: [Felt; 8] = [
         Felt::new(0),
@@ -120,8 +125,7 @@ async fn test_partial_swap_fill() {
     let mut advice_map = AdviceMap::new();
     advice_map.insert(note_args_commitment, NOTE_ARGS.to_vec());
 
-    // Define account tx script for account B
-    let account_wallet_b = "
+    let tx_script = "
         use.miden::contracts::auth::basic->auth_tx
 
         begin
@@ -129,7 +133,7 @@ async fn test_partial_swap_fill() {
         end
     ";
 
-    let program = ProgramAst::parse(&account_wallet_b).unwrap();
+    let program = ProgramAst::parse(&tx_script).unwrap();
 
     // Compile transaction script for account B
     let tx_script = {
@@ -150,6 +154,22 @@ async fn test_partial_swap_fill() {
             .unwrap()
     };
 
+    // SWAPp note Oupput 
+    let amount_a_out = calculate_tokens_a_for_b(asset_a_amount, asset_b_amount, asset_b_amount_in);
+    let amount_a_remaining: u64 = asset_a_amount - amount_a_out;
+    let amount_b_requested_remaining: u64 = asset_b_amount - asset_b_amount_in;
+
+
+    // let bal = swap_note.assets();
+    println!("SWAPp note assets: {:?}", swap_note.assets());
+    println!("AccountB asset B amount: {:?}", account_b.vault().get_balance(asset_b_account.id()));
+    println!("AccountB asset A amount: {:?}", account_b.vault().get_balance(asset_a_account.id()));
+    println!("faucetID A: {:?}", asset_a_account.id());
+    println!("faucetID B: {:?}", asset_b_account.id());
+
+    
+    // let ouput_p2id = create_p2id_note(account_b, account_a, assets, note_type, aux, rng)
+
     // Define the transaction request for account B to consume the note
     let transaction_request = TransactionRequest::new(
         account_b.id(),
@@ -166,7 +186,7 @@ async fn test_partial_swap_fill() {
     execute_tx_and_sync(&mut client, transaction_request).await;
 
     // Ensure synchronization of client state
-    client.sync_state().await.unwrap(); */
+    client.sync_state().await.unwrap();
 }
 
 fn build_swap_tag(
