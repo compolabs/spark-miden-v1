@@ -415,3 +415,26 @@ pub fn calculate_tokens_a_for_b(tokens_a: u64, tokens_b: u64, token_b_amount_in:
         (scaled_ratio * token_b_amount_in) / scaling_factor
     }
 }
+
+pub async fn print_account_balance(client: &TestClient, account_id: AccountId) {
+    // Retrieve the account from the client
+    let (regular_account, _seed) = client.get_account(account_id).unwrap();
+
+    // Ensure the account has exactly one asset
+    if regular_account.vault().assets().count() != 1 {
+        panic!("Account does not have exactly one asset");
+    }
+
+    // Get the asset from the account
+    let asset = regular_account.vault().assets().next().unwrap();
+
+    // Match on the asset to handle different types
+    if let Asset::Fungible(fungible_asset) = asset {
+        // Print the details of the fungible asset
+        println!("Account ID: {:?}", account_id);
+        println!("Faucet ID: {:?}", fungible_asset.faucet_id());
+        println!("Amount: {}", fungible_asset.amount());
+    } else {
+        panic!("Account has an unexpected asset type");
+    }
+}
