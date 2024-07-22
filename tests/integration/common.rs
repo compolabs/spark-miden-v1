@@ -422,6 +422,12 @@ pub async fn print_account_balance(client: &TestClient, account_id: AccountId) {
 
     // Ensure the account has exactly one asset
     if regular_account.vault().assets().count() != 1 {
+        println!("Account ID: {:?}", regular_account.id());
+        println!("number of assets {:?}", regular_account.vault().assets().count()); 
+        let assets: Vec<_> = regular_account.vault().assets().collect();
+        for asset in &assets {
+            println!("Asset {:?}", asset);
+        }
         panic!("Account does not have exactly one asset");
     }
 
@@ -431,8 +437,8 @@ pub async fn print_account_balance(client: &TestClient, account_id: AccountId) {
     // Match on the asset to handle different types
     if let Asset::Fungible(fungible_asset) = asset {
         // Print the details of the fungible asset
-        println!("Account ID: {:?}", account_id);
-        println!("Faucet ID: {:?}", fungible_asset.faucet_id());
+        println!("User Account ID: {:?}", account_id);
+        println!("token faucet ID: {:?}", fungible_asset.faucet_id());
         println!("Amount: {}", fungible_asset.amount());
     } else {
         panic!("Account has an unexpected asset type");

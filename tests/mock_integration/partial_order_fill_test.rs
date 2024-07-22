@@ -184,14 +184,14 @@ fn test_partial_swap_fill() {
     // ASSETS
     // Offered Asset
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-    let amount_token_a: u64 = format_value_with_decimals(607, 6);
+    let amount_token_a: u64 = format_value_with_decimals(100, 6);
     let offered_token_a: Asset = FungibleAsset::new(faucet_id_1, amount_token_a)
         .unwrap()
         .into();
 
     // Requested Asset
     let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
-    let requested_amount_token_b = format_value_with_decimals(987, 6);
+    let requested_amount_token_b = format_value_with_decimals(100, 6);
     let requested_token_b: Asset = FungibleAsset::new(faucet_id_2, requested_amount_token_b)
         .unwrap()
         .into();
@@ -204,7 +204,7 @@ fn test_partial_swap_fill() {
     let swapp_consumer_account_id = AccountId::try_from(ACCOUNT_ID_SENDER_1).unwrap();
 
     // SWAPp note consumer wallet balance
-    let token_b_amount_in = format_value_with_decimals(387, 6);
+    let token_b_amount_in = format_value_with_decimals(80, 6);
     let swap_consumer_token_b = FungibleAsset::new(faucet_id_2, token_b_amount_in)
         .unwrap()
         .into();
