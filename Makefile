@@ -33,26 +33,6 @@ format-check: ## Runs format using nightly toolchain but only in check mode
 .PHONY: lint
 lint: format fix clippy ## Runs all linting tasks at once (clippy, fixing, formatting)
 
-# --- Documentation site --------------------------------------------------------------------------
-
-.PHONY: doc-deps
-doc-deps: ## Install dependencies to build and serve documentation site
-	pip3 install -r scripts/docs_requirements.txt
-
-.PHONY: doc-build
-doc-build: doc-deps ## Build documentation site
-	mkdocs build
-
-.PHONY: doc-serve
-doc-serve: doc-deps ## Serve documentation site
-	mkdocs serve
-
-# --- Rust documentation --------------------------------------------------------------------------
-
-.PHONY: doc
-doc: ## Generates & checks rust documentation
-	$(WARNINGS) cargo doc --all-features --keep-going --release -p miden-client
-
 # --- Testing -------------------------------------------------------------------------------------
 
 .PHONY: test
@@ -89,15 +69,3 @@ node: ## Setup node directory
 start-node: ## Run node. This requires the node repo to be present at `miden-node`
 	cd miden-node && cargo run --bin miden-node --features $(NODE_FEATURES_TESTING) -- start --config ../tests/config/miden-node.toml node
 
-# --- Installing ----------------------------------------------------------------------------------
-
-install: ## Installs the CLI binary
-	cargo install --features $(FEATURES_CLI) --path bin/miden-cli
-
-# --- Building ------------------------------------------------------------------------------------
-
-build: ## Builds the CLI binary and client library in release mode
-	cargo build --release --features $(FEATURES_CLI)
-
-build-wasm: ## Builds the client library for wasm32
-	cargo build --target wasm32-unknown-unknown --features async --no-default-features --package miden-client
