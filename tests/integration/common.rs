@@ -423,7 +423,10 @@ pub async fn print_account_balance(client: &TestClient, account_id: AccountId) {
     // Ensure the account has exactly one asset
     if regular_account.vault().assets().count() != 1 {
         println!("Account ID: {:?}", regular_account.id());
-        println!("number of assets {:?}", regular_account.vault().assets().count()); 
+        println!(
+            "number of assets {:?}",
+            regular_account.vault().assets().count()
+        );
         let assets: Vec<_> = regular_account.vault().assets().collect();
         for asset in &assets {
             println!("Asset {:?}", asset);

@@ -1243,7 +1243,8 @@ fn test_swap_false_amount_via_note_args() {
         Felt::new(0),
     ]];
 
-    let note_args_map = BTreeMap::from([(note_ids[0], note_args[0])]);
+    let note_args_map: BTreeMap<miden_client::notes::NoteId, [Felt; 4]> =
+        BTreeMap::from([(note_ids[0], note_args[0])]);
 
     let tx_script_target = executor
         .compile_tx_script(tx_script_ast.clone(), vec![], vec![])

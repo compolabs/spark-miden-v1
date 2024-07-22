@@ -111,12 +111,7 @@ async fn test_partial_swap_fill() {
     println!("Swap note created");
 
     // Prepare the transaction to consume the SWAPp note
-    const NOTE_ARGS: [Felt; 4] = [
-        Felt::new(100),
-        Felt::new(0),
-        Felt::new(0),
-        Felt::new(0),
-    ];
+    const NOTE_ARGS: [Felt; 4] = [Felt::new(100), Felt::new(0), Felt::new(0), Felt::new(0)];
     let note_args_commitment = Rpo256::hash_elements(&NOTE_ARGS);
 
     let note_args_map = BTreeMap::from([(swap_note.id(), Some(NOTE_ARGS))]);
@@ -139,12 +134,17 @@ async fn test_partial_swap_fill() {
         let (pubkey_input, advice_map): (Word, Vec<Felt>) = match account_auth {
             AuthSecretKey::RpoFalcon512(key) => (
                 key.public_key().into(),
-                key.to_bytes().iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>(),
+                key.to_bytes()
+                    .iter()
+                    .map(|a| Felt::new(*a as u64))
+                    .collect::<Vec<Felt>>(),
             ),
         };
 
         let script_inputs = vec![(pubkey_input, advice_map)];
-        client.compile_tx_script(program, script_inputs, vec![]).unwrap()
+        client
+            .compile_tx_script(program, script_inputs, vec![])
+            .unwrap()
     };
 
     // SWAPp note Oupput
