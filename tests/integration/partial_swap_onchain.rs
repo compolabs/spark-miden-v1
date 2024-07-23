@@ -1,20 +1,14 @@
 use std::collections::BTreeMap;
-use std::mem::swap;
 
 use miden_client::{transactions::transaction_request::TransactionRequest, utils::Serializable};
-use miden_lib::notes::{create_p2id_note, utils::build_p2id_recipient};
-use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{AccountId, AuthSecretKey},
+    accounts::AuthSecretKey,
     assembly::{AssemblyContext, ProgramAst},
     assets::{Asset, FungibleAsset},
     crypto::hash::rpo::Rpo256,
-    notes::{
-        Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient, NoteScript,
-        NoteTag, NoteType,
-    },
+    notes::{NoteScript, NoteType},
     vm::{AdviceMap, CodeBlock},
-    Felt, NoteError, Word, ZERO,
+    Felt, NoteError, Word,
 };
 use miden_vm::Assembler;
 
@@ -91,6 +85,9 @@ async fn test_partial_swap_fill() {
 
     println!("MINT NOTES CREATED");
 
+    // @dev TODO create P2ID and SWAPp serial nums
+    let serial_num = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
+
     // Create a SWAPp note using account A
     let swap_note = create_partial_swap_note(
         &mut client,
@@ -101,7 +98,7 @@ async fn test_partial_swap_fill() {
         asset_b_account.id(),
         asset_b_amount,
         NoteType::OffChain,
-        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+        serial_num,
     )
     .await
     .unwrap();
@@ -148,9 +145,35 @@ async fn test_partial_swap_fill() {
     };
 
     // SWAPp note Oupput
-    // let amount_a_out = calculate_tokens_a_for_b(asset_a_amount, asset_b_amount, asset_b_amount_in);
-    // let amount_a_remaining: u64 = asset_a_amount - amount_a_out;
-    // let amount_b_requested_remaining: u64 = asset_b_amount - asset_b_amount_in;
+    let amount_a_out = calculate_tokens_a_for_b(asset_a_amount, asset_b_amount, asset_b_amount_in);
+    let amount_a_remaining: u64 = asset_a_amount - amount_a_out;
+    let amount_b_requested_remaining: u64 = asset_b_amount - asset_b_amount_in;
+
+    let expected_swap_note_output = create_partial_swap_note_offchain(
+        account_a.id(),
+        account_b.id(),
+        asset_a_account.id(),
+        amount_a_remaining,
+        asset_b_account.id(),
+        amount_b_requested_remaining,
+        NoteType::OffChain,
+        serial_num.clone(),
+    )
+    .unwrap();
+
+    let p2id_assets: Vec<Asset> = vec![Asset::from(
+        FungibleAsset::new(asset_b_account.id(), asset_b_amount_in).unwrap(),
+    )];
+
+    let expected_p2id_output = create_p2id_note_with_serial_num(
+        account_b.id(),
+        account_a.id(),
+        p2id_assets,
+        NoteType::OffChain,
+        Felt::new(0),
+        serial_num,
+    )
+    .unwrap();
 
     println!("____________");
     println!("Account A id: {:?}", account_a.id());
@@ -174,7 +197,7 @@ async fn test_partial_swap_fill() {
         account_b.id(),
         vec![],
         note_args_map,
-        vec![],
+        vec![expected_p2id_output, expected_swap_note_output],
         vec![],
         Some(tx_script),
         Some(advice_map.clone()),
@@ -190,169 +213,8 @@ async fn test_partial_swap_fill() {
 
     // Ensure synchronization of client state
     client.sync_state().await.unwrap();
-}
 
-fn build_swap_tag(
-    note_type: NoteType,
-    offered_asset: &Asset,
-    requested_asset: &Asset,
-) -> Result<NoteTag, NoteError> {
-    const SWAP_USE_CASE_ID: u16 = 0;
-
-    // get bits 4..12 from faucet IDs of both assets, these bits will form the tag payload; the
-    // reason we skip the 4 most significant bits is that these encode metadata of underlying
-    // faucets and are likely to be the same for many different faucets.
-
-    let offered_asset_id: u64 = offered_asset.faucet_id().into();
-    let offered_asset_tag = (offered_asset_id >> 52) as u8;
-
-    let requested_asset_id: u64 = requested_asset.faucet_id().into();
-    let requested_asset_tag = (requested_asset_id >> 52) as u8;
-
-    let payload = ((offered_asset_tag as u16) << 8) | (requested_asset_tag as u16);
-
-    let execution = NoteExecutionHint::Local;
-    match note_type {
-        NoteType::Public => NoteTag::for_public_use_case(SWAP_USE_CASE_ID, payload, execution),
-        _ => NoteTag::for_local_use_case(SWAP_USE_CASE_ID, payload),
-    }
-}
-
-pub fn new_note_script(
-    code: ProgramAst,
-    assembler: &Assembler,
-) -> Result<(NoteScript, CodeBlock), NoteError> {
-    // Compile the code in the context with phantom calls enabled
-    let code_block = assembler
-        .compile_in_context(
-            &code,
-            &mut AssemblyContext::for_program(Some(&code)).with_phantom_calls(true),
-        )
-        .map_err(NoteError::ScriptCompilationError)?;
-
-    // Use the from_parts method to create a NoteScript instance
-    let note_script = NoteScript::from_parts(code, code_block.hash());
-
-    Ok((note_script, code_block))
-}
-
-async fn create_partial_swap_note(
-    client: &mut TestClient,
-    sender: AccountId,
-    last_consumer: AccountId,
-    offered_asset_id: AccountId,
-    offered_asset_amount: u64,
-    requested_asset_id: AccountId,
-    requested_asset_amount: u64,
-    note_type: NoteType,
-    serial_num: [Felt; 4],
-) -> Result<Note, NoteError> {
-    let note_code = include_str!("../../src/notes/SWAPp.masm");
-    let (note_script, _code_block) = new_note_script(
-        ProgramAst::parse(note_code).unwrap(),
-        &TransactionKernel::assembler().with_debug_mode(true),
-    )
-    .unwrap();
-
-    let offered_asset: Asset =
-        Asset::from(FungibleAsset::new(offered_asset_id, offered_asset_amount).unwrap());
-    let requested_asset: Asset =
-        Asset::from(FungibleAsset::new(requested_asset_id, requested_asset_amount).unwrap());
-
-    let payback_recipient = build_p2id_recipient(sender, serial_num)?;
-
-    let payback_recipient_word: Word = payback_recipient.digest().into();
-    let requested_asset_word: Word = requested_asset.into();
-
-    println!("script hash {:?}", note_script.hash());
-    println!("requested asset id: {:?}", requested_asset.faucet_id());
-
-    // build the tag for the SWAP use case
-    let tag = build_swap_tag(note_type, &offered_asset, &requested_asset)?;
-
-    let inputs = NoteInputs::new(vec![
-        payback_recipient_word[0],
-        payback_recipient_word[1],
-        payback_recipient_word[2],
-        payback_recipient_word[3],
-        requested_asset_word[0],
-        requested_asset_word[1],
-        requested_asset_word[2],
-        requested_asset_word[3],
-        tag.inner().into(),
-    ])?;
-
-    let aux = ZERO;
-
-    // build the outgoing note
-    let metadata = NoteMetadata::new(last_consumer, note_type, tag, aux)?;
-    let assets = NoteAssets::new(vec![offered_asset])?;
-    let recipient = NoteRecipient::new(serial_num, note_script.clone(), inputs.clone());
-    let swap_note = Note::new(assets.clone(), metadata, recipient.clone());
-
-    println!("Attempting to mint SWAPp note...");
-
-    // note created, now let's mint it
-    let recipient = swap_note
-        .recipient()
-        .digest()
-        .iter()
-        .map(|x| x.as_int().to_string())
-        .collect::<Vec<_>>()
-        .join(".");
-
-    let code = "
-    use.miden::contracts::auth::basic->auth_tx
-    use.miden::contracts::wallets::basic->wallet
-    use.std::sys
-
-    begin
-        push.{recipient}
-        push.2
-        push.0
-        push.{tag}
-        push.{amount}
-        push.0.0
-        push.{token_id}
-
-        call.wallet::send_asset
-
-        call.auth_tx::auth_tx_rpo_falcon512
-
-        exec.sys::truncate_stack
-    end
-    "
-    .replace("{recipient}", &recipient.clone())
-    .replace("{tag}", &Felt::new(tag.clone().into()).to_string())
-    .replace(
-        "{amount}",
-        &offered_asset.unwrap_fungible().amount().to_string(),
-    )
-    .replace(
-        "{token_id}",
-        &Felt::new(offered_asset.faucet_id().into()).to_string(),
-    );
-
-    let program = ProgramAst::parse(&code).unwrap();
-    let tx_script = client.compile_tx_script(program, vec![], vec![]).unwrap();
-
-    let transaction_request = TransactionRequest::new(
-        sender,
-        vec![],
-        BTreeMap::new(),
-        vec![swap_note.clone()],
-        vec![],
-        Some(tx_script),
-        None,
-    )
-    .unwrap();
-
-    println!("Attempting to create SWAPp note...");
-    println!("SWAPp noteID {:?}", swap_note.id());
-
-    let _ = execute_tx_and_sync(client, transaction_request).await;
-
-    println!("SWAPp note created!");
-
-    Ok(swap_note)
+    // consuming SWAPp note with account b
+    println!("calling account balance for user B");
+    print_account_balance(&client, account_b.id()).await;
 }
