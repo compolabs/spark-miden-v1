@@ -110,6 +110,7 @@ pub fn create_partial_swap_note(
     requested_asset: Asset,
     note_type: NoteType,
     serial_num: [Felt; 4],
+    fill_number: u64,
 ) -> Result<(Note, NoteDetails, RpoDigest), NoteError> {
     let note_code = include_str!("../../src/notes/SWAPp.masm");
     let (note_script, _code_block) = new_note_script(
@@ -136,6 +137,7 @@ pub fn create_partial_swap_note(
         requested_asset_word[2],
         requested_asset_word[3],
         tag.inner().into(),
+        Felt::new(fill_number)
     ])?;
 
     let aux = ZERO;
@@ -217,6 +219,8 @@ fn test_partial_swap_fill() {
         Some(swap_consumer_token_b),
     );
 
+    let fill_number = 0;
+
     // SWAPp note
     let (swap_note, _payback_note, _note_script_hash) = create_partial_swap_note(
         swapp_creator_account_id.clone(),
@@ -225,6 +229,7 @@ fn test_partial_swap_fill() {
         requested_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+        fill_number
     )
     .unwrap();
 
@@ -295,6 +300,7 @@ fn test_partial_swap_fill() {
         remaining_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+        fill_number
     )
     .unwrap();
 
@@ -406,6 +412,7 @@ fn test_partial_swap_fill_graphical() {
         requested_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+        0
     )
     .unwrap();
 
@@ -478,6 +485,7 @@ fn test_partial_swap_fill_graphical() {
         remaining_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+        0,
     )
     .unwrap();
 
@@ -645,6 +653,7 @@ fn test_complete_swapp_fill() {
         requested_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+        0
     )
     .unwrap();
 
@@ -714,6 +723,7 @@ fn test_complete_swapp_fill() {
         remaining_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+        0
     )
     .unwrap();
 
@@ -788,6 +798,7 @@ fn test_partial_swap_fill_multiple_consumers() {
         requested_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+        0
     )
     .unwrap();
 
@@ -861,6 +872,7 @@ fn test_partial_swap_fill_multiple_consumers() {
         remaining_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+        0
     )
     .unwrap();
 
@@ -960,6 +972,7 @@ fn test_partial_swap_fill_multiple_consumers() {
         remaining_token_b_1,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+        0
     )
     .unwrap();
 
@@ -1027,6 +1040,7 @@ fn test_swap_reclaim() {
         requested_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+        0
     )
     .unwrap();
 
@@ -1119,6 +1133,7 @@ fn test_swap_zero_amount() {
         requested_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+        0
     )
     .unwrap();
 
@@ -1208,6 +1223,7 @@ fn test_swap_false_amount_via_note_args() {
         requested_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+        0
     )
     .unwrap();
 
@@ -1314,6 +1330,7 @@ fn test_partial_swap_fill_with_note_args() {
         requested_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+        0
     )
     .unwrap();
 
@@ -1401,6 +1418,7 @@ fn test_partial_swap_fill_with_note_args() {
         remaining_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+        0
     )
     .unwrap();
 
@@ -1439,6 +1457,7 @@ pub fn get_note_script_hash() {
         requested_asset,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+        0
     )
     .unwrap();
 

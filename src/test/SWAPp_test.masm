@@ -133,6 +133,7 @@ end
 #!
 #! Inputs: [INPUTS_4, INPUTS_3, INPUTS_2, INPUTS_1]
 #! Outputs: [INPUTS_HASH]
+#!
 proc.get_note_inputs_commitment
 
     # Initialize the capacity portion of the hasher state.
@@ -169,21 +170,18 @@ end
 #! Inputs: [SERIAL_NUM, SCRIPT_HASH, account_id]
 #! Outputs: [RECIPIENT]
 #!
-#! Only allows a single input currently
 proc.build_p2id_recipient_hash
     padw hmerge
     # => [SERIAL_NUM_HASH, SCRIPT_HASH, account_id]
 
-    # merge SERIAL_NUM_HASH and SCRIPT_HASH
     swapw hmerge
     # => [SERIAL_SCRIPT_HASH, account_id]
 
-    # compute the INPUT_HASH. Note: only one input is allowed
     swapw swap.3 padw hmerge
     # => [INPUT_HASH, SERIAL_SCRIPT_HASH]
 
     hmerge
-    # [RECIPIENT]
+    # => [RECIPIENT]
 end
 
 #! Returns if the currently consuming account is the creator of the note
@@ -231,7 +229,7 @@ proc.handle_reclaim
 
     call.wallet::receive_asset
 
-    exec.sys::truncate_stack
+    dropw
 end
 
 # Partially Fillable Swap Script (SWAPp)
@@ -263,7 +261,7 @@ end
 #  basic_wallet::send_asset
 #  basic_eoa::auth_tx_rpo_falcon512
 #
-# Inputs: [SCRIPT_ROOT]
+# Inputs: [TOKEN_B_AMT_IN]
 # Outputs: []
 #
 # Note inputs are assumed to be as follows:
@@ -275,11 +273,13 @@ end
 # - Account vault does not contain the requested asset
 # - Adding a fungible asset would result in amount overflow, i.e., the total amount would be
 #   greater than 2^63
+#!
 proc.execute_SWAPp
 
     # if user does not supply amount token B in via note args
     # then we use the amount of tokens B in their wallet
     mem_store.TOKEN_B_AMT_IN
+    # => []
 
     # store asset into memory at address 3
     exec.note::get_assets assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS
@@ -337,7 +337,11 @@ proc.execute_SWAPp
 
         mem_store.TOKEN_B_AMT_IN
         # => []
+    else
+        # no need to verify that amount tokens b via note args is
+        # valid bc if it isn't call.wallet::send_asset will fail
     end
+
     mem_load.TOKEN_B_AMT_IN
     # => [token_b_AMT_IN]
 
@@ -345,10 +349,11 @@ proc.execute_SWAPp
     # => [token_a_AMT, token_b_AMT, token_b_AMT_IN]
 
     exec.calculate_tokens_a_for_b
-    # [token_a_AMT_out]
+    # => [token_a_AMT_out]
 
     # store token_a_AMT_out @ mem addr 11
     dup mem_store.TOKEN_A_AMT_OUT
+    # => [token_a_AMT_out]
 
     mem_load.TOKEN_A_AMT
     # => [token_a_AMT, token_a_AMT_out]
@@ -395,7 +400,6 @@ proc.execute_SWAPp
     # => [is_partial_fill]
 
     if.true
-
         # 3) create SWAPp' and calculate token_a' & token_b'
         padw mem_loadw.PAYBACK_RECIPIENT
         # => [PAYBACK_RECIPIENT]
@@ -404,7 +408,7 @@ proc.execute_SWAPp
         # => [token_b_AMT', PAYBACK_RECIPIENT]
 
         push.0.0 mem_load.TOKEN_B_ID
-        # [REQUESTED_ASSET_REMAINING, PAYBACK_RECIPIENT]
+        # => [REQUESTED_ASSET_REMAINING, PAYBACK_RECIPIENT]
 
         mem_load.PAYBACK_TAG
         # => [payback_tag, ASSET_REQUESTED_REMAINING, PAYBACK_RECIPIENT]
@@ -441,6 +445,7 @@ proc.execute_SWAPp
 
     else
         # do not output SWAPp'
+        # P2ID already created
     end
 
     # clean stack
