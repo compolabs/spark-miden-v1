@@ -104,7 +104,7 @@ fn build_swap_tag(
 }
 
 pub fn create_partial_swap_note(
-    sender: AccountId,
+    creator: AccountId,
     last_consumer: AccountId,
     offered_asset: Asset,
     requested_asset: Asset,
@@ -119,24 +119,39 @@ pub fn create_partial_swap_note(
     )
     .unwrap();
 
-    let payback_recipient = build_p2id_recipient(sender, serial_num)?;
+    let p2id_serial_num: Word = NoteInputs::new(
+        vec![
+            serial_num[0],
+            serial_num[1],
+            serial_num[2],
+            serial_num[3],
+            Felt::new(fill_number)
+        ]
+    )?.commitment().into();
 
-    let payback_recipient_word: Word = payback_recipient.digest().into();
+    println!("p2id serial num {:?}", p2id_serial_num);
+
+    let payback_recipient = build_p2id_recipient(creator, p2id_serial_num)?;
+
+    // let payback_recipient_word: Word = payback_recipient.digest().into();
     let requested_asset_word: Word = requested_asset.into();
 
     // build the tag for the SWAP use case
     let tag = build_swap_tag(note_type, &offered_asset, &requested_asset)?;
 
     let inputs = NoteInputs::new(vec![
-        payback_recipient_word[0],
-        payback_recipient_word[1],
-        payback_recipient_word[2],
-        payback_recipient_word[3],
+        Felt::new(creator.into()),
+        Felt::new(0),
+        Felt::new(0),
+        Felt::new(0),
         requested_asset_word[0],
         requested_asset_word[1],
         requested_asset_word[2],
         requested_asset_word[3],
         tag.inner().into(),
+        Felt::new(0),
+        Felt::new(0),
+        Felt::new(0),
         Felt::new(fill_number)
     ])?;
 
@@ -219,7 +234,7 @@ fn test_partial_swap_fill() {
         Some(swap_consumer_token_b),
     );
 
-    let fill_number = 0;
+    let fill_number = 33;
 
     // SWAPp note
     let (swap_note, _payback_note, _note_script_hash) = create_partial_swap_note(
@@ -300,7 +315,7 @@ fn test_partial_swap_fill() {
         remaining_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
-        fill_number
+        fill_number + 1
     )
     .unwrap();
 
@@ -1436,7 +1451,7 @@ fn test_partial_swap_fill_with_note_args() {
     );
 }
 
-// @dev Demonstrate how to get hte note script hash of the SWAPp note
+// @dev Demonstrate how to get the note script hash of the SWAPp note
 #[test]
 pub fn get_note_script_hash() {
     // SWAPp note creator

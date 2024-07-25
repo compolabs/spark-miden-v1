@@ -26,6 +26,7 @@ const.MAX_U32=0x0000000100000000
 const.PAYBACK_RECIPIENT=0x0000
 const.REQUESTED_ASSET=0x0001
 const.PAYBACK_TAG=0x0002
+const.SWAP_COUNT=0x0003
 const.SWAPP_SCRIPT_HASH=0x0004
 const.OFFERED_ASSET=0x0005
 const.TOKEN_A_ID=0x0006
@@ -126,6 +127,21 @@ proc.calculate_tokens_a_for_b
     end
 end
 
+# SWAP COUNT INCREMENT PROCEDURE
+# =================================================================================================
+
+#! Returns the incremented SWAP count value
+#!
+#! Inputs: [SWAP_COUNT, ...]
+#! Outputs: [SWAP_COUNT++, ...]
+#!
+proc.increment_swap_count
+    drop drop drop
+    push.1
+    add
+    push.0.0.0
+end
+
 # HASHING PROCEDURES
 # =================================================================================================
 
@@ -161,6 +177,10 @@ proc.get_note_inputs_commitment
     exec.native::state_to_digest
     # => [Digest]
 end
+
+
+
+
 
 # RECLAIM FUNCTIONALITY PROCEDURES
 # =================================================================================================
@@ -232,6 +252,20 @@ proc.handle_reclaim
     dropw
 end
 
+proc.build_output_p2id_recipient_hash
+
+    exec.note::get_serial_number
+    
+    padw mem_loadw.SWAP_COUNT
+
+    push.222 debug.mem debug.stack drop
+
+    exec.get_note_inputs_commitment
+
+    push.333 debug.stack drop
+
+end
+
 # Partially Fillable Swap Script (SWAPp)
 # =================================================================================================
 #
@@ -301,9 +335,9 @@ proc.execute_SWAPp
     push.0 exec.note::get_inputs
     # => [num_inputs, inputs_ptr]
 
-    # make sure the number of inputs is 9
-    eq.9 assert.err=ERR_SWAP_WRONG_NUMBER_OF_INPUTS
-    # => [inputs_ptr]
+    # make sure the number of inputs is 10
+    eq.13 assert.err=ERR_SWAP_WRONG_NUMBER_OF_INPUTS
+    # => [inputs_ptr]    
 
     mem_loadw.REQUESTED_ASSET
     # => [REQUESTED_ASSET]
@@ -364,11 +398,11 @@ proc.execute_SWAPp
     # if amount_out < amount_a
     if.true
         # partial order fill
-        mem_load.TOKEN_A_AMT_OUT
+        # mem_load.TOKEN_A_AMT_OUT
         push.1 mem_store.IS_PARTIAL_FILL
     else
         # complete order fill
-        mem_load.TOKEN_A_AMT
+        # mem_load.TOKEN_A_AMT
         push.0 mem_store.IS_PARTIAL_FILL
     end
 
@@ -378,6 +412,13 @@ proc.execute_SWAPp
     # If Partial Fill:
     # 3) create SWAPp' and calculate token_a' & token_b'
     # 4) add token_a' and token_b' to SWAPp'
+
+
+    push.111 debug.stack drop
+
+    exec.build_output_p2id_recipient_hash
+
+
 
     # TODO: add aux value
     # 1) send token B amt to creator
@@ -410,11 +451,14 @@ proc.execute_SWAPp
         push.0.0 mem_load.TOKEN_B_ID
         # => [REQUESTED_ASSET_REMAINING, PAYBACK_RECIPIENT]
 
-        mem_load.PAYBACK_TAG
+        padw mem_loadw.PAYBACK_TAG
         # => [payback_tag, ASSET_REQUESTED_REMAINING, PAYBACK_RECIPIENT]
 
-        padw push.0.0.0
-        # => [0,0,0,0,0,0,0, payback_tag, ASSET_REQUESTED_REMAINING, PAYBACK_RECIPIENT]
+        padw mem_loadw.SWAP_COUNT
+        # => [SWAP_COUNT, TAG, ASSET_REQUESTED_REMAINING, PAYBACK_RECIPIENT]
+
+        exec.increment_swap_count
+        # => [SWAP_COUNT++,TAG, ASSET_REQUESTED_REMAINING, PAYBACK_RECIPIENT]
 
         exec.get_note_inputs_commitment
         # => [INPUTS_HASH]
