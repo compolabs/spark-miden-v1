@@ -103,13 +103,29 @@ fn build_swap_tag(
     }
 }
 
+pub fn create_p2id_output_note(creator: AccountId, swap_serial_num: [Felt; 4], fill_number: u64) -> Result<(NoteRecipient, Word), NoteError> {
+    let p2id_serial_num: Word = NoteInputs::new(
+        vec![
+            swap_serial_num[0],
+            swap_serial_num[1],
+            swap_serial_num[2],
+            swap_serial_num[3],
+            Felt::new(fill_number)
+        ]
+    )?.commitment().into();
+
+    let payback_recipient = build_p2id_recipient(creator, p2id_serial_num)?;
+
+    Ok((payback_recipient, p2id_serial_num))
+}
+
 pub fn create_partial_swap_note(
     creator: AccountId,
     last_consumer: AccountId,
     offered_asset: Asset,
     requested_asset: Asset,
     note_type: NoteType,
-    serial_num: [Felt; 4],
+    swap_serial_num: [Felt; 4],
     fill_number: u64,
 ) -> Result<(Note, NoteDetails, RpoDigest), NoteError> {
     let note_code = include_str!("../../src/notes/SWAPp.masm");
@@ -119,31 +135,20 @@ pub fn create_partial_swap_note(
     )
     .unwrap();
 
-    let p2id_serial_num: Word = NoteInputs::new(
-        vec![
-            serial_num[0],
-            serial_num[1],
-            serial_num[2],
-            serial_num[3],
-            Felt::new(fill_number)
-        ]
-    )?.commitment().into();
+    let (payback_recipient, p2id_serial_num) = create_p2id_output_note(creator, swap_serial_num, fill_number).unwrap();
+    let (payback_recipient_1, p2id_serial_num_1) = create_p2id_output_note(creator, swap_serial_num, fill_number+1).unwrap();
 
-    println!("p2id serial num {:?}", p2id_serial_num);
-
-    let payback_recipient = build_p2id_recipient(creator, p2id_serial_num)?;
-
-    // let payback_recipient_word: Word = payback_recipient.digest().into();
+    let payback_recipient_word: Word = payback_recipient.digest().into();
     let requested_asset_word: Word = requested_asset.into();
 
     // build the tag for the SWAP use case
     let tag = build_swap_tag(note_type, &offered_asset, &requested_asset)?;
 
     let inputs = NoteInputs::new(vec![
-        Felt::new(creator.into()),
-        Felt::new(0),
-        Felt::new(0),
-        Felt::new(0),
+        payback_recipient_word[0],
+        payback_recipient_word[1],
+        payback_recipient_word[2],
+        payback_recipient_word[3],
         requested_asset_word[0],
         requested_asset_word[1],
         requested_asset_word[2],
@@ -152,15 +157,25 @@ pub fn create_partial_swap_note(
         Felt::new(0),
         Felt::new(0),
         Felt::new(0),
-        Felt::new(fill_number)
+        Felt::new(fill_number),
+        Felt::new(0),
+        Felt::new(0),
+        Felt::new(0),
+        creator.into()
     ])?;
+
+    // println!("p2id note script {:?}", payback_recipient.script().hash());
+    println!("p2id serial num {:?}", p2id_serial_num);
+    println!("p2id serial num 1 {:?}", p2id_serial_num_1);
+    println!("p2id payback recipient {:?}", payback_recipient_word);
+    println!("p2id payback recipient 1 {:?}", payback_recipient_1.digest());
 
     let aux = ZERO;
 
     // build the outgoing note
     let metadata = NoteMetadata::new(last_consumer, note_type, tag, aux)?;
     let assets = NoteAssets::new(vec![offered_asset])?;
-    let recipient = NoteRecipient::new(serial_num, note_script.clone(), inputs.clone());
+    let recipient = NoteRecipient::new(swap_serial_num, note_script.clone(), inputs.clone());
     let note = Note::new(assets.clone(), metadata, recipient.clone());
 
     // build the payback note details
@@ -234,7 +249,7 @@ fn test_partial_swap_fill() {
         Some(swap_consumer_token_b),
     );
 
-    let fill_number = 33;
+    let fill_number = 0;
 
     // SWAPp note
     let (swap_note, _payback_note, _note_script_hash) = create_partial_swap_note(

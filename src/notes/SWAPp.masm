@@ -10,6 +10,8 @@ use.std::math::u64
 # =================================================================================================
 
 const.OFFCHAIN_NOTE=2
+const.FACTOR=0x000186A0 # 1e5
+const.MAX_U32=0x0000000100000000
 
 # Memory Addresses
 # =================================================================================================
@@ -19,23 +21,34 @@ const.AMT_TOKENS_A=0x0064
 const.AMT_TOKENS_B=0x0065
 const.AMT_TOKENS_B_IN=0x0066
 const.RATIO=0x0067
-const.FACTOR=0x000186A0 # 1e5
-const.MAX_U32=0x0000000100000000
 
 # Memory Addresses for SWAPp Script
+
+# SWAPp Note Inputs
 const.PAYBACK_RECIPIENT=0x0000
 const.REQUESTED_ASSET=0x0001
 const.PAYBACK_TAG=0x0002
 const.SWAP_COUNT=0x0003
-const.SWAPP_SCRIPT_HASH=0x0004
-const.OFFERED_ASSET=0x0005
-const.TOKEN_A_ID=0x0006
-const.TOKEN_B_ID=0x0007
-const.TOKEN_A_AMT=0x0008
-const.TOKEN_B_AMT=0x0009
-const.TOKEN_B_AMT_IN=0x000A
-const.TOKEN_A_AMT_OUT=0x000B
-const.IS_PARTIAL_FILL=0x000C
+const.SWAP_CREATOR_ID=0x0004
+
+# SWAPp Script Hash
+const.SWAPP_SCRIPT_HASH=0x0005
+const.P2ID_SCRIPT_HASH=0x0006
+
+# temp variables
+const.OFFERED_ASSET=0x0007
+const.TOKEN_A_ID=0x0008
+const.TOKEN_B_ID=0x0009
+const.TOKEN_A_AMT=0x000A
+const.TOKEN_B_AMT=0x000B
+const.TOKEN_B_AMT_IN=0x000C
+const.TOKEN_A_AMT_OUT=0x000D
+const.IS_PARTIAL_FILL=0x000E
+
+# MISC
+const.SWAP_SERIAL_NUM=0x000F
+const.P2ID_SERIAL_NUM=0x0010
+const.P2ID_OUTPUT_RECIPIENT=0x0011
 
 # ERRORS
 # =================================================================================================
@@ -132,14 +145,14 @@ end
 
 #! Returns the incremented SWAP count value
 #!
-#! Inputs: [SWAP_COUNT, ...]
-#! Outputs: [SWAP_COUNT++, ...]
+#! Inputs: []
+#! Outputs: []
 #!
 proc.increment_swap_count
-    drop drop drop
+    mem_load.SWAP_COUNT
     push.1
     add
-    push.0.0.0
+    mem_store.SWAP_COUNT
 end
 
 # HASHING PROCEDURES
@@ -178,9 +191,21 @@ proc.get_note_inputs_commitment
     # => [Digest]
 end
 
+# inputs: [creator_id, SWAP_COUNT, TAG, ASSET_REQUESTED_REMAINING, PAYBACK_RECIPIENT]
+# ouputs: [SWAP_RECIPIENT]
+proc.get_swap_note_inputs_commitment
 
+    mem_store.84
+    mem_storew.83 dropw
+    mem_storew.82 dropw
+    mem_storew.81 dropw
+    mem_storew.80 dropw
 
+    push.17.80
 
+    exec.note::compute_inputs_hash
+
+end
 
 # RECLAIM FUNCTIONALITY PROCEDURES
 # =================================================================================================
@@ -188,7 +213,7 @@ end
 #! Returns the P2ID RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and account_id
 #!
 #! Inputs: [SERIAL_NUM, SCRIPT_HASH, account_id]
-#! Outputs: [RECIPIENT]
+#! Outputs: [P2ID_RECIPIENT]
 #!
 proc.build_p2id_recipient_hash
     padw hmerge
@@ -201,7 +226,24 @@ proc.build_p2id_recipient_hash
     # => [INPUT_HASH, SERIAL_SCRIPT_HASH]
 
     hmerge
-    # => [RECIPIENT]
+    # => [P2ID_RECIPIENT]
+end
+
+# @DEV TODO assign dedicated memory addresses
+# input: [SERIAL_NUM, swap_count, ...]
+# ouput: [P2ID_SERIAL_NUM, ...]
+proc.get_p2id_serial_num
+
+    mem_storew.40 dropw
+
+    mem_store.41
+
+    push.8.40
+    # [ptr, inputs]
+
+    exec.note::compute_inputs_hash
+    # => [P2ID_SERIAL_NUM]
+
 end
 
 #! Returns if the currently consuming account is the creator of the note
@@ -210,28 +252,43 @@ end
 #! Outputs: [is_creator]
 #!
 proc.is_consumer_is_creator
-    # get consuming account id
-    exec.account::get_id
 
-    # P2ID SCRIPT HASH
-    push.10602532918680875325.6675127147439709234.18374149518996115046.17430228962309045350
+    push.0
+    # => [SWAP_COUNT]
 
-    # serial num
     exec.note::get_serial_number
-    # => [SERIAL_NUM]
+    # => [SERIAL_NUM, 0]
+
+    mem_storew.0 mem_storew.SWAP_SERIAL_NUM
+    # => [SERIAL_NUM, 0]
+
+    exec.get_p2id_serial_num
+    # => [P2ID_SERIAL_NUM]
+
+    mem_storew.P2ID_SERIAL_NUM dropw
+    # => []
+
+    exec.account::get_id
+    # => [account_id]
+
+    mem_loadw.P2ID_SCRIPT_HASH
+    # => [P2ID_SCRIPT_HASH, account_id]
+
+    padw mem_loadw.P2ID_SERIAL_NUM
+    # => [P2ID_SERIAL_NUM, P2ID_SCRIPT_HASH, account_id]
 
     exec.build_p2id_recipient_hash
-    # => [RECIPIENT]
+    # => [P2ID_OG_RECIPIENT]
 
     # write inputs to mem drop num inputs & ptr
     push.0 exec.note::get_inputs drop drop
-    # => [RECIPIENT]
+    # => [P2ID_OG_RECIPIENT]
 
     padw mem_loadw.0
-    # => [RECIPIENT_mem, RECIPIENT]
+    # => [RECIPIENT_mem, P2ID_OG_RECIPIENT]
 
     eqw
-    # => [is_equal, RECIPIENT_mem, RECIPIENT]
+    # => [is_equal, RECIPIENT_mem, P2ID_OG_RECIPIENT]
 
     swap.8 dropw dropw
     # => [is_creator]
@@ -250,20 +307,6 @@ proc.handle_reclaim
     call.wallet::receive_asset
 
     dropw
-end
-
-proc.build_output_p2id_recipient_hash
-
-    exec.note::get_serial_number
-    
-    padw mem_loadw.SWAP_COUNT
-
-    push.222 debug.mem debug.stack drop
-
-    exec.get_note_inputs_commitment
-
-    push.333 debug.stack drop
-
 end
 
 # Partially Fillable Swap Script (SWAPp)
@@ -335,9 +378,9 @@ proc.execute_SWAPp
     push.0 exec.note::get_inputs
     # => [num_inputs, inputs_ptr]
 
-    # make sure the number of inputs is 10
-    eq.13 assert.err=ERR_SWAP_WRONG_NUMBER_OF_INPUTS
-    # => [inputs_ptr]    
+    # make sure the number of inputs is N
+    eq.17 assert.err=ERR_SWAP_WRONG_NUMBER_OF_INPUTS
+    # => [inputs_ptr]
 
     mem_loadw.REQUESTED_ASSET
     # => [REQUESTED_ASSET]
@@ -413,17 +456,31 @@ proc.execute_SWAPp
     # 3) create SWAPp' and calculate token_a' & token_b'
     # 4) add token_a' and token_b' to SWAPp'
 
+    mem_load.SWAP_CREATOR_ID
+    # => [creator_id]
 
-    push.111 debug.stack drop
+    padw mem_loadw.P2ID_SCRIPT_HASH
+    # => [P2ID_SCRIPT_HASH, creator_id]
 
-    exec.build_output_p2id_recipient_hash
+    exec.increment_swap_count
+    # => [P2ID_SCRIPT_HASH, creator_id]
 
+    mem_load.SWAP_COUNT
+    # => [swap_count, P2ID_SCRIPT_HASH, creator_id]
 
+    padw mem_loadw.SWAP_SERIAL_NUM
+    # => [SWAP_SERIAL_NUM, swap_count, P2ID_SCRIPT_HASH, creator_id]
+
+    exec.get_p2id_serial_num
+    # => [P2ID_SERIAL_NUM, P2ID_SCRIPT_HASH, creator_id]
+
+    exec.build_p2id_recipient_hash
+    # => [P2ID_RECIPIENT]
 
     # TODO: add aux value
     # 1) send token B amt to creator
     mem_loadw.PAYBACK_RECIPIENT push.OFFCHAIN_NOTE push.0 mem_load.PAYBACK_TAG mem_load.TOKEN_B_AMT_IN push.0.0 mem_load.TOKEN_B_ID
-    # => [requested_token_id, 0, 0, token_b_AMT_IN, tag, note_type, aux, RECIPIENT_P2ID]
+    # => [requested_token_id, 0, 0, token_b_AMT_IN, tag, note_type, aux, P2ID_RECIPIENT]
 
     # @dev P2ID creation
     call.wallet::send_asset dropw
@@ -457,10 +514,16 @@ proc.execute_SWAPp
         padw mem_loadw.SWAP_COUNT
         # => [SWAP_COUNT, TAG, ASSET_REQUESTED_REMAINING, PAYBACK_RECIPIENT]
 
-        exec.increment_swap_count
-        # => [SWAP_COUNT++,TAG, ASSET_REQUESTED_REMAINING, PAYBACK_RECIPIENT]
+        mem_load.SWAP_CREATOR_ID
+        # => [creator_id, SWAP_COUNT, TAG, ASSET_REQUESTED_REMAINING, PAYBACK_RECIPIENT]
 
-        exec.get_note_inputs_commitment
+        push.111 debug.stack debug.mem drop
+
+        exec.get_swap_note_inputs_commitment
+
+        push.222 debug.stack drop
+
+        # exec.get_note_inputs_commitment
         # => [INPUTS_HASH]
 
         padw mem_loadw.SWAPP_SCRIPT_HASH
@@ -523,6 +586,11 @@ begin
 
     # store SWAPp script hash to mem addr 4 & drop
     mem_storew.SWAPP_SCRIPT_HASH dropw
+    # => []
+
+    # store P2ID script hash
+    push.10602532918680875325.6675127147439709234.18374149518996115046.17430228962309045350
+    mem_storew.P2ID_SCRIPT_HASH dropw
     # => []
 
     exec.is_consumer_is_creator
