@@ -203,7 +203,11 @@ proc.get_swap_note_inputs_commitment
 
     push.17.80
 
+    push.302 debug.mem.80.84 drop
+
     exec.note::compute_inputs_hash
+
+    push.555 debug.stack drop
 
 end
 
@@ -358,16 +362,16 @@ proc.execute_SWAPp
     mem_store.TOKEN_B_AMT_IN
     # => []
 
-    # store asset into memory at address 3
-    exec.note::get_assets assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS
+    # store OFFERED_ASSET into memory
+    push.OFFERED_ASSET exec.note::get_assets assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS
     # => [ptr]
 
-    # load the asset and add it to the account
+    # load the asset
     mem_loadw
     # => [OFFERED_ASSET]
 
     # store token_a_id and offered asset
-    dup mem_store.TOKEN_A_ID mem_storew.OFFERED_ASSET
+    dup mem_store.TOKEN_A_ID
     # => []
 
     # store token_a_AMT to mem addr 8
@@ -477,9 +481,11 @@ proc.execute_SWAPp
     exec.build_p2id_recipient_hash
     # => [P2ID_RECIPIENT]
 
+    mem_storew.PAYBACK_RECIPIENT
+
     # TODO: add aux value
     # 1) send token B amt to creator
-    mem_loadw.PAYBACK_RECIPIENT push.OFFCHAIN_NOTE push.0 mem_load.PAYBACK_TAG mem_load.TOKEN_B_AMT_IN push.0.0 mem_load.TOKEN_B_ID
+    push.OFFCHAIN_NOTE push.0 mem_load.PAYBACK_TAG mem_load.TOKEN_B_AMT_IN push.0.0 mem_load.TOKEN_B_ID
     # => [requested_token_id, 0, 0, token_b_AMT_IN, tag, note_type, aux, P2ID_RECIPIENT]
 
     # @dev P2ID creation
@@ -520,6 +526,7 @@ proc.execute_SWAPp
         push.111 debug.stack debug.mem drop
 
         exec.get_swap_note_inputs_commitment
+        # => [INPUTS_COMMITMENT, ...]
 
         push.222 debug.stack drop
 

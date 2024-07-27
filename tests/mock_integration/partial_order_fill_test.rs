@@ -103,16 +103,20 @@ fn build_swap_tag(
     }
 }
 
-pub fn create_p2id_output_note(creator: AccountId, swap_serial_num: [Felt; 4], fill_number: u64) -> Result<(NoteRecipient, Word), NoteError> {
-    let p2id_serial_num: Word = NoteInputs::new(
-        vec![
-            swap_serial_num[0],
-            swap_serial_num[1],
-            swap_serial_num[2],
-            swap_serial_num[3],
-            Felt::new(fill_number)
-        ]
-    )?.commitment().into();
+pub fn create_p2id_output_note(
+    creator: AccountId,
+    swap_serial_num: [Felt; 4],
+    fill_number: u64,
+) -> Result<(NoteRecipient, Word), NoteError> {
+    let p2id_serial_num: Word = NoteInputs::new(vec![
+        swap_serial_num[0],
+        swap_serial_num[1],
+        swap_serial_num[2],
+        swap_serial_num[3],
+        Felt::new(fill_number),
+    ])?
+    .commitment()
+    .into();
 
     let payback_recipient = build_p2id_recipient(creator, p2id_serial_num)?;
 
@@ -135,8 +139,8 @@ pub fn create_partial_swap_note(
     )
     .unwrap();
 
-    let (payback_recipient, p2id_serial_num) = create_p2id_output_note(creator, swap_serial_num, fill_number).unwrap();
-    let (payback_recipient_1, p2id_serial_num_1) = create_p2id_output_note(creator, swap_serial_num, fill_number+1).unwrap();
+    let (payback_recipient, p2id_serial_num) =
+        create_p2id_output_note(creator, swap_serial_num, fill_number).unwrap();
 
     let payback_recipient_word: Word = payback_recipient.digest().into();
     let requested_asset_word: Word = requested_asset.into();
@@ -161,14 +165,20 @@ pub fn create_partial_swap_note(
         Felt::new(0),
         Felt::new(0),
         Felt::new(0),
-        creator.into()
+        creator.into(),
     ])?;
 
+    println!("inputs: {:?}", inputs);
+    println!("inputs.commitment: {:?}", inputs.commitment());
+
     // println!("p2id note script {:?}", payback_recipient.script().hash());
-    println!("p2id serial num {:?}", p2id_serial_num);
+/*     println!("p2id serial num {:?}", p2id_serial_num);
     println!("p2id serial num 1 {:?}", p2id_serial_num_1);
     println!("p2id payback recipient {:?}", payback_recipient_word);
-    println!("p2id payback recipient 1 {:?}", payback_recipient_1.digest());
+    println!(
+        "p2id payback recipient 1 {:?}",
+        payback_recipient_1.digest()
+    ); */
 
     let aux = ZERO;
 
@@ -259,7 +269,7 @@ fn test_partial_swap_fill() {
         requested_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
-        fill_number
+        fill_number,
     )
     .unwrap();
 
@@ -330,7 +340,7 @@ fn test_partial_swap_fill() {
         remaining_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
-        fill_number + 1
+        fill_number + 1,
     )
     .unwrap();
 
@@ -442,7 +452,7 @@ fn test_partial_swap_fill_graphical() {
         requested_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
-        0
+        0,
     )
     .unwrap();
 
@@ -683,7 +693,7 @@ fn test_complete_swapp_fill() {
         requested_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
-        0
+        0,
     )
     .unwrap();
 
@@ -753,7 +763,7 @@ fn test_complete_swapp_fill() {
         remaining_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
-        0
+        0,
     )
     .unwrap();
 
@@ -828,7 +838,7 @@ fn test_partial_swap_fill_multiple_consumers() {
         requested_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
-        0
+        0,
     )
     .unwrap();
 
@@ -902,7 +912,7 @@ fn test_partial_swap_fill_multiple_consumers() {
         remaining_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
-        0
+        0,
     )
     .unwrap();
 
@@ -1002,7 +1012,7 @@ fn test_partial_swap_fill_multiple_consumers() {
         remaining_token_b_1,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
-        0
+        0,
     )
     .unwrap();
 
@@ -1070,7 +1080,7 @@ fn test_swap_reclaim() {
         requested_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
-        0
+        0,
     )
     .unwrap();
 
@@ -1163,7 +1173,7 @@ fn test_swap_zero_amount() {
         requested_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
-        0
+        0,
     )
     .unwrap();
 
@@ -1253,7 +1263,7 @@ fn test_swap_false_amount_via_note_args() {
         requested_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
-        0
+        0,
     )
     .unwrap();
 
@@ -1360,7 +1370,7 @@ fn test_partial_swap_fill_with_note_args() {
         requested_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
-        0
+        0,
     )
     .unwrap();
 
@@ -1448,7 +1458,7 @@ fn test_partial_swap_fill_with_note_args() {
         remaining_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
-        0
+        0,
     )
     .unwrap();
 
@@ -1487,7 +1497,7 @@ pub fn get_note_script_hash() {
         requested_asset,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
-        0
+        0,
     )
     .unwrap();
 

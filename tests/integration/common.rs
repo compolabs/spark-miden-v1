@@ -1,9 +1,4 @@
-use std::{
-    collections::BTreeMap,
-    env::temp_dir,
-    rc::Rc,
-    time::Duration,
-};
+use std::{collections::BTreeMap, env::temp_dir, rc::Rc, time::Duration};
 
 use figment::{
     providers::{Format, Toml},
@@ -27,18 +22,15 @@ use miden_client::{
     Client, ClientError,
 };
 
-use miden_lib::{
-    notes::utils::build_p2id_recipient,
-    transaction::TransactionKernel,
-};
+use miden_lib::{notes::utils::build_p2id_recipient, transaction::TransactionKernel};
 
 use miden_objects::{
-    assets::{Asset, FungibleAsset, TokenSymbol},
     assembly::AssemblyContext,
+    assets::{Asset, FungibleAsset, TokenSymbol},
     crypto::rand::RpoRandomCoin,
     notes::{
-        Note, NoteAssets, NoteExecutionHint, NoteId, NoteInputs, NoteMetadata,
-        NoteRecipient, NoteScript, NoteTag, NoteType,
+        Note, NoteAssets, NoteExecutionHint, NoteId, NoteInputs, NoteMetadata, NoteRecipient,
+        NoteScript, NoteTag, NoteType,
     },
     transaction::{InputNote, TransactionId},
     vm::CodeBlock,
