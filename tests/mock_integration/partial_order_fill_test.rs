@@ -172,7 +172,7 @@ pub fn create_partial_swap_note(
     println!("inputs.commitment: {:?}", inputs.commitment());
 
     // println!("p2id note script {:?}", payback_recipient.script().hash());
-/*     println!("p2id serial num {:?}", p2id_serial_num);
+    /*     println!("p2id serial num {:?}", p2id_serial_num);
     println!("p2id serial num 1 {:?}", p2id_serial_num_1);
     println!("p2id payback recipient {:?}", payback_recipient_word);
     println!(
