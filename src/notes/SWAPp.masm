@@ -32,23 +32,23 @@ const.SWAP_COUNT=0x0003
 const.SWAP_CREATOR_ID=0x0004
 
 # SWAPp Script Hash
-const.SWAPP_SCRIPT_HASH=0x0005
-const.P2ID_SCRIPT_HASH=0x0006
+const.SWAPP_SCRIPT_HASH=0x0006
+const.P2ID_SCRIPT_HASH=0x0007
 
 # temp variables
-const.OFFERED_ASSET=0x0007
-const.TOKEN_A_ID=0x0008
-const.TOKEN_B_ID=0x0009
-const.TOKEN_A_AMT=0x000A
-const.TOKEN_B_AMT=0x000B
-const.TOKEN_B_AMT_IN=0x000C
-const.TOKEN_A_AMT_OUT=0x000D
-const.IS_PARTIAL_FILL=0x000E
+const.OFFERED_ASSET=0x0008
+const.TOKEN_A_ID=0x0009
+const.TOKEN_B_ID=0x000A
+const.TOKEN_A_AMT=0x000B
+const.TOKEN_B_AMT=0x000C
+const.TOKEN_B_AMT_IN=0x000D
+const.TOKEN_A_AMT_OUT=0x000E
+const.IS_PARTIAL_FILL=0x000F
 
 # MISC
-const.SWAP_SERIAL_NUM=0x000F
-const.P2ID_SERIAL_NUM=0x0010
-const.P2ID_OUTPUT_RECIPIENT=0x0011
+const.SWAP_SERIAL_NUM=0x0010
+const.P2ID_SERIAL_NUM=0x0011
+const.P2ID_OUTPUT_RECIPIENT=0x0012
 
 # ERRORS
 # =================================================================================================
@@ -191,6 +191,7 @@ proc.get_note_inputs_commitment
     # => [Digest]
 end
 
+# @dev debug this 
 # inputs: [creator_id, SWAP_COUNT, TAG, ASSET_REQUESTED_REMAINING, PAYBACK_RECIPIENT]
 # ouputs: [SWAP_RECIPIENT]
 proc.get_swap_note_inputs_commitment
@@ -202,6 +203,8 @@ proc.get_swap_note_inputs_commitment
     mem_storew.80 dropw
 
     push.17.80
+
+    push.303 debug.stack debug.mem.80.84 drop
 
     exec.note::compute_inputs_hash
 
@@ -362,6 +365,8 @@ proc.execute_SWAPp
     exec.note::get_assets assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS
     # => [ptr]
 
+    debug.mem
+
     # load the asset and add it to the account
     mem_loadw
     # => [OFFERED_ASSET]
@@ -377,6 +382,8 @@ proc.execute_SWAPp
     # store note inputs into memory starting at address 0
     push.0 exec.note::get_inputs
     # => [num_inputs, inputs_ptr]
+
+    debug.mem
 
     # make sure the number of inputs is N
     eq.17 assert.err=ERR_SWAP_WRONG_NUMBER_OF_INPUTS
@@ -498,8 +505,22 @@ proc.execute_SWAPp
     # => [is_partial_fill]
 
     if.true
+
+        mem_load.SWAP_CREATOR_ID
+
+        padw mem_loadw.P2ID_SCRIPT_HASH
+
+        mem_load.SWAP_COUNT
+
+        padw mem_loadw.SWAP_SERIAL_NUM
+
+        exec.get_p2id_serial_num
+
+        exec.build_p2id_recipient_hash
+
+
         # 3) create SWAPp' and calculate token_a' & token_b'
-        padw mem_loadw.PAYBACK_RECIPIENT
+        # padw mem_loadw.PAYBACK_RECIPIENT
         # => [PAYBACK_RECIPIENT]
 
         mem_load.TOKEN_B_AMT mem_load.TOKEN_B_AMT_IN sub
