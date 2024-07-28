@@ -506,44 +506,44 @@ proc.execute_SWAPp
 
     if.true
 
+        # compute P2ID payback recipient
         mem_load.SWAP_CREATOR_ID
+        # => [creator_id]
 
         padw mem_loadw.P2ID_SCRIPT_HASH
+        # => [P2ID_SCRIPT_HASH, creator_id]
 
         mem_load.SWAP_COUNT
+        # => [swap_count, P2ID_SCRIPT_HASH, creator_id]
 
         padw mem_loadw.SWAP_SERIAL_NUM
+        # => [SWAP_SERIAL_NUM, swap_count, P2ID_SCRIPT_HASH, creator_id]
 
         exec.get_p2id_serial_num
+        # => [P2ID_SERIAL_NUM, P2ID_SCRIPT_HASH, creator_id]
 
         exec.build_p2id_recipient_hash
+        # => [P2ID_RECIPIENT]
 
         # 3) create SWAPp' and calculate token_a' & token_b'
-        # padw mem_loadw.PAYBACK_RECIPIENT
-        # => [PAYBACK_RECIPIENT]
+        # => [P2ID_RECIPIENT]
 
         mem_load.TOKEN_B_AMT mem_load.TOKEN_B_AMT_IN sub
-        # => [token_b_AMT', PAYBACK_RECIPIENT]
+        # => [token_b_AMT', P2ID_RECIPIENT]
 
         push.0.0 mem_load.TOKEN_B_ID
-        # => [REQUESTED_ASSET_REMAINING, PAYBACK_RECIPIENT]
+        # => [REQUESTED_ASSET_REMAINING, P2ID_RECIPIENT]
 
         padw mem_loadw.PAYBACK_TAG
-        # => [payback_tag, ASSET_REQUESTED_REMAINING, PAYBACK_RECIPIENT]
+        # => [payback_tag, ASSET_REQUESTED_REMAINING, P2ID_RECIPIENT]
 
         padw mem_loadw.SWAP_COUNT
-        # => [SWAP_COUNT, TAG, ASSET_REQUESTED_REMAINING, PAYBACK_RECIPIENT]
+        # => [SWAP_COUNT, TAG, ASSET_REQUESTED_REMAINING, P2ID_RECIPIENT]
 
         mem_load.SWAP_CREATOR_ID
-        # => [creator_id, SWAP_COUNT, TAG, ASSET_REQUESTED_REMAINING, PAYBACK_RECIPIENT]
-
-        push.111 debug.stack drop
+        # => [creator_id, SWAP_COUNT, TAG, ASSET_REQUESTED_REMAINING, P2ID_RECIPIENT]
 
         exec.get_swap_note_inputs_commitment
-
-        push.222 debug.stack drop
-
-        # exec.get_note_inputs_commitment
         # => [INPUTS_HASH]
 
         padw mem_loadw.SWAPP_SCRIPT_HASH
