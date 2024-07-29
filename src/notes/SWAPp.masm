@@ -415,32 +415,7 @@ proc.execute_SWAPp
     end
 
     # 1) send token_b_in amt in to creator
-    # 2) send token_a_out amt to consumer
-
-    # If Partial Fill:
-    # 3) create SWAPp' and calculate token_a' & token_b'
-    # 4) add token_a' and token_b' to SWAPp'
-
-    mem_load.SWAP_CREATOR_ID
-    # => [creator_id]
-
-    padw mem_loadw.P2ID_SCRIPT_HASH
-    # => [P2ID_SCRIPT_HASH, creator_id]
-
-    exec.increment_swap_count
-    # => [P2ID_SCRIPT_HASH, creator_id]
-
-    mem_load.SWAP_COUNT
-    # => [swap_count, P2ID_SCRIPT_HASH, creator_id]
-
-    padw mem_loadw.SWAP_SERIAL_NUM
-    # => [SWAP_SERIAL_NUM, swap_count, P2ID_SCRIPT_HASH, creator_id]
-
-    exec.get_p2id_serial_num
-    # => [P2ID_SERIAL_NUM, P2ID_SCRIPT_HASH, creator_id]
-
-    exec.build_p2id_recipient_hash
-    # => [P2ID_RECIPIENT]
+    # 2) recieive token_a_out amt to consumer
 
     # TODO: add aux value
     # 1) send token B amt to creator
@@ -462,7 +437,12 @@ proc.execute_SWAPp
     mem_load.IS_PARTIAL_FILL
     # => [is_partial_fill]
 
+    # If Partial Fill:
+    # 3) create SWAPp' and calculate token_a' & token_b'
+    # 4) add token_a' and token_b' to SWAPp'
     if.true
+        exec.increment_swap_count
+        # => []
 
         # compute P2ID payback recipient
         mem_load.SWAP_CREATOR_ID
@@ -484,7 +464,6 @@ proc.execute_SWAPp
         # => [P2ID_RECIPIENT]
 
         # 3) create SWAPp' and calculate token_a' & token_b'
-        # => [P2ID_RECIPIENT]
 
         mem_load.TOKEN_B_AMT mem_load.TOKEN_B_AMT_IN sub
         # => [token_b_AMT', P2ID_RECIPIENT]
@@ -507,18 +486,22 @@ proc.execute_SWAPp
         padw mem_loadw.SWAPP_SCRIPT_HASH
         # => [SCRIPT_HASH, INPUTS_HASH]
 
-        # @dev TODO research SERIAL_NUM computation
+        # @dev using same SERIAL_NUM for SWAPp' note!
         exec.note::get_serial_number
         # => [SERIAL_NUM, SCRIPT_HASH, INPUTS_HASH]
 
         exec.tx::build_recipient_hash
         # => [RECIPIENT_SWAPP]
 
-        # @dev TODO research aux computation
-        push.OFFCHAIN_NOTE push.0 mem_load.PAYBACK_TAG
+        # @dev storing amt_a' in amt_a memory address
+        mem_load.TOKEN_A_AMT mem_load.TOKEN_A_AMT_OUT sub mem_store.AMT_TOKENS_A
+        # => [RECIPIENT_SWAPP]
+
+        # @dev using amt_a' as aux
+        push.OFFCHAIN_NOTE mem_load.AMT_TOKENS_A mem_load.PAYBACK_TAG
         # => [payback_tag, aux, note_type, RECIPIENT_SWAPP]
 
-        mem_load.TOKEN_A_AMT mem_load.TOKEN_A_AMT_OUT sub push.0.0 mem_load.TOKEN_A_ID
+        mem_load.AMT_TOKENS_A push.0.0 mem_load.TOKEN_A_ID
         # => [ASSET, payback_tag, aux, note_type, RECIPIENT_SWAPP]
 
         dupw call.wallet::receive_asset dropw

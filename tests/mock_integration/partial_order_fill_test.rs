@@ -168,19 +168,8 @@ pub fn create_partial_swap_note(
         creator.into(),
     ])?;
 
-    println!("inputs: {:?}", inputs);
-    println!("inputs.commitment: {:?}", inputs.commitment());
-
-    // println!("p2id note script {:?}", payback_recipient.script().hash());
-    /*     println!("p2id serial num {:?}", p2id_serial_num);
-    println!("p2id serial num 1 {:?}", p2id_serial_num_1);
-    println!("p2id payback recipient {:?}", payback_recipient_word);
-    println!(
-        "p2id payback recipient 1 {:?}",
-        payback_recipient_1.digest()
-    ); */
-
-    let aux = ZERO;
+    let offered_asset_amount: Word = offered_asset.into();
+    let aux = offered_asset_amount[0];
 
     // build the outgoing note
     let metadata = NoteMetadata::new(last_consumer, note_type, tag, aux)?;
