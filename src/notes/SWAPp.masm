@@ -158,39 +158,6 @@ end
 # HASHING PROCEDURES
 # =================================================================================================
 
-#! Computs the note inputs commitment for up to 16 inputs
-#!
-#! Inputs: [INPUTS_4, INPUTS_3, INPUTS_2, INPUTS_1]
-#! Outputs: [INPUTS_HASH]
-#!
-proc.get_note_inputs_commitment
-
-    # Initialize the capacity portion of the hasher state.
-    # Absorb the first 8 values into the hasher state.
-    swapdw padw movupw.2 movupw.2
-    # => [8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0]
-
-    # Execute the RPO permutation.
-    hperm
-    # => Permuted state [R2, R1, C]
-
-    # Drop the two capacity elements to absorb the 9th element.
-    dropw dropw
-    # => [R2, R1]
-
-    # Absorb the 9th element and apply padding.
-    movupw.2 movupw.2
-    # => [0, 0, 0, 0, 0, 0, 0, 9, R2, R1]
-
-    # Execute the RPO permutation.
-    hperm
-    # => Permuted state [R2, R1, C]
-
-    # Convert the state to the digest.
-    exec.native::state_to_digest
-    # => [Digest]
-end
-
 # @dev debug this
 # inputs: [creator_id, SWAP_COUNT, TAG, ASSET_REQUESTED_REMAINING, PAYBACK_RECIPIENT]
 # ouputs: [SWAP_RECIPIENT]
@@ -204,9 +171,27 @@ proc.get_swap_note_inputs_commitment
 
     debug.mem.80.84
 
+    # 17 inputs, but 24 field elements
     push.24.80
 
     exec.note::compute_inputs_hash
+
+end
+
+# @DEV TODO assign dedicated memory addresses
+# input: [SERIAL_NUM, swap_count, ...]
+# ouput: [P2ID_SERIAL_NUM, ...]
+proc.get_p2id_serial_num
+
+    mem_storew.40 dropw
+
+    mem_store.41
+
+    push.8.40
+    # [ptr, inputs]
+
+    exec.note::compute_inputs_hash
+    # => [P2ID_SERIAL_NUM]
 
 end
 
@@ -230,23 +215,6 @@ proc.build_p2id_recipient_hash
 
     hmerge
     # => [P2ID_RECIPIENT]
-end
-
-# @DEV TODO assign dedicated memory addresses
-# input: [SERIAL_NUM, swap_count, ...]
-# ouput: [P2ID_SERIAL_NUM, ...]
-proc.get_p2id_serial_num
-
-    mem_storew.40 dropw
-
-    mem_store.41
-
-    push.8.40
-    # [ptr, inputs]
-
-    exec.note::compute_inputs_hash
-    # => [P2ID_SERIAL_NUM]
-
 end
 
 #! Returns if the currently consuming account is the creator of the note
@@ -344,16 +312,6 @@ end
 # Inputs: [TOKEN_B_AMT_IN]
 # Outputs: []
 #
-# Note inputs are assumed to be as follows:
-# - RECIPIENT
-# - ASSET
-# - TAG = [tag, 0, 0, 0]
-#
-# FAILS if:
-# - Account vault does not contain the requested asset
-# - Adding a fungible asset would result in amount overflow, i.e., the total amount would be
-#   greater than 2^63
-#!
 proc.execute_SWAPp
 
     # if user does not supply amount token B in via note args
