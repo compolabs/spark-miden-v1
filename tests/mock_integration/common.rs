@@ -16,15 +16,13 @@ use miden_lib::notes::utils::build_p2id_recipient;
 use miden_objects::{
     accounts::StorageSlot,
     assembly::{AssemblyContext, ProgramAst},
-
     crypto::hash::rpo::RpoDigest,
     notes::{
-        Note, NoteAssets, NoteDetails, NoteExecutionHint, NoteInputs, NoteMetadata,
-        NoteRecipient, NoteScript, NoteTag, NoteType,
+        Note, NoteAssets, NoteDetails, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient,
+        NoteScript, NoteTag, NoteType,
     },
-    
     vm::CodeBlock,
-    NoteError, 
+    NoteError,
 };
 use miden_vm::Assembler;
 use std::collections::BTreeMap;
@@ -297,6 +295,8 @@ pub fn create_partial_swap_note(
     let (payback_recipient, _p2id_serial_num) =
         create_p2id_output_note(creator, swap_serial_num, fill_number).unwrap();
 
+    println!("p2id serial num: {:?}", _p2id_serial_num);
+
     let payback_recipient_word: Word = payback_recipient.digest().into();
     let requested_asset_word: Word = requested_asset.into();
 
@@ -322,6 +322,8 @@ pub fn create_partial_swap_note(
         Felt::new(0),
         creator.into(),
     ])?;
+
+    println!("payback recipient: {:?}", payback_recipient.digest());
 
     let offered_asset_amount: Word = offered_asset.into();
     let aux = offered_asset_amount[0];
@@ -363,7 +365,6 @@ pub fn format_value_to_float(value: u64, decimals: u32) -> f32 {
     let result: f32 = ((value as f32) / scale) as f32;
     result
 }
-
 
 pub const DEFAULT_ACCOUNT_CODE: &str = "
     use.miden::contracts::wallets::basic->basic_wallet

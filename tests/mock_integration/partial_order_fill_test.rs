@@ -623,7 +623,7 @@ fn test_partial_swap_fill_multiple_consumers() {
         Some(swap_consumer_token_b),
     );
 
-    let fill_number:u64 = 0;
+    let fill_number: u64 = 0;
 
     // Initial SWAPp note
     let (swap_note, _payback_note, _note_script_hash) = create_partial_swap_note(

@@ -224,49 +224,18 @@ end
 #!
 proc.is_consumer_is_creator
 
-    push.0
-    # => [SWAP_COUNT]
-
-    exec.note::get_serial_number
-    # => [SERIAL_NUM, 0]
-
-    mem_storew.0 mem_storew.SWAP_SERIAL_NUM
-    # => [SERIAL_NUM, 0]
-
-    exec.get_p2id_serial_num
-    # => [P2ID_SERIAL_NUM]
-
-    push.111 debug.stack drop
-
-    mem_storew.P2ID_SERIAL_NUM dropw
+    push.0 exec.note::get_inputs drop drop
     # => []
+
+    mem_load.SWAP_CREATOR_ID
+    # => [creator_id]
 
     exec.account::get_id
     # => [account_id]
 
-    push.222 debug.stack drop
-
-    mem_loadw.P2ID_SCRIPT_HASH
-    # => [P2ID_SCRIPT_HASH, account_id]
-
-    padw mem_loadw.P2ID_SERIAL_NUM
-    # => [P2ID_SERIAL_NUM, P2ID_SCRIPT_HASH, account_id]
-
-    exec.build_p2id_recipient_hash
-    # => [P2ID_OG_RECIPIENT]
-
-    # write inputs to mem drop num inputs & ptr
-    push.0 exec.note::get_inputs drop drop
-    # => [P2ID_OG_RECIPIENT]
-
-    padw mem_loadw.0
-    # => [RECIPIENT_mem, P2ID_OG_RECIPIENT]
-
-    eqw
-    # => [is_equal, RECIPIENT_mem, P2ID_OG_RECIPIENT]
-
-    swap.8 dropw dropw
+    eq
     # => [is_creator]
+
 end
 
 #! Sends Assets in Note to Consuming Account
@@ -317,6 +286,8 @@ end
 # Outputs: []
 #
 proc.execute_SWAPp
+
+    push.303 debug.stack drop
 
     # if user does not supply amount token B in via note args
     # then we use the amount of tokens B in their wallet
@@ -441,6 +412,9 @@ proc.execute_SWAPp
     # 3) create SWAPp' and calculate token_a' & token_b'
     # 4) add token_a' and token_b' to SWAPp'
     if.true
+
+        push.444 debug.stack drop
+
         exec.increment_swap_count
         # => []
 
@@ -454,7 +428,7 @@ proc.execute_SWAPp
         mem_load.SWAP_COUNT
         # => [swap_count, P2ID_SCRIPT_HASH, creator_id]
 
-        padw mem_loadw.SWAP_SERIAL_NUM
+        exec.note::get_serial_number mem_storew.SWAP_SERIAL_NUM
         # => [SWAP_SERIAL_NUM, swap_count, P2ID_SCRIPT_HASH, creator_id]
 
         exec.get_p2id_serial_num
@@ -487,7 +461,7 @@ proc.execute_SWAPp
         # => [SCRIPT_HASH, INPUTS_HASH]
 
         # @dev using same SERIAL_NUM for SWAPp' note!
-        exec.note::get_serial_number
+        padw mem_loadw.SWAP_SERIAL_NUM
         # => [SERIAL_NUM, SCRIPT_HASH, INPUTS_HASH]
 
         exec.tx::build_recipient_hash
