@@ -236,11 +236,15 @@ proc.is_consumer_is_creator
     exec.get_p2id_serial_num
     # => [P2ID_SERIAL_NUM]
 
+    push.111 debug.stack drop
+
     mem_storew.P2ID_SERIAL_NUM dropw
     # => []
 
     exec.account::get_id
     # => [account_id]
+
+    push.222 debug.stack drop
 
     mem_loadw.P2ID_SCRIPT_HASH
     # => [P2ID_SCRIPT_HASH, account_id]
@@ -323,8 +327,6 @@ proc.execute_SWAPp
     exec.note::get_assets assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS
     # => [ptr]
 
-    debug.mem
-
     # load the asset and add it to the account
     mem_loadw
     # => [OFFERED_ASSET]
@@ -340,8 +342,6 @@ proc.execute_SWAPp
     # store note inputs into memory starting at address 0
     push.0 exec.note::get_inputs
     # => [num_inputs, inputs_ptr]
-
-    debug.mem
 
     # make sure the number of inputs is N
     eq.17 assert.err=ERR_SWAP_WRONG_NUMBER_OF_INPUTS
@@ -556,6 +556,10 @@ begin
 
     exec.is_consumer_is_creator
     # => [is_creator]
+
+    push.111
+    debug.stack
+    drop
 
     if.true
         exec.handle_reclaim
