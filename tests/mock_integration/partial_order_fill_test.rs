@@ -1056,6 +1056,8 @@ fn test_swap_false_amount_via_note_args() {
         Some(swap_consumer_token_b),
     );
 
+    let fill_number: u64 = 0;
+
     // SWAPp note
     let (swap_note, _payback_note, _note_script_hash) = create_partial_swap_note(
         swapp_creator_account_id.clone(),
@@ -1064,7 +1066,7 @@ fn test_swap_false_amount_via_note_args() {
         requested_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
-        0,
+        fill_number,
     )
     .unwrap();
 
@@ -1163,6 +1165,8 @@ fn test_partial_swap_fill_with_note_args() {
         Some(swap_consumer_token_b),
     );
 
+    let fill_number: u64 = 0;
+
     // SWAPp note
     let (swap_note, _payback_note, _note_script_hash) = create_partial_swap_note(
         swapp_creator_account_id.clone(),
@@ -1171,7 +1175,7 @@ fn test_partial_swap_fill_with_note_args() {
         requested_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
-        0,
+        fill_number,
     )
     .unwrap();
 
@@ -1251,6 +1255,8 @@ fn test_partial_swap_fill_with_note_args() {
             .unwrap()
             .into();
 
+    let fill_number_1: u64 = 1;
+        
     // Note expected to be outputted by the transaction
     let (expected_swapp_note, _payback_note, _note_script_hash) = create_partial_swap_note(
         swapp_creator_account_id,
@@ -1259,7 +1265,7 @@ fn test_partial_swap_fill_with_note_args() {
         remaining_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
-        0,
+        fill_number_1,
     )
     .unwrap();
 

@@ -169,8 +169,7 @@ proc.get_swap_note_inputs_commitment
     mem_storew.81 dropw
     mem_storew.80 dropw
 
-    debug.mem.80.84
-
+    # @dev this will break: ping @bobbin @furman (RPO-Hash in rust pads values as multiple of 8)
     # 17 inputs, but 24 field elements
     push.24.80
 
@@ -222,7 +221,7 @@ end
 #! Inputs: []
 #! Outputs: [is_creator]
 #!
-proc.is_consumer_is_creator
+proc.is_consumer_creator
 
     push.0 exec.note::get_inputs drop drop
     # => []
@@ -286,8 +285,6 @@ end
 # Outputs: []
 #
 proc.execute_SWAPp
-
-    push.303 debug.stack drop
 
     # if user does not supply amount token B in via note args
     # then we use the amount of tokens B in their wallet
@@ -413,8 +410,6 @@ proc.execute_SWAPp
     # 4) add token_a' and token_b' to SWAPp'
     if.true
 
-        push.444 debug.stack drop
-
         exec.increment_swap_count
         # => []
 
@@ -523,17 +518,19 @@ begin
     mem_storew.SWAPP_SCRIPT_HASH dropw
     # => []
 
+    drop drop drop mem_store.TOKEN_B_AMT_IN
+    # => [token_b_amt_in]
+
+    # @dev assert the stack is empty here
+    # => []
+
     # store P2ID script hash
     push.10602532918680875325.6675127147439709234.18374149518996115046.17430228962309045350
     mem_storew.P2ID_SCRIPT_HASH dropw
     # => []
 
-    exec.is_consumer_is_creator
+    exec.is_consumer_creator
     # => [is_creator]
-
-    push.111
-    debug.stack
-    drop
 
     if.true
         exec.handle_reclaim
