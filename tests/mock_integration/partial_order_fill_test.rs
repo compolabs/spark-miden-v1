@@ -150,6 +150,8 @@ fn test_partial_swap_fill() {
         NoteHeader::from(expected_swapp_note.clone())
     );
 
+    println!("SWAPp' output note: {:?}", swapp_output_note.metadata());
+
     // @dev comment out to speed up test
     // assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
@@ -318,7 +320,7 @@ fn test_partial_swap_fill_graphical() {
         remaining_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
-        0,
+        1,
     )
     .unwrap();
 
@@ -1256,7 +1258,7 @@ fn test_partial_swap_fill_with_note_args() {
             .into();
 
     let fill_number_1: u64 = 1;
-        
+
     // Note expected to be outputted by the transaction
     let (expected_swapp_note, _payback_note, _note_script_hash) = create_partial_swap_note(
         swapp_creator_account_id,

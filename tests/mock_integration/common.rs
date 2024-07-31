@@ -295,8 +295,6 @@ pub fn create_partial_swap_note(
     let (payback_recipient, _p2id_serial_num) =
         create_p2id_output_note(creator, swap_serial_num, fill_number).unwrap();
 
-    println!("p2id serial num: {:?}", _p2id_serial_num);
-
     let payback_recipient_word: Word = payback_recipient.digest().into();
     let requested_asset_word: Word = requested_asset.into();
 
@@ -323,8 +321,6 @@ pub fn create_partial_swap_note(
         creator.into(),
     ])?;
 
-    println!("payback recipient: {:?}", payback_recipient.digest());
-
     let offered_asset_amount: Word = offered_asset.into();
     let aux = offered_asset_amount[0];
 
@@ -342,6 +338,13 @@ pub fn create_partial_swap_note(
 
     Ok((note, payback_note, note_script_hash))
 }
+
+// @dev todo
+/*
+pub fn create_swap_note_from_metadata(note_metadata: NoteMetadata, inital_offered_token_a: Asset, initial_requested_token_b:Asset) -> Result<(Note, NoteDetails, RpoDigest), NoteError> {
+
+}
+*/
 
 // Helper function to calculate tokens_a for tokens_b
 pub fn calculate_tokens_a_for_b(tokens_a: u64, tokens_b: u64, token_b_amount_in: u64) -> u64 {
@@ -425,4 +428,67 @@ pub fn get_account_with_default_account_code(
         account_code,
         Felt::new(1),
     )
+}
+
+pub fn create_consumer_creator_test(
+    creator: AccountId,
+    last_consumer: AccountId,
+    offered_asset: Asset,
+    requested_asset: Asset,
+    note_type: NoteType,
+    swap_serial_num: [Felt; 4],
+    fill_number: u64,
+) -> Result<(Note, NoteDetails, RpoDigest), NoteError> {
+    let note_code = include_str!("../../src/test/is_consumer_creator.masm");
+    let (note_script, _code_block) = new_note_script(
+        ProgramAst::parse(note_code).unwrap(),
+        &TransactionKernel::assembler().with_debug_mode(true),
+    )
+    .unwrap();
+
+    let (payback_recipient, _p2id_serial_num) =
+        create_p2id_output_note(creator, swap_serial_num, fill_number).unwrap();
+
+    let payback_recipient_word: Word = payback_recipient.digest().into();
+    let requested_asset_word: Word = requested_asset.into();
+
+    // build the tag for the SWAP use case
+    let tag = build_swap_tag(note_type, &offered_asset, &requested_asset)?;
+
+    let inputs = NoteInputs::new(vec![
+        payback_recipient_word[0],
+        payback_recipient_word[1],
+        payback_recipient_word[2],
+        payback_recipient_word[3],
+        requested_asset_word[0],
+        requested_asset_word[1],
+        requested_asset_word[2],
+        requested_asset_word[3],
+        tag.inner().into(),
+        Felt::new(0),
+        Felt::new(0),
+        Felt::new(0),
+        Felt::new(fill_number),
+        Felt::new(0),
+        Felt::new(0),
+        Felt::new(0),
+        creator.into(),
+    ])?;
+
+    let offered_asset_amount: Word = offered_asset.into();
+    let aux = offered_asset_amount[0];
+
+    // build the outgoing note
+    let metadata = NoteMetadata::new(last_consumer, note_type, tag, aux)?;
+    let assets = NoteAssets::new(vec![offered_asset])?;
+    let recipient = NoteRecipient::new(swap_serial_num, note_script.clone(), inputs.clone());
+    let note = Note::new(assets.clone(), metadata, recipient.clone());
+
+    // build the payback note details
+    let payback_assets = NoteAssets::new(vec![requested_asset])?;
+    let payback_note = NoteDetails::new(payback_assets, payback_recipient);
+
+    let note_script_hash = note_script.hash();
+
+    Ok((note, payback_note, note_script_hash))
 }

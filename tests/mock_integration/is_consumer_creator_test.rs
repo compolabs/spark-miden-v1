@@ -53,7 +53,7 @@ fn test_is_consumer_creator_reclaim_success() {
     let fill_number = 0;
 
     // SWAPp note
-    let (swap_note, _payback_note, _note_script_hash) = create_partial_swap_note(
+    let (swap_note, _payback_note, _note_script_hash) = create_consumer_creator_test(
         swapp_creator_account_id.clone(),
         swapp_creator_account_id.clone(),
         offered_token_a,
@@ -102,7 +102,7 @@ fn test_is_consumer_creator_reclaim_success() {
     assert!(executed_transaction.is_ok());
 }
 
-// @dev Test that the is_consumer_is_creator procedure fails when the consumer is not the creator
+// @dev Test that the is_consumer_creator procedure fails when the consumer is not the creator
 #[test]
 fn test_is_consumer_creator_unauthorized() {
     // ASSETS
@@ -144,7 +144,7 @@ fn test_is_consumer_creator_unauthorized() {
     let fill_number = 0;
 
     // SWAPp note
-    let (swap_note, _payback_note, _note_script_hash) = create_partial_swap_note(
+    let (swap_note, _payback_note, _note_script_hash) = create_consumer_creator_test(
         swapp_creator_account_id.clone(),
         swapp_creator_account_id.clone(),
         offered_token_a,
