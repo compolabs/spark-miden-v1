@@ -125,6 +125,8 @@ fn test_partial_swap_fill() {
             .unwrap()
             .into();
 
+    let swap_serial_num = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
+
     // Note expected to be outputted by the transaction
     let (expected_swapp_note, _payback_note, _note_script_hash) = create_partial_swap_note(
         swapp_creator_account_id,
@@ -132,7 +134,7 @@ fn test_partial_swap_fill() {
         remaining_token_a,
         remaining_token_b,
         NoteType::OffChain,
-        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+        swap_serial_num,
         fill_number + 1,
     )
     .unwrap();
@@ -150,7 +152,21 @@ fn test_partial_swap_fill() {
         NoteHeader::from(expected_swapp_note.clone())
     );
 
-    println!("SWAPp' output note: {:?}", swapp_output_note.metadata());
+    // Checking if it is possible to decompose the SWAPp note via the aux value hint
+    let (decomposed_swap_note, _note_details, _rpo_digest) = create_swap_note_from_metadata(
+        *swapp_output_note.metadata(),
+        swapp_creator_account_id,
+        swap_serial_num,
+        offered_token_a,
+        requested_token_b,
+        fill_number + 1,
+    )
+    .unwrap();
+
+    assert_eq!(
+        decomposed_swap_note.metadata(),
+        expected_swapp_note.metadata()
+    );
 
     // @dev comment out to speed up test
     // assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
@@ -239,6 +255,9 @@ fn test_partial_swap_fill_graphical() {
         Some(swap_consumer_token_b),
     );
 
+    let swap_serial_num = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
+    let fill_number = 0;
+
     // SWAPp note
     let (swap_note, _payback_note, _note_script_hash) = create_partial_swap_note(
         swapp_creator_account_id.clone(),
@@ -246,8 +265,8 @@ fn test_partial_swap_fill_graphical() {
         offered_token_a,
         requested_token_b,
         NoteType::OffChain,
-        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
-        0,
+        swap_serial_num,
+        fill_number,
     )
     .unwrap();
 
@@ -312,6 +331,9 @@ fn test_partial_swap_fill_graphical() {
             .unwrap()
             .into();
 
+    let serial_num = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
+    let fill_number: u64 = 1;
+
     // Note expected to be outputted by the transaction
     let (expected_swapp_note, _payback_note, _note_script_hash) = create_partial_swap_note(
         swapp_creator_account_id,
@@ -320,7 +342,7 @@ fn test_partial_swap_fill_graphical() {
         remaining_token_b,
         NoteType::OffChain,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
-        1,
+        fill_number,
     )
     .unwrap();
 
@@ -335,6 +357,22 @@ fn test_partial_swap_fill_graphical() {
     assert_eq!(
         NoteHeader::from(swapp_output_note),
         NoteHeader::from(expected_swapp_note.clone())
+    );
+
+    // Checking if it is possible to decompose the SWAPp note via the aux value hint
+    let (decomposed_swap_note, _note_details, _rpo_digest) = create_swap_note_from_metadata(
+        *swapp_output_note.metadata(),
+        swapp_creator_account_id,
+        swap_serial_num,
+        offered_token_a,
+        requested_token_b,
+        fill_number + 1,
+    )
+    .unwrap();
+
+    assert_eq!(
+        decomposed_swap_note.metadata(),
+        expected_swapp_note.metadata()
     );
 
     // @dev comment out to speed up test
@@ -625,6 +663,7 @@ fn test_partial_swap_fill_multiple_consumers() {
         Some(swap_consumer_token_b),
     );
 
+    let swap_serial_num = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
     let fill_number: u64 = 0;
 
     // Initial SWAPp note
@@ -634,7 +673,7 @@ fn test_partial_swap_fill_multiple_consumers() {
         offered_token_a,
         requested_token_b,
         NoteType::OffChain,
-        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+        swap_serial_num,
         fill_number,
     )
     .unwrap();
@@ -726,6 +765,22 @@ fn test_partial_swap_fill_multiple_consumers() {
     assert_eq!(
         NoteHeader::from(swapp_output_note),
         NoteHeader::from(expected_swapp_note.clone())
+    );
+
+    // Checking if it is possible to decompose the SWAPp note via the aux value hint
+    let (decomposed_swap_note, _note_details, _rpo_digest) = create_swap_note_from_metadata(
+        *swapp_output_note.metadata(),
+        swapp_creator_account_id,
+        swap_serial_num,
+        offered_token_a,
+        requested_token_b,
+        fill_number_1,
+    )
+    .unwrap();
+
+    assert_eq!(
+        decomposed_swap_note.metadata(),
+        expected_swapp_note.metadata()
     );
 
     // @dev comment out to speed up test
@@ -828,6 +883,22 @@ fn test_partial_swap_fill_multiple_consumers() {
     assert_eq!(
         NoteHeader::from(swapp_output_note_1),
         NoteHeader::from(expected_swapp_note_1.clone())
+    );
+
+    // Checking if it is possible to decompose the SWAPp note via the aux value hint
+    let (decomposed_swap_note, _note_details, _rpo_digest) = create_swap_note_from_metadata(
+        *swapp_output_note_1.metadata(),
+        swapp_creator_account_id,
+        swap_serial_num,
+        offered_token_a,
+        requested_token_b,
+        fill_number_2,
+    )
+    .unwrap();
+
+    assert_eq!(
+        decomposed_swap_note.metadata(),
+        expected_swapp_note_1.metadata()
     );
 
     // @dev commented out to speed up test

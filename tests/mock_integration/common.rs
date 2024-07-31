@@ -317,9 +317,6 @@ pub fn create_partial_swap_note(
         creator.into(),
     ])?;
 
-    println!("inputs: {:?}", inputs.values());
-    println!("inputs hash: {:?}", inputs.commitment());
-
     let offered_asset_amount: Word = offered_asset.into();
     let aux = offered_asset_amount[0];
 
@@ -339,21 +336,40 @@ pub fn create_partial_swap_note(
 }
 
 // @dev todo
-/* pub fn create_swap_note_from_metadata(note_metadata: NoteMetadata, initial_offered_token_a: Asset, initial_requested_token_b:Asset) -> Result<(Note, NoteDetails, RpoDigest), NoteError> {
+pub fn create_swap_note_from_metadata(
+    note_metadata: NoteMetadata,
+    note_creator: AccountId,
+    swap_serial_num: [Felt; 4],
+    initial_offered_token_a: Asset,
+    initial_requested_token_b: Asset,
+    fill_number: u64,
+) -> Result<(Note, NoteDetails, RpoDigest), NoteError> {
     let offered_remaining = note_metadata.aux();
 
-    // b / a == b1 / a1
+    // a / b == a1 / b1
     let a: u64 = initial_offered_token_a.unwrap_fungible().amount();
     let b: u64 = initial_requested_token_b.unwrap_fungible().amount();
 
-    let a1: u64 = offered_remaining.into(); 
-
-    // Calculate remaining requested tokens using the helper function
+    let a1: u64 = offered_remaining.into();
     let b1: u64 = calculate_tokens_b_for_a(a, b, a1);
 
-    // create asset etc
-    // then call create_partial_swap_note
-} */
+    let token_a_id: AccountId = initial_offered_token_a.faucet_id();
+    let token_b_id: AccountId = initial_requested_token_b.faucet_id();
+
+    let remaining_offered_token_a: Asset = FungibleAsset::new(token_a_id, a1).unwrap().into();
+    let remaining_requested_token_b: Asset = FungibleAsset::new(token_b_id, b1).unwrap().into();
+
+    Ok(create_partial_swap_note(
+        note_creator,
+        note_metadata.sender(),
+        remaining_offered_token_a,
+        remaining_requested_token_b,
+        NoteType::OffChain,
+        swap_serial_num,
+        fill_number,
+    )
+    .unwrap())
+}
 
 // Helper function to calculate tokens_a for tokens_b
 pub fn calculate_tokens_a_for_b(tokens_a: u64, tokens_b: u64, token_b_amount_in: u64) -> u64 {
