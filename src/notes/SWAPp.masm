@@ -168,8 +168,6 @@ proc.get_swap_note_inputs_commitment
     mem_loadw.SWAP_COUNT mem_storew.82 dropw
     mem_loadw.PAYBACK_TAG mem_storew.81 dropw
 
-    debug.mem.80.84
-
     # @dev this will break: ping @bobbin @furman (RPO-Hash in rust pads values as multiple of 8)
     # 13 inputs, but 16 field elements
     push.16.80
@@ -312,8 +310,6 @@ proc.execute_SWAPp
     push.0 exec.note::get_inputs
     # => [num_inputs, inputs_ptr]
 
-    debug.mem
-
     # make sure the number of inputs is N
     eq.13 assert.err=ERR_SWAP_WRONG_NUMBER_OF_INPUTS
     # => [inputs_ptr]
@@ -442,12 +438,8 @@ proc.execute_SWAPp
         push.0.0 mem_load.TOKEN_B_ID
         # => [REQUESTED_ASSET_REMAINING]
 
-        push.101 debug.stack drop
-
         exec.get_swap_note_inputs_commitment
         # => [INPUTS_HASH]
-
-        push.111 debug.stack drop
 
         padw mem_loadw.SWAPP_SCRIPT_HASH
         # => [SCRIPT_HASH, INPUTS_HASH]

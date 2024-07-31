@@ -2,7 +2,7 @@ use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountStorage, SlotItem},
     assembly::ModuleAst,
-    assets::{Asset, AssetVault},
+    assets::{Asset, AssetVault, FungibleAsset},
     crypto::{dsa::rpo_falcon512::SecretKey, utils::Serializable},
     transaction::{ExecutedTransaction, ProvenTransaction},
     Felt, Word,
@@ -339,11 +339,21 @@ pub fn create_partial_swap_note(
 }
 
 // @dev todo
-/*
-pub fn create_swap_note_from_metadata(note_metadata: NoteMetadata, inital_offered_token_a: Asset, initial_requested_token_b:Asset) -> Result<(Note, NoteDetails, RpoDigest), NoteError> {
+/* pub fn create_swap_note_from_metadata(note_metadata: NoteMetadata, initial_offered_token_a: Asset, initial_requested_token_b:Asset) -> Result<(Note, NoteDetails, RpoDigest), NoteError> {
+    let offered_remaining = note_metadata.aux();
 
-}
-*/
+    // b / a == b1 / a1
+    let a: u64 = initial_offered_token_a.unwrap_fungible().amount();
+    let b: u64 = initial_requested_token_b.unwrap_fungible().amount();
+
+    let a1: u64 = offered_remaining.into(); 
+
+    // Calculate remaining requested tokens using the helper function
+    let b1: u64 = calculate_tokens_b_for_a(a, b, a1);
+
+    // create asset etc
+    // then call create_partial_swap_note
+} */
 
 // Helper function to calculate tokens_a for tokens_b
 pub fn calculate_tokens_a_for_b(tokens_a: u64, tokens_b: u64, token_b_amount_in: u64) -> u64 {
@@ -355,6 +365,19 @@ pub fn calculate_tokens_a_for_b(tokens_a: u64, tokens_b: u64, token_b_amount_in:
     } else {
         let scaled_ratio = (tokens_a * scaling_factor) / tokens_b;
         (scaled_ratio * token_b_amount_in) / scaling_factor
+    }
+}
+
+// Helper function to calculate tokens_b for tokens_a
+pub fn calculate_tokens_b_for_a(tokens_a: u64, tokens_b: u64, token_a_amount_in: u64) -> u64 {
+    let scaling_factor: u64 = 100_000;
+
+    if tokens_a < tokens_b {
+        let scaled_ratio = (tokens_b * scaling_factor) / tokens_a;
+        (token_a_amount_in * scaled_ratio) / scaling_factor
+    } else {
+        let scaled_ratio = (tokens_a * scaling_factor) / tokens_b;
+        (token_a_amount_in * scaling_factor) / scaled_ratio
     }
 }
 
