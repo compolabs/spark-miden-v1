@@ -295,17 +295,13 @@ pub fn create_partial_swap_note(
     let (payback_recipient, _p2id_serial_num) =
         create_p2id_output_note(creator, swap_serial_num, fill_number).unwrap();
 
-    let payback_recipient_word: Word = payback_recipient.digest().into();
+    // let payback_recipient_word: Word = payback_recipient.digest().into();
     let requested_asset_word: Word = requested_asset.into();
 
     // build the tag for the SWAP use case
     let tag = build_swap_tag(note_type, &offered_asset, &requested_asset)?;
 
     let inputs = NoteInputs::new(vec![
-        payback_recipient_word[0],
-        payback_recipient_word[1],
-        payback_recipient_word[2],
-        payback_recipient_word[3],
         requested_asset_word[0],
         requested_asset_word[1],
         requested_asset_word[2],
@@ -320,6 +316,9 @@ pub fn create_partial_swap_note(
         Felt::new(0),
         creator.into(),
     ])?;
+
+    println!("inputs: {:?}", inputs.values());
+    println!("inputs hash: {:?}", inputs.commitment());
 
     let offered_asset_amount: Word = offered_asset.into();
     let aux = offered_asset_amount[0];

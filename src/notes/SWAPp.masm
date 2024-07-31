@@ -25,30 +25,29 @@ const.RATIO=0x0067
 # Memory Addresses for SWAPp Script
 
 # SWAPp Note Inputs
-const.PAYBACK_RECIPIENT=0x0000
-const.REQUESTED_ASSET=0x0001
-const.PAYBACK_TAG=0x0002
-const.SWAP_COUNT=0x0003
-const.SWAP_CREATOR_ID=0x0004
+const.REQUESTED_ASSET=0x0000
+const.PAYBACK_TAG=0x0001
+const.SWAP_COUNT=0x0002
+const.SWAP_CREATOR_ID=0x0003
 
 # SWAPp Script Hash
-const.SWAPP_SCRIPT_HASH=0x0006
-const.P2ID_SCRIPT_HASH=0x0007
+const.SWAPP_SCRIPT_HASH=0x0005
+const.P2ID_SCRIPT_HASH=0x0006
 
 # temp variables
-const.OFFERED_ASSET=0x0008
-const.TOKEN_A_ID=0x0009
-const.TOKEN_B_ID=0x000A
-const.TOKEN_A_AMT=0x000B
-const.TOKEN_B_AMT=0x000C
-const.TOKEN_B_AMT_IN=0x000D
-const.TOKEN_A_AMT_OUT=0x000E
-const.IS_PARTIAL_FILL=0x000F
+const.OFFERED_ASSET=0x0007
+const.TOKEN_A_ID=0x0008
+const.TOKEN_B_ID=0x0009
+const.TOKEN_A_AMT=0x000A
+const.TOKEN_B_AMT=0x000B
+const.TOKEN_B_AMT_IN=0x000C
+const.TOKEN_A_AMT_OUT=0x000D
+const.IS_PARTIAL_FILL=0x000E
 
 # MISC
-const.SWAP_SERIAL_NUM=0x0010
-const.P2ID_SERIAL_NUM=0x0011
-const.P2ID_OUTPUT_RECIPIENT=0x0012
+const.SWAP_SERIAL_NUM=0x000F
+const.P2ID_SERIAL_NUM=0x0010
+const.P2ID_OUTPUT_RECIPIENT=0x0011
 
 # ERRORS
 # =================================================================================================
@@ -159,19 +158,21 @@ end
 # =================================================================================================
 
 # @dev debug this
-# inputs: [creator_id, SWAP_COUNT, TAG, ASSET_REQUESTED_REMAINING, PAYBACK_RECIPIENT]
+# inputs: [ASSET_REQUESTED_REMAINING]
 # ouputs: [SWAP_RECIPIENT]
 proc.get_swap_note_inputs_commitment
 
-    mem_store.84
-    mem_storew.83 dropw
-    mem_storew.82 dropw
-    mem_storew.81 dropw
     mem_storew.80 dropw
 
+    mem_loadw.SWAP_CREATOR_ID mem_storew.83 dropw
+    mem_loadw.SWAP_COUNT mem_storew.82 dropw
+    mem_loadw.PAYBACK_TAG mem_storew.81 dropw
+
+    debug.mem.80.84
+
     # @dev this will break: ping @bobbin @furman (RPO-Hash in rust pads values as multiple of 8)
-    # 17 inputs, but 24 field elements
-    push.24.80
+    # 13 inputs, but 16 field elements
+    push.16.80
 
     exec.note::compute_inputs_hash
 
@@ -311,8 +312,10 @@ proc.execute_SWAPp
     push.0 exec.note::get_inputs
     # => [num_inputs, inputs_ptr]
 
+    debug.mem
+
     # make sure the number of inputs is N
-    eq.17 assert.err=ERR_SWAP_WRONG_NUMBER_OF_INPUTS
+    eq.13 assert.err=ERR_SWAP_WRONG_NUMBER_OF_INPUTS
     # => [inputs_ptr]
 
     mem_loadw.REQUESTED_ASSET
@@ -385,9 +388,31 @@ proc.execute_SWAPp
     # 1) send token_b_in amt in to creator
     # 2) recieive token_a_out amt to consumer
 
+    exec.increment_swap_count
+    # => []
+
+    # compute P2ID payback recipient
+    mem_load.SWAP_CREATOR_ID
+    # => [creator_id]
+
+    padw mem_loadw.P2ID_SCRIPT_HASH
+    # => [P2ID_SCRIPT_HASH, creator_id]
+
+    mem_load.SWAP_COUNT
+    # => [swap_count, P2ID_SCRIPT_HASH, creator_id]
+
+    exec.note::get_serial_number mem_storew.SWAP_SERIAL_NUM
+    # => [SWAP_SERIAL_NUM, swap_count, P2ID_SCRIPT_HASH, creator_id]
+
+    exec.get_p2id_serial_num
+    # => [P2ID_SERIAL_NUM, P2ID_SCRIPT_HASH, creator_id]
+
+    exec.build_p2id_recipient_hash
+    # => [P2ID_RECIPIENT]
+
     # TODO: add aux value
     # 1) send token B amt to creator
-    mem_loadw.PAYBACK_RECIPIENT push.OFFCHAIN_NOTE push.0 mem_load.PAYBACK_TAG mem_load.TOKEN_B_AMT_IN push.0.0 mem_load.TOKEN_B_ID
+    push.OFFCHAIN_NOTE push.0 mem_load.PAYBACK_TAG mem_load.TOKEN_B_AMT_IN push.0.0 mem_load.TOKEN_B_ID
     # => [requested_token_id, 0, 0, token_b_AMT_IN, tag, note_type, aux, P2ID_RECIPIENT]
 
     # @dev P2ID creation
@@ -409,48 +434,20 @@ proc.execute_SWAPp
     # 3) create SWAPp' and calculate token_a' & token_b'
     # 4) add token_a' and token_b' to SWAPp'
     if.true
-
-        exec.increment_swap_count
-        # => []
-
-        # compute P2ID payback recipient
-        mem_load.SWAP_CREATOR_ID
-        # => [creator_id]
-
-        padw mem_loadw.P2ID_SCRIPT_HASH
-        # => [P2ID_SCRIPT_HASH, creator_id]
-
-        mem_load.SWAP_COUNT
-        # => [swap_count, P2ID_SCRIPT_HASH, creator_id]
-
-        exec.note::get_serial_number mem_storew.SWAP_SERIAL_NUM
-        # => [SWAP_SERIAL_NUM, swap_count, P2ID_SCRIPT_HASH, creator_id]
-
-        exec.get_p2id_serial_num
-        # => [P2ID_SERIAL_NUM, P2ID_SCRIPT_HASH, creator_id]
-
-        exec.build_p2id_recipient_hash
-        # => [P2ID_RECIPIENT]
-
         # 3) create SWAPp' and calculate token_a' & token_b'
 
         mem_load.TOKEN_B_AMT mem_load.TOKEN_B_AMT_IN sub
-        # => [token_b_AMT', P2ID_RECIPIENT]
+        # => [token_b_AMT']
 
         push.0.0 mem_load.TOKEN_B_ID
-        # => [REQUESTED_ASSET_REMAINING, P2ID_RECIPIENT]
+        # => [REQUESTED_ASSET_REMAINING]
 
-        padw mem_loadw.PAYBACK_TAG
-        # => [payback_tag, ASSET_REQUESTED_REMAINING, P2ID_RECIPIENT]
-
-        padw mem_loadw.SWAP_COUNT
-        # => [SWAP_COUNT, TAG, ASSET_REQUESTED_REMAINING, P2ID_RECIPIENT]
-
-        mem_load.SWAP_CREATOR_ID
-        # => [creator_id, SWAP_COUNT, TAG, ASSET_REQUESTED_REMAINING, P2ID_RECIPIENT]
+        push.101 debug.stack drop
 
         exec.get_swap_note_inputs_commitment
         # => [INPUTS_HASH]
+
+        push.111 debug.stack drop
 
         padw mem_loadw.SWAPP_SCRIPT_HASH
         # => [SCRIPT_HASH, INPUTS_HASH]
