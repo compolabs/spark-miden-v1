@@ -52,6 +52,7 @@ fn test_partial_swap_fill() {
         Some(swap_consumer_token_b),
     );
 
+    let serial_num = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
     let fill_number = 0;
 
     // SWAPp note
@@ -61,7 +62,7 @@ fn test_partial_swap_fill() {
         offered_token_a,
         requested_token_b,
         NoteType::OffChain,
-        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+        serial_num,
         fill_number,
     )
     .unwrap();

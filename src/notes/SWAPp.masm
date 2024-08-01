@@ -16,14 +16,6 @@ const.MAX_U32=0x0000000100000000
 # Memory Addresses
 # =================================================================================================
 
-# Memory Addresses for Price Calculation Procedure
-const.AMT_TOKENS_A=0x0064
-const.AMT_TOKENS_B=0x0065
-const.AMT_TOKENS_B_IN=0x0066
-const.RATIO=0x0067
-
-# Memory Addresses for SWAPp Script
-
 # SWAPp Note Inputs
 const.REQUESTED_ASSET=0x0000
 const.PAYBACK_TAG=0x0001
@@ -48,6 +40,16 @@ const.IS_PARTIAL_FILL=0x000E
 const.SWAP_SERIAL_NUM=0x000F
 const.P2ID_SERIAL_NUM=0x0010
 const.P2ID_OUTPUT_RECIPIENT=0x0011
+
+# Memory Addresses for Price Calculation Procedure
+const.AMT_TOKENS_A=0x0064
+const.AMT_TOKENS_B=0x0065
+const.AMT_TOKENS_B_IN=0x0066
+const.RATIO=0x0067
+
+# Memory Addresses for P2ID serial_num computation
+const.TEMP_SERIAL_NUM=40
+const.TEMP_FILL_COUNT=41
 
 # ERRORS
 # =================================================================================================
@@ -176,14 +178,12 @@ proc.get_swap_note_inputs_commitment
 
 end
 
-# @DEV TODO assign dedicated memory addresses
-# input: [SERIAL_NUM, swap_count, ...]
+# inputs: [SERIAL_NUM, swap_count, ...]
 # ouput: [P2ID_SERIAL_NUM, ...]
 proc.get_p2id_serial_num
 
-    mem_storew.40 dropw
-
-    mem_store.41
+    mem_storew.TEMP_SERIAL_NUM dropw
+    mem_store.TEMP_FILL_COUNT
 
     push.8.40
     # [ptr, inputs]

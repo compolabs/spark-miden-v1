@@ -317,6 +317,8 @@ pub fn create_partial_swap_note(
         creator.into(),
     ])?;
 
+    println!("inputs: {:?}", inputs.values());
+
     let offered_asset_amount: Word = offered_asset.into();
     let aux = offered_asset_amount[0];
 
@@ -335,7 +337,6 @@ pub fn create_partial_swap_note(
     Ok((note, payback_note, note_script_hash))
 }
 
-// @dev todo
 pub fn create_swap_note_from_metadata(
     note_metadata: NoteMetadata,
     note_creator: AccountId,
