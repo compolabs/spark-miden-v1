@@ -1,8 +1,9 @@
+
 # SPARK-MIDEN-V1
 
 ### Settlement of Spot Order Trades with SWAPp
 
-Settlement of spot order trades on Spark-Miden-v1 is achieved through the use of SWAPp (partially fillable swap) notes. SWAPp notes have the following characteristics:
+Settlement of spot order trades on Spark-Miden-v1 is achieved through the use of partially fillable swap notes (SWAPp). SWAPp notes have the following characteristics:
 
 ### SWAPp Characteristics
 1. Can function as a regular SWAP note (as defined in the Miden-base repository).
@@ -11,7 +12,7 @@ Settlement of spot order trades on Spark-Miden-v1 is achieved through the use of
 
 ### What is Partial Consumption of a SWAPp Note?
 
-Partial consumption means that a SWAPp note allows a user who does not have sufficient liquidity to completely fill the SWAPp order to still execute their trade at the specified ratio of requested tokens in the SWAPp note. 
+Partial consumption means that a user who does not have sufficient liquidity to completely fill the SWAPp note can still execute their trade at the specified ratio of requested to offered tokens in the SWAPp note. 
 
 When partially filling a SWAPp note with liquidity L, the remaining liquidity L1 in the SWAPp note is added to the new outputted SWAPp note.
 
@@ -22,14 +23,10 @@ The process of partially filling a SWAPp note can continue N times until the liq
 
 ## SWAPp Note Inputs
 
-The SWAPp note has the same number of inputs as the standard SWAP note in the miden-base repository.
-
-This means there are nine stack elements as inputs to the SWAPp note:
 
 *In the context of Miden, when describing the stack, capitalized words represent four stack elements. Four stack elements are referred to as words.*
-
 ```
-Inputs: [PAYBACK_RECIPIENT, REQUESTED_ASSET, SWAPp_tag]
+Inputs: [REQUESTED_ASSET, SWAP_TAG, SWAP_COUNT, creator_id]
 ```
 
 The payback recipient is the RECIPIENT digest of the P2ID note.
@@ -69,6 +66,3 @@ cargo masm-fmt "src/**/*.masm"
 ```
 cargo install masm-formatter
 ```
-
-ratio = amt_a / amt_b
-amt_a_out = amt_b_in * ratio
