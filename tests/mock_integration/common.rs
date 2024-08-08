@@ -187,7 +187,8 @@ pub fn get_custom_account_code(
     let account_code_ast = ModuleAst::parse(account_code_src).unwrap();
     let account_assembler = TransactionKernel::assembler().with_debug_mode(true);
 
-    let account_code = AccountCode::new(account_code_ast.clone(), &account_assembler).unwrap();
+    let account_code: AccountCode =
+        AccountCode::new(account_code_ast.clone(), &account_assembler).unwrap();
 
     let account_storage = AccountStorage::new(
         vec![SlotItem {

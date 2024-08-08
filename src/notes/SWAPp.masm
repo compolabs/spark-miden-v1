@@ -346,9 +346,6 @@ proc.execute_SWAPp
 
         mem_store.TOKEN_B_AMT_IN
         # => []
-    else
-        # no need to verify that amount tokens b via note args is
-        # valid bc if it isn't call.wallet::send_asset will fail
     end
 
     mem_load.TOKEN_B_AMT_IN
