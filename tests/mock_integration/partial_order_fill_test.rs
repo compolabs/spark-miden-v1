@@ -93,7 +93,8 @@ fn test_partial_swap_fill() {
         .compile_tx_script(tx_script_ast.clone(), vec![], vec![])
         .unwrap();
 
-    let tx_args_target: TransactionArgs = TransactionArgs::new(Some(tx_script_target), None, AdviceMap::default());
+    let tx_args_target: TransactionArgs =
+        TransactionArgs::new(Some(tx_script_target), None, AdviceMap::default());
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
@@ -342,7 +343,7 @@ fn test_partial_swap_fill_graphical() {
         remaining_token_a,
         remaining_token_b,
         NoteType::OffChain,
-        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+        serial_num,
         fill_number,
     )
     .unwrap();
