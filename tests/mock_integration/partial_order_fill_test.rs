@@ -1,7 +1,6 @@
 // use assert_cmd::assert;
 use miden_objects::{
     accounts::AccountId,
-    assembly::ProgramAst,
     assets::{Asset, FungibleAsset},
     notes::{NoteAssets, NoteHeader, NoteType},
     transaction::TransactionArgs,
@@ -61,7 +60,7 @@ fn test_partial_swap_fill() {
         swapp_creator_account_id.clone(),
         offered_token_a,
         requested_token_b,
-        NoteType::OffChain,
+        NoteType::Private,
         serial_num,
         fill_number,
     )
