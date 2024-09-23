@@ -199,10 +199,32 @@ pub fn create_p2id_output_note(
     .commitment()
     .into();
 
-    println!("HERE");
     let payback_recipient = build_p2id_recipient(creator, p2id_serial_num)?;
-    println!("here");
+
     Ok((payback_recipient, p2id_serial_num))
+}
+
+pub fn create_p2id_note(
+    sender: AccountId,
+    target: AccountId,
+    assets: Vec<Asset>,
+    note_type: NoteType,
+    aux: Felt,
+    serial_num: [Felt; 4],
+) -> Result<Note, NoteError> {
+    let assembler: Assembler = TransactionKernel::assembler_testing().with_debug_mode(true);
+    let note_code = include_str!("../../src/notes/P2ID.masm");
+
+    let note_script = NoteScript::compile(note_code, assembler).unwrap();
+
+    let inputs = NoteInputs::new(vec![target.into()])?;
+    let tag = NoteTag::from_account_id(target, NoteExecutionMode::Local)?;
+
+    println!("tag: {:?}", tag);
+    let metadata = NoteMetadata::new(sender, note_type, tag, NoteExecutionHint::always(), aux)?;
+    let vault = NoteAssets::new(assets)?;
+    let recipient = NoteRecipient::new(serial_num, note_script, inputs);
+    Ok(Note::new(vault, metadata, recipient))
 }
 
 /// Generates a SWAP note - swap of assets between two accounts - and returns the note as well as
@@ -226,19 +248,11 @@ pub fn create_partial_swap_note(
     let assembler: Assembler = TransactionKernel::assembler_testing().with_debug_mode(true);
 
     let note_code = include_str!("../../src/notes/SWAPp.masm");
-
-    println!("before compile");
-
     let note_script = NoteScript::compile(note_code, assembler).unwrap();
-
     println!("after compile");
 
-    // println!("notescript: {:?}", note_script.mast());
-
-    let (payback_recipient, _p2id_serial_num) =
+    let (p2id_recipient, _p2id_serial_num) =
         create_p2id_output_note(creator, swap_serial_num, fill_number).unwrap();
-
-    println!("after p2id");
 
     let requested_asset_word: Word = requested_asset.into();
     let tag = build_swap_tag(note_type, &offered_asset, &requested_asset)?;
@@ -259,10 +273,8 @@ pub fn create_partial_swap_note(
         creator.into(),
     ])?;
 
-    println!("inputs: {:?}", inputs.values());
-
     // let offered_asset_amount: Word = offered_asset.into();
-    let aux = Felt::new(27);
+    let aux = Felt::new(0);
 
     // build the outgoing note
     let metadata = NoteMetadata::new(
@@ -277,11 +289,11 @@ pub fn create_partial_swap_note(
     let recipient = NoteRecipient::new(swap_serial_num, note_script.clone(), inputs.clone());
     let note = Note::new(assets.clone(), metadata, recipient.clone());
 
-    // build the payback note details
-    let payback_assets = NoteAssets::new(vec![requested_asset])?;
-    let payback_note = NoteDetails::new(payback_assets, payback_recipient);
+    // p2id payback note
+    let p2id_assets = NoteAssets::new(vec![requested_asset])?;
+    let p2id_note_details = NoteDetails::new(p2id_assets.clone(), p2id_recipient.clone());
 
     let note_script_hash = note_script.hash();
 
-    Ok((note, payback_note, note_script_hash))
+    Ok((note, p2id_note_details, note_script_hash))
 }

@@ -405,8 +405,9 @@ proc.execute_SWAPp
     # => [P2ID_RECIPIENT]
 
     # TODO: add aux value
+    # TODO P2ID tag
     # 1) send token B amt to creator
-    push.1 push.PUBLIC_NOTE push.0 mem_load.PAYBACK_TAG mem_load.TOKEN_B_AMT_IN push.0.0 mem_load.TOKEN_B_ID
+    push.1 push.PUBLIC_NOTE push.0 mem_load.3876782080 mem_load.TOKEN_B_AMT_IN push.0.0 mem_load.TOKEN_B_ID
     # => [requested_token_id, 0, 0, token_b_AMT_IN, tag, aux, note_type, execution_hint, P2ID_RECIPIENT]
 
     push.102
@@ -468,13 +469,8 @@ proc.execute_SWAPp
         mem_load.AMT_TOKENS_A push.0.0 mem_load.TOKEN_A_ID
         # => [ASSET, payback_tag, aux, note_type, RECIPIENT_SWAPP]
 
-        push.202
-        debug.stack
-        drop
-
         dupw call.wallet::receive_asset dropw
         # => [ASSET, payback_tag, aux, note_type, RECIPIENT_SWAPP]
-
 
         # SWAPp' creation
         call.wallet::send_asset
@@ -490,10 +486,6 @@ proc.execute_SWAPp
 end
 
 begin
-
-    push.111
-    debug.stack
-    drop
     # STEPS:
     # 1) Check if consuming account is creator account (check if reclaim)
 
@@ -541,10 +533,6 @@ begin
     else
         exec.execute_SWAPp
     end
-
-    push.222
-    debug.stack
-    drop
 
 end
 
