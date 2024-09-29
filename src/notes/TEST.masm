@@ -1,0 +1,41 @@
+use.miden::note
+use.miden::contracts::wallets::basic->wallet
+use.std::sys
+
+begin
+    # => [SCRIPT_HASH]
+
+    push.111
+    debug.stack
+    drop
+
+    dropw
+    # => []
+
+    push.0 exec.note::get_inputs
+    # => [num_inputs, dest_ptr]
+
+    drop drop
+    # => []
+
+    debug.mem
+
+    # get asset & recieve
+    push.0 exec.note::get_assets
+    mem_loadw.0
+    # => [ASSET]
+
+    debug.stack
+    debug.mem
+
+    call.wallet::receive_asset
+    # => []
+
+    push.222
+    debug.stack
+    drop
+
+    exec.sys::truncate_stack
+    # => []
+
+end

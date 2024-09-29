@@ -297,3 +297,65 @@ pub fn create_partial_swap_note(
 
     Ok((note, p2id_note_details, note_script_hash))
 }
+
+pub fn create_partial_swap_note_test(
+    creator: AccountId,
+    last_consumer: AccountId,
+    offered_asset: Asset,
+    requested_asset: Asset,
+    note_type: NoteType,
+    swap_serial_num: [Felt; 4],
+    fill_number: u64,
+) -> Result<(Note, NoteDetails, RpoDigest), NoteError> {
+    let assembler: Assembler = TransactionKernel::assembler_testing().with_debug_mode(true);
+
+    let note_code = include_str!("../../src/notes/TEST.masm");
+    let note_script = NoteScript::compile(note_code, assembler).unwrap();
+    println!("after compile");
+
+    let (p2id_recipient, _p2id_serial_num) =
+        create_p2id_output_note(creator, swap_serial_num, fill_number).unwrap();
+
+    let requested_asset_word: Word = requested_asset.into();
+    let tag = build_swap_tag(note_type, &offered_asset, &requested_asset)?;
+
+    let inputs = NoteInputs::new(vec![
+        requested_asset_word[0],
+        requested_asset_word[1],
+        requested_asset_word[2],
+        requested_asset_word[3],
+        tag.inner().into(),
+        Felt::new(0),
+        Felt::new(0),
+        Felt::new(0),
+        Felt::new(fill_number),
+        Felt::new(0),
+        Felt::new(0),
+        Felt::new(0),
+        creator.into(),
+    ])?;
+
+    // let offered_asset_amount: Word = offered_asset.into();
+    let aux = Felt::new(0);
+
+    // build the outgoing note
+    let metadata = NoteMetadata::new(
+        last_consumer,
+        note_type,
+        tag,
+        NoteExecutionHint::always(),
+        aux,
+    )?;
+
+    let assets = NoteAssets::new(vec![offered_asset])?;
+    let recipient = NoteRecipient::new(swap_serial_num, note_script.clone(), inputs.clone());
+    let note = Note::new(assets.clone(), metadata, recipient.clone());
+
+    // p2id payback note
+    let p2id_assets = NoteAssets::new(vec![requested_asset])?;
+    let p2id_note_details = NoteDetails::new(p2id_assets.clone(), p2id_recipient.clone());
+
+    let note_script_hash = note_script.hash();
+
+    Ok((note, p2id_note_details, note_script_hash))
+}
