@@ -25,7 +25,7 @@ fn prove_partial_swap_script() {
 
     let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let requested_asset: Asset = FungibleAsset::new(faucet_id_2, 100).unwrap().into();
-    let requested_available = FungibleAsset::new(faucet_id_2, 80).unwrap().into();
+    let requested_available = FungibleAsset::new(faucet_id_2, 100).unwrap().into();
 
     // Create sender and target account
     let sender_account = chain.add_new_wallet(Auth::BasicAuth, vec![offered_asset]);
@@ -35,7 +35,7 @@ fn prove_partial_swap_script() {
     let fill_number = 0;
 
     // Create the note containing the SWAP script
-    let (swap_note, payback_note, _note_script_hash) = create_partial_swap_note(
+    let (swap_note, payback_note, _note_script_hash) = create_partial_swap_note_test(
         sender_account.id(),
         sender_account.id(),
         offered_asset,
@@ -53,7 +53,7 @@ fn prove_partial_swap_script() {
     let offered_remaining = faucet.mint(20);
     let requested_remaning = FungibleAsset::new(faucet_id_2, 20).unwrap().into();
 
-    let (output_swap_note, _payback_note, _note_script_hash) = create_partial_swap_note(
+    let (output_swap_note, _payback_note, _note_script_hash) = create_partial_swap_note_test(
         sender_account.id(),
         target_account.id(),
         offered_remaining,
