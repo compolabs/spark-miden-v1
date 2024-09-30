@@ -1,20 +1,29 @@
+use std::os::unix::fs::lchown;
+
 use crate::common::*;
 use miden_client::transactions::OutputNote;
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, Account, AccountId},
+    accounts::{
+        account_id::testing::{
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_OFF_CHAIN_SENDER,
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2,
+        },
+        Account, AccountId,
+    },
     assets::{Asset, AssetVault, FungibleAsset},
     notes::{
         NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteHeader, NoteId, NoteMetadata,
         NoteTag, NoteType,
     },
-    testing::account_code::DEFAULT_AUTH_SCRIPT,
-    transaction::TransactionScript,
-    transaction::{ProvenTransaction, TransactionArgs},
+    testing::{account::AccountBuilder, account_code::DEFAULT_AUTH_SCRIPT},
+    transaction::{ProvenTransaction, TransactionArgs, TransactionScript},
     Felt, ZERO,
 };
 use miden_tx::testing::mock_chain::{Auth, MockChain};
 use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
+use rand_chacha::ChaCha20Rng;
 
 #[test]
 fn prove_partial_swap_script() {
@@ -23,13 +32,46 @@ fn prove_partial_swap_script() {
     let faucet = chain.add_existing_faucet(Auth::NoAuth, "POL", 100000u64);
     let offered_asset = faucet.mint(100);
 
+    println!("\n");
+    println!(
+        "tokenA (offered asset) faucet id: {:?}",
+        faucet.account().id()
+    );
+    println!("\n");
+
     let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let requested_asset: Asset = FungibleAsset::new(faucet_id_2, 100).unwrap().into();
-    let requested_available = FungibleAsset::new(faucet_id_2, 100).unwrap().into();
+    let requested_available: Asset = FungibleAsset::new(faucet_id_2, 100).unwrap().into();
+
+    println!("\n");
+    println!(
+        "tokenB (requested asset) faucet id: {:?}",
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN
+    );
+    println!("\n");
 
     // Create sender and target account
     let sender_account = chain.add_new_wallet(Auth::BasicAuth, vec![offered_asset]);
     let target_account = chain.add_existing_wallet(Auth::BasicAuth, vec![requested_available]);
+
+    /*   let sender_account_id =
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
+    let (sender_pub_key, _sender_falcon_auth) = get_new_pk_and_authenticator();
+
+    let sender_account =
+        get_account_with_default_account_code(sender_account_id, sender_pub_key, None);
+
+    let target_account_id = AccountId::try_from(ACCOUNT_ID_OFF_CHAIN_SENDER).unwrap();
+    let (target_pub_key, _target_falcon_auth) = get_new_pk_and_authenticator();
+
+    let target_account = get_account_with_default_account_code(
+        target_account_id,
+        target_pub_key,
+        requested_available.into(),
+    );
+
+    chain.add_account(sender_account.clone());
+    chain.add_account(target_account.clone()); */
 
     let serial_num = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
     let fill_number = 0;
@@ -50,7 +92,7 @@ fn prove_partial_swap_script() {
     chain.seal_block(None);
 
     // expected note
-    let offered_remaining = faucet.mint(20);
+    let offered_remaining = faucet.mint(0);
     let requested_remaning = FungibleAsset::new(faucet_id_2, 20).unwrap().into();
 
     let (output_swap_note, _payback_note, _note_script_hash) = create_partial_swap_note_test(
@@ -64,15 +106,37 @@ fn prove_partial_swap_script() {
     )
     .unwrap();
 
+    let p2id_serial_num: [Felt; 4] = [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(0)];
     let expected_output_p2id = create_p2id_note(
         target_account.id(),
         sender_account.id(),
         vec![requested_available],
         NoteType::Public,
         Felt::new(0),
-        payback_note.serial_num(),
+        p2id_serial_num,
     )
     .unwrap();
+
+    println!("\n");
+    println!(
+        "P2ID script hash: {:?}",
+        expected_output_p2id.script().hash()
+    );
+    println!("\n");
+
+    println!(
+        "P2ID recipient: {:?}",
+        expected_output_p2id.recipient().digest()
+    );
+    println!("\n");
+
+    println!("Sender AccountId: {:?}", sender_account.id());
+    println!("\n");
+
+    let execution_hint_1 = Felt::from(NoteExecutionHint::always());
+    println!("execution hint: {:?}", execution_hint_1);
+
+    let public_note_type = Felt::from(NoteType::Public);
 
     let expected_swapp_note: OutputNote =
         miden_objects::transaction::OutputNote::Full(output_swap_note);
@@ -92,11 +156,15 @@ fn prove_partial_swap_script() {
     let executed_transaction = chain
         .build_tx_context(target_account.id())
         .tx_script(tx_script)
-        .expected_notes(vec![expected_p2id_note, expected_swapp_note])
+        .expected_notes(vec![expected_p2id_note])
         .build()
         .execute()
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
     assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
+
+    println!("output {:?}", executed_transaction.output_notes());
+
+    assert_eq!(executed_transaction.output_notes()[0], expected_p2id_note);
 }

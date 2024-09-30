@@ -309,9 +309,9 @@ pub fn create_partial_swap_note_test(
 ) -> Result<(Note, NoteDetails, RpoDigest), NoteError> {
     let assembler: Assembler = TransactionKernel::assembler_testing().with_debug_mode(true);
 
-    let note_code = include_str!("../../src/notes/TEST.masm");
+    let note_code = include_str!("../../src/notes/PUBLIC_SWAPp.masm");
     let note_script = NoteScript::compile(note_code, assembler).unwrap();
-    println!("after compile");
+    // println!("after compile");
 
     let (p2id_recipient, _p2id_serial_num) =
         create_p2id_output_note(creator, swap_serial_num, fill_number).unwrap();
