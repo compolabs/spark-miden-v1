@@ -204,7 +204,7 @@ proc.get_note_inputs_commitment
     # => [Digest]
 end
 
-# @dev debug this 
+# @dev debug this
 # inputs: [creator_id, SWAP_COUNT, TAG, ASSET_REQUESTED_REMAINING, PAYBACK_RECIPIENT]
 # ouputs: [SWAP_RECIPIENT]
 proc.get_swap_note_inputs_commitment
@@ -530,7 +530,6 @@ proc.execute_SWAPp
         exec.get_p2id_serial_num
 
         exec.build_p2id_recipient_hash
-
 
         # 3) create SWAPp' and calculate token_a' & token_b'
         # padw mem_loadw.PAYBACK_RECIPIENT

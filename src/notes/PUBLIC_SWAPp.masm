@@ -21,7 +21,6 @@ proc.build_p2id_recipient_hash
     # => [P2ID_RECIPIENT]
 end
 
-
 begin
     # => [SCRIPT_HASH]
     dropw
@@ -74,19 +73,19 @@ begin
 
     push.0
     # => [aux, public_note, execution_hint_always, P2ID_RECIPIENT]
- 
+
     push.3863019520
     # => [tag, aux, public_note, execution_hint_always, P2ID_RECIPIENT]
     # => [tag, aux, note_type, execution_hint, RECIPIENT]
 
-    push.333 
-    debug.stack 
+    push.333
+    debug.stack
     drop
 
     padw
     mem_loadw.0
 
-    push.444 
+    push.444
     debug.stack
     drop
 

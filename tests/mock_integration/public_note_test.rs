@@ -136,8 +136,6 @@ fn prove_partial_swap_script() {
     let execution_hint_1 = Felt::from(NoteExecutionHint::always());
     println!("execution hint: {:?}", execution_hint_1);
 
-    let public_note_type = Felt::from(NoteType::Public);
-
     let expected_swapp_note: OutputNote =
         miden_objects::transaction::OutputNote::Full(output_swap_note);
 
@@ -166,5 +164,5 @@ fn prove_partial_swap_script() {
 
     println!("output {:?}", executed_transaction.output_notes());
 
-    // assert_eq!(executed_transaction.output_notes(), expected_p2id_note);
+    // assert_eq!(executed_transaction.output_notes().get_note(0), expected_p2id_note);
 }
