@@ -89,9 +89,6 @@ begin
     debug.stack
     drop
 
-    # if send asset is commented out, the tx succeeds,
-    # otherwise if fails with: Public note missing the details in the advice provider
-
     # => [ASSET, tag, aux, note_type, execution_hint, RECIPIENT]
     call.wallet::send_asset dropw
 
