@@ -54,25 +54,6 @@ fn prove_partial_swap_script() {
     let sender_account = chain.add_new_wallet(Auth::BasicAuth, vec![offered_asset]);
     let target_account = chain.add_existing_wallet(Auth::BasicAuth, vec![requested_available]);
 
-    /*   let sender_account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
-    let (sender_pub_key, _sender_falcon_auth) = get_new_pk_and_authenticator();
-
-    let sender_account =
-        get_account_with_default_account_code(sender_account_id, sender_pub_key, None);
-
-    let target_account_id = AccountId::try_from(ACCOUNT_ID_OFF_CHAIN_SENDER).unwrap();
-    let (target_pub_key, _target_falcon_auth) = get_new_pk_and_authenticator();
-
-    let target_account = get_account_with_default_account_code(
-        target_account_id,
-        target_pub_key,
-        requested_available.into(),
-    );
-
-    chain.add_account(sender_account.clone());
-    chain.add_account(target_account.clone()); */
-
     let serial_num = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
     let fill_number = 0;
 

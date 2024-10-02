@@ -1,6 +1,7 @@
 use.miden::note
 use.miden::contracts::wallets::basic->wallet
 use.std::sys
+use.miden::account
 
 #! Returns the P2ID RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and account_id
 #!
@@ -23,6 +24,10 @@ end
 
 begin
     # => [SCRIPT_HASH]
+
+    mem_storew.10
+    # => [SCRIPT_HASH]
+
     dropw
     # => []
 
@@ -32,17 +37,10 @@ begin
     drop drop
     # => []
 
-    debug.mem
-
     # get asset & recieve
     push.4 exec.note::get_assets
     mem_loadw.4
     # => [ASSET]
-
-    push.111
-    debug.stack
-    # debug.mem
-    drop
 
     call.wallet::receive_asset
     # => []
@@ -57,10 +55,6 @@ begin
 
     push.0.0.0.0
     # => [SERIAL_NUM, SCRIPT_HASH, account_id]
-
-    push.202
-    debug.stack
-    drop
 
     exec.build_p2id_recipient_hash
     # => [P2ID_RECIPIENT]
@@ -78,19 +72,59 @@ begin
     # => [tag, aux, public_note, execution_hint_always, P2ID_RECIPIENT]
     # => [tag, aux, note_type, execution_hint, RECIPIENT]
 
-    push.333
+    padw
+    mem_loadw.0
+
+    push.111
     debug.stack
     drop
 
-    padw
-    mem_loadw.0
+    # => [ASSET, tag, aux, note_type, execution_hint, RECIPIENT]
+    call.wallet::send_asset
+    # => [0, ASSET] @dev ?
+
+    drop dropw
+    # => []
+
+    push.222
+    debug.stack
+    drop
+
+    # Output public SWAPp
+    # mem_loadw.10
+    # => [SWAPp_SCRIPT]
+
+    push.0 exec.note::get_inputs
+    drop drop
+
+    padw mem_loadw.3
+    padw mem_loadw.2
+    padw mem_loadw.1
+    padw mem_loadw.0
+
+    push.333
+    debug.mem
+    debug.stack
+    drop
+
+    push.1
+    # => [execution_hint_always, SWAPp_RECIPIENT]
+
+    push.1
+    # => [public_note, execution_hint_always, SWAPp_RECIPIENT]
+
+    push.0
+    # => [aux, public_note, execution_hint_always, SWAPp_RECIPIENT]
+
+    push.2147524096
+    # => [tag, aux, public_note, execution_hint_always, SWAPp_RECIPIENT]
 
     push.444
     debug.stack
     drop
 
-    # => [ASSET, tag, aux, note_type, execution_hint, RECIPIENT]
-    call.wallet::send_asset dropw
+
+    
 
     push.555
     debug.stack
@@ -98,6 +132,6 @@ begin
 
     # commented out to speed up test
     # tx passes if uncommented
-    exec.sys::truncate_stack
+    # exec.sys::truncate_stack
     # => []
 end
