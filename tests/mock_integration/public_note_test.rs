@@ -73,8 +73,8 @@ fn prove_partial_swap_script() {
     chain.seal_block(None);
 
     // expected note
-    let offered_remaining = faucet.mint(0);
-    let requested_remaning = FungibleAsset::new(faucet_id_2, 20).unwrap().into();
+    let offered_remaining = faucet.mint(50);
+    let requested_remaning = FungibleAsset::new(faucet_id_2, 100).unwrap().into();
 
     let (output_swap_note, _payback_note, _note_script_hash) = create_partial_swap_note_test(
         sender_account.id(),
@@ -83,7 +83,7 @@ fn prove_partial_swap_script() {
         requested_remaning,
         NoteType::Public,
         serial_num,
-        fill_number + 1,
+        fill_number, // fill_number + 1,
     )
     .unwrap();
 
@@ -135,7 +135,7 @@ fn prove_partial_swap_script() {
     let executed_transaction = chain
         .build_tx_context(target_account.id())
         .tx_script(tx_script)
-        .expected_notes(vec![expected_p2id_note])
+        .expected_notes(vec![expected_p2id_note, expected_swapp_note])
         .build()
         .execute()
         .unwrap();

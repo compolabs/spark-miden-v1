@@ -23,6 +23,8 @@ use miden_vm::Assembler;
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use vm_processor::utils::Deserializable;
 
+use miden_objects::Digest;
+use miden_objects::Hasher;
 // HELPER FUNCTIONS
 // ================================================================================================
 
@@ -335,6 +337,8 @@ pub fn create_partial_swap_note_test(
         creator.into(),
     ])?;
 
+    println!("input hash: {:?}", inputs.commitment());
+
     // let offered_asset_amount: Word = offered_asset.into();
     let aux = Felt::new(0);
 
@@ -347,9 +351,24 @@ pub fn create_partial_swap_note_test(
         aux,
     )?;
 
+    println!("metadata: {:?}", metadata);
+
     let assets = NoteAssets::new(vec![offered_asset])?;
     let recipient = NoteRecipient::new(swap_serial_num, note_script.clone(), inputs.clone());
     let note = Note::new(assets.clone(), metadata, recipient.clone());
+
+    let serial_num_hash: RpoDigest = Hasher::merge(&[swap_serial_num.into(), Digest::default()]);
+    let merge_script = Hasher::merge(&[serial_num_hash, note_script.hash()]);
+    let recipient_hash = Hasher::merge(&[merge_script, inputs.commitment()]);
+
+    println!("serial num hash: {:?}", serial_num_hash);
+    println!("merge script: {:?}", merge_script);
+    println!("recipient hash: {:?}", recipient_hash);
+
+    println!("SWAPp serial num: {:?}", swap_serial_num);
+    println!("SWAP note script: {:?}", note_script.hash());
+    println!("SWAP input hash: {:?}", inputs.commitment());
+    println!("recipient hash: {:?}", recipient.digest());
 
     // p2id payback note
     let p2id_assets = NoteAssets::new(vec![requested_asset])?;

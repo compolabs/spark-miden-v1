@@ -22,6 +22,41 @@ proc.build_p2id_recipient_hash
     # => [P2ID_RECIPIENT]
 end
 
+# @dev debug this
+# inputs: [creator_id, SWAP_COUNT, TAG, ASSET_REQUESTED_REMAINING, PAYBACK_RECIPIENT]
+# ouputs: [SWAP_RECIPIENT]
+proc.get_swap_note_inputs_commitment
+
+    mem_store.84
+    mem_storew.83 dropw
+    mem_storew.82 dropw
+    mem_storew.81 dropw
+    mem_storew.80 dropw
+
+    push.17.80
+
+    push.303 debug.stack debug.mem.80.84 drop
+
+    exec.note::compute_inputs_hash
+
+end
+
+#! Returns the NOTE RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and INPUT_HASH
+#!
+#! Inputs: [SERIAL_NUM, SCRIPT_HASH, INPUT_HASH]
+#! Outputs: [P2ID_RECIPIENT]
+#!
+proc.build_recipient_hash
+    padw hmerge
+    # => [SERIAL_NUM_HASH, SCRIPT_HASH, INPUT_HASH]
+
+    swapw hmerge
+    # => [SERIAL_SCRIPT_HASH, INPUT_HASH]
+
+    swapw hmerge
+    # => [P2ID_RECIPIENT]
+end
+
 begin
     # => [SCRIPT_HASH]
 
@@ -41,6 +76,13 @@ begin
     push.4 exec.note::get_assets
     mem_loadw.4
     # => [ASSET]
+
+    # @dev 50 in 50 out
+    swap.3 drop push.50 swap.3
+
+    push.111
+    debug.stack
+    drop
 
     call.wallet::receive_asset
     # => []
@@ -75,7 +117,7 @@ begin
     padw
     mem_loadw.0
 
-    push.111
+    push.222
     debug.stack
     drop
 
@@ -86,26 +128,22 @@ begin
     drop dropw
     # => []
 
-    push.222
-    debug.stack
-    drop
-
-    # Output public SWAPp
-    # mem_loadw.10
-    # => [SWAPp_SCRIPT]
-
     push.0 exec.note::get_inputs
     drop drop
 
-    padw mem_loadw.3
-    padw mem_loadw.2
-    padw mem_loadw.1
-    padw mem_loadw.0
+    push.16.0
 
-    push.333
-    debug.mem
-    debug.stack
-    drop
+    exec.note::compute_inputs_hash
+    # => [INPUT_COMMITMENT]
+
+    padw mem_loadw.10
+    # => [SCRIPT_HASH, INPUT_COMMITMENT]
+
+    push.1.2.3.4
+    # => [SERIAL_NUM, SCRIPT_HASH, INPUT_COMMITMENT]
+
+    exec.build_recipient_hash
+    # => [SWAPp_RECIPIENT]
 
     push.1
     # => [execution_hint_always, SWAPp_RECIPIENT]
@@ -119,19 +157,32 @@ begin
     push.2147524096
     # => [tag, aux, public_note, execution_hint_always, SWAPp_RECIPIENT]
 
-    push.444
-    debug.stack
-    drop
+    push.444 debug.stack drop
 
+    push.4 exec.note::get_assets
+    drop drop
 
-    
+    padw mem_loadw.4
+    # => [ASSET, tag, aux, public_note, execution_hint_always, SWAPp_RECIPIENT]
+
+    # @dev 50 in 50 out
+    swap.3 drop push.50 swap.3
 
     push.555
     debug.stack
     drop
 
+    dupw call.wallet::receive_asset dropw
+
+    # => [ASSET, tag, aux, note_type, execution_hint, RECIPIENT]
+    call.wallet::send_asset
+
+    push.666
+    debug.stack
+    drop
+
     # commented out to speed up test
     # tx passes if uncommented
-    # exec.sys::truncate_stack
+    exec.sys::truncate_stack
     # => []
 end
