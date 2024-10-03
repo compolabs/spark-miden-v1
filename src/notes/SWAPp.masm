@@ -34,8 +34,6 @@ const.SWAP_CREATOR_ID=0x0004
 # SWAPp Script Hash
 const.SWAPP_SCRIPT_HASH=0x0006
 const.P2ID_SCRIPT_HASH=0x0007
-const.SWAPP_SCRIPT_HASH=0x0006
-const.P2ID_SCRIPT_HASH=0x0007
 
 # temp variables
 const.OFFERED_ASSET=0x0008
@@ -46,19 +44,8 @@ const.TOKEN_B_AMT=0x000C
 const.TOKEN_B_AMT_IN=0x000D
 const.TOKEN_A_AMT_OUT=0x000E
 const.IS_PARTIAL_FILL=0x000F
-const.OFFERED_ASSET=0x0008
-const.TOKEN_A_ID=0x0009
-const.TOKEN_B_ID=0x000A
-const.TOKEN_A_AMT=0x000B
-const.TOKEN_B_AMT=0x000C
-const.TOKEN_B_AMT_IN=0x000D
-const.TOKEN_A_AMT_OUT=0x000E
-const.IS_PARTIAL_FILL=0x000F
 
 # MISC
-const.SWAP_SERIAL_NUM=0x0010
-const.P2ID_SERIAL_NUM=0x0011
-const.P2ID_OUTPUT_RECIPIENT=0x0012
 const.SWAP_SERIAL_NUM=0x0010
 const.P2ID_SERIAL_NUM=0x0011
 const.P2ID_OUTPUT_RECIPIENT=0x0012
@@ -377,8 +364,6 @@ proc.execute_SWAPp
     # store asset into memory at address 3
     exec.note::get_assets assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS
     # => [ptr]
-
-    debug.mem
 
     # load the asset and add it to the account
     mem_loadw
