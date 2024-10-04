@@ -161,25 +161,6 @@ proc.build_p2id_recipient_hash
     # => [P2ID_RECIPIENT]
 end
 
-# @dev debug this
-# inputs: [creator_id, SWAP_COUNT, TAG, ASSET_REQUESTED_REMAINING, PAYBACK_RECIPIENT]
-# ouputs: [SWAP_RECIPIENT]
-proc.get_swap_note_inputs_commitment
-
-    mem_store.84
-    mem_storew.83 dropw
-    mem_storew.82 dropw
-    mem_storew.81 dropw
-    mem_storew.80 dropw
-
-    push.17.80
-
-    push.303 debug.stack debug.mem.80.84 drop
-
-    exec.note::compute_inputs_hash
-
-end
-
 #! Returns the NOTE RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and INPUT_HASH
 #!
 #! Inputs: [SERIAL_NUM, SCRIPT_HASH, INPUT_HASH]
@@ -253,8 +234,6 @@ proc.execute_SWAPp
     # store note inputs into memory starting at address 0
     push.0 exec.note::get_inputs
     # => [num_inputs, inputs_ptr]
-
-    debug.mem
 
     # make sure the number of inputs is N
     eq.13 assert.err=ERR_SWAP_WRONG_NUMBER_OF_INPUTS
@@ -355,8 +334,6 @@ proc.execute_SWAPp
     exec.build_p2id_recipient_hash
     # => [P2ID_RECIPIENT]
 
-    push.111 debug.stack drop
-
     push.EXECUTION_HINT_ALWAYS
     # => [execution_hint_always, P2ID_RECIPIENT]
 
@@ -391,21 +368,18 @@ proc.execute_SWAPp
     # => [is_partial_fill]
 
     if.true
-        push.111 debug.stack debug.mem.0.16 drop
-
         mem_load.TOKEN_B_AMT mem_load.TOKEN_B_AMT_IN sub
         # => [token_b_AMT']
 
         push.0.0 mem_load.TOKEN_B_ID
         # => [REQUESTED_ASSET_REMAINING]
 
-        # overwrite memory! 
+        # overwrite memory!
         mem_storew.REQUESTED_ASSET dropw
         # => []
 
         push.16.0
-
-        debug.mem.0.16
+        # => [inputs, ptr]
 
         exec.note::compute_inputs_hash
         # => [INPUTS_HASH]
@@ -431,7 +405,7 @@ proc.execute_SWAPp
         mem_load.PAYBACK_TAG
         # => [aux, public_note, execution_hint_always, SWAPp_RECIPIENT]
 
-        mem_load.TOKEN_A_AMT mem_load.TOKEN_A_AMT_OUT sub 
+        mem_load.TOKEN_A_AMT mem_load.TOKEN_A_AMT_OUT sub
         # => [token_a_amt', aux, public_note, execution_hint_always, SWAPp_RECIPIENT]
 
         push.0.0 mem_load.TOKEN_A_ID
@@ -446,7 +420,7 @@ proc.execute_SWAPp
 
         drop dropw
         # => []
-    else 
+    else
         # do not output SWAPp'
         # P2ID already created
     end
@@ -467,5 +441,5 @@ begin
 
     # @dev need to migrate reclaim functionality from old SWAPp note
     exec.execute_SWAPp
-    
+
 end

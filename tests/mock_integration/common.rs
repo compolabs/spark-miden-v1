@@ -6,7 +6,6 @@ use miden_objects::{
     },
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::hash::rpo::RpoDigest,
-    crypto::rand::FeltRng,
     crypto::{dsa::rpo_falcon512::SecretKey, utils::Serializable},
     notes::{
         Note, NoteAssets, NoteDetails, NoteExecutionHint, NoteExecutionMode, NoteInputs,
@@ -222,7 +221,6 @@ pub fn create_p2id_note(
     let inputs = NoteInputs::new(vec![target.into()])?;
     let tag = NoteTag::from_account_id(target, NoteExecutionMode::Local)?;
 
-    println!("tag: {:?}", tag);
     let metadata = NoteMetadata::new(sender, note_type, tag, NoteExecutionHint::always(), aux)?;
     let vault = NoteAssets::new(assets)?;
     let recipient = NoteRecipient::new(serial_num, note_script, inputs);
@@ -246,15 +244,12 @@ pub fn create_partial_swap_note(
     note_type: NoteType,
     swap_serial_num: [Felt; 4],
     fill_number: u64,
-) -> Result<(Note, NoteDetails, RpoDigest), NoteError> {
+) -> Result<(Note, RpoDigest), NoteError> {
     let assembler: Assembler = TransactionKernel::assembler_testing().with_debug_mode(true);
 
     let note_code = include_str!("../../src/notes/SWAPp.masm");
     let note_script = NoteScript::compile(note_code, assembler).unwrap();
     println!("after compile");
-
-    let (p2id_recipient, _p2id_serial_num) =
-        create_p2id_output_note(creator, swap_serial_num, fill_number).unwrap();
 
     let requested_asset_word: Word = requested_asset.into();
     let tag = build_swap_tag(note_type, &offered_asset, &requested_asset)?;
@@ -291,13 +286,9 @@ pub fn create_partial_swap_note(
     let recipient = NoteRecipient::new(swap_serial_num, note_script.clone(), inputs.clone());
     let note = Note::new(assets.clone(), metadata, recipient.clone());
 
-    // p2id payback note
-    let p2id_assets = NoteAssets::new(vec![requested_asset])?;
-    let p2id_note_details = NoteDetails::new(p2id_assets.clone(), p2id_recipient.clone());
-
     let note_script_hash = note_script.hash();
 
-    Ok((note, p2id_note_details, note_script_hash))
+    Ok((note, note_script_hash))
 }
 
 pub fn create_partial_swap_note_test(
@@ -308,20 +299,14 @@ pub fn create_partial_swap_note_test(
     note_type: NoteType,
     swap_serial_num: [Felt; 4],
     fill_number: u64,
-) -> Result<(Note, NoteDetails, RpoDigest), NoteError> {
+) -> Result<(Note, RpoDigest), NoteError> {
     let assembler: Assembler = TransactionKernel::assembler_testing().with_debug_mode(true);
 
     let note_code = include_str!("../../src/notes/PUBLIC_SWAPp.masm");
     let note_script = NoteScript::compile(note_code, assembler).unwrap();
-    // println!("after compile");
-
-    let (p2id_recipient, _p2id_serial_num) =
-        create_p2id_output_note(creator, swap_serial_num, fill_number).unwrap();
 
     let requested_asset_word: Word = requested_asset.into();
     let tag = build_swap_tag(note_type, &offered_asset, &requested_asset)?;
-
-    println!("tag: {:?}", tag);
 
     let inputs = NoteInputs::new(vec![
         requested_asset_word[0],
@@ -339,10 +324,6 @@ pub fn create_partial_swap_note_test(
         creator.into(),
     ])?;
 
-    println!("inputs SWAP: {:?}", inputs);
-
-    println!("input hash: {:?}", inputs);
-
     // let offered_asset_amount: Word = offered_asset.into();
     let aux = Felt::new(0);
 
@@ -355,30 +336,23 @@ pub fn create_partial_swap_note_test(
         aux,
     )?;
 
-    println!("metadata: {:?}", metadata);
-
     let assets = NoteAssets::new(vec![offered_asset])?;
     let recipient = NoteRecipient::new(swap_serial_num, note_script.clone(), inputs.clone());
     let note = Note::new(assets.clone(), metadata, recipient.clone());
 
-    let serial_num_hash: RpoDigest = Hasher::merge(&[swap_serial_num.into(), Digest::default()]);
-    let merge_script = Hasher::merge(&[serial_num_hash, note_script.hash()]);
-    let recipient_hash = Hasher::merge(&[merge_script, inputs.commitment()]);
-
-    println!("serial num hash: {:?}", serial_num_hash);
-    println!("merge script: {:?}", merge_script);
-    println!("recipient hash: {:?}", recipient_hash);
-
-    println!("SWAPp serial num: {:?}", swap_serial_num);
-    println!("SWAP note script: {:?}", note_script.hash());
-    println!("SWAP input hash: {:?}", inputs.commitment());
-    println!("recipient hash: {:?}", recipient.digest());
-
-    // p2id payback note
-    let p2id_assets = NoteAssets::new(vec![requested_asset])?;
-    let p2id_note_details = NoteDetails::new(p2id_assets.clone(), p2id_recipient.clone());
-
     let note_script_hash = note_script.hash();
 
-    Ok((note, p2id_note_details, note_script_hash))
+    Ok((note, note_script_hash))
+}
+
+pub fn compute_p2id_serial_num(swap_serial_num: [Felt; 4], swap_count: u64) -> [Felt; 4] {
+    let swap_count_word = [
+        Felt::new(swap_count),
+        Felt::new(0),
+        Felt::new(0),
+        Felt::new(0),
+    ];
+    let p2id_serial_num = Hasher::merge(&[swap_serial_num.into(), swap_count_word.into()]);
+
+    p2id_serial_num.into()
 }

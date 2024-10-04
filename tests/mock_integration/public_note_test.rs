@@ -58,7 +58,7 @@ fn prove_partial_swap_script() {
     let fill_number = 0;
 
     // Create the note containing the SWAP script
-    let (swap_note, payback_note, _note_script_hash) = create_partial_swap_note_test(
+    let (swap_note, _note_script_hash) = create_partial_swap_note_test(
         sender_account.id(),
         sender_account.id(),
         offered_asset,
@@ -76,7 +76,7 @@ fn prove_partial_swap_script() {
     let offered_remaining = faucet.mint(50);
     let requested_remaning = FungibleAsset::new(faucet_id_2, 100).unwrap().into();
 
-    let (output_swap_note, _payback_note, _note_script_hash) = create_partial_swap_note_test(
+    let (output_swap_note, _note_script_hash) = create_partial_swap_note_test(
         sender_account.id(),
         target_account.id(),
         offered_remaining,

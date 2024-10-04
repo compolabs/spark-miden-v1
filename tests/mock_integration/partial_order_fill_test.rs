@@ -2,19 +2,14 @@ use crate::common::*;
 use miden_client::transactions::OutputNote;
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, Account, AccountId},
-    assets::{Asset, AssetVault, FungibleAsset},
-    notes::{
-        NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteHeader, NoteId, NoteMetadata,
-        NoteTag, NoteType,
-    },
+    accounts::{account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, AccountId},
+    assets::{Asset, FungibleAsset},
+    notes::NoteType,
     testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::TransactionScript,
-    transaction::{ProvenTransaction, TransactionArgs},
-    Felt, ZERO,
+    Felt,
 };
 use miden_tx::testing::mock_chain::{Auth, MockChain};
-use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
 
 #[test]
 fn prove_partial_swap_script() {
@@ -35,7 +30,7 @@ fn prove_partial_swap_script() {
     let fill_number = 0;
 
     // Create the note containing the SWAP script
-    let (swap_note, payback_note, _note_script_hash) = create_partial_swap_note(
+    let (swap_note, _note_script_hash) = create_partial_swap_note(
         sender_account.id(),
         sender_account.id(),
         offered_asset,
@@ -53,7 +48,7 @@ fn prove_partial_swap_script() {
     let offered_remaining = faucet.mint(20);
     let requested_remaning = FungibleAsset::new(faucet_id_2, 20).unwrap().into();
 
-    let (output_swap_note, _payback_note, _note_script_hash) = create_partial_swap_note(
+    let (output_swap_note, _note_script_hash) = create_partial_swap_note(
         sender_account.id(),
         target_account.id(),
         offered_remaining,
@@ -64,13 +59,15 @@ fn prove_partial_swap_script() {
     )
     .unwrap();
 
+    let p2id_serial_num = compute_p2id_serial_num(serial_num, fill_number + 1);
+
     let expected_output_p2id = create_p2id_note(
         target_account.id(),
         sender_account.id(),
         vec![requested_available],
         NoteType::Public,
         Felt::new(0),
-        payback_note.serial_num(),
+        p2id_serial_num,
     )
     .unwrap();
 
