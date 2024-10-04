@@ -192,21 +192,11 @@ proc.increment_swap_count
     mem_store.SWAP_COUNT
 end
 
-# @DEV TODO assign dedicated memory addresses
 # input: [SERIAL_NUM, swap_count, ...]
 # ouput: [P2ID_SERIAL_NUM, ...]
 proc.get_p2id_serial_num
     swapw
     hmerge
-
-    # mem_storew.40 dropw
-    # mem_storew.41
-    # push.8.40
-    # => [ptr, inputs]
-
-    # exec.note::compute_inputs_hash
-    # => [P2ID_SERIAL_NUM]
-
 end
 
 # => [token_b_amt_in]
