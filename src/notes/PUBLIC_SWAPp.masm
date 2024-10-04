@@ -8,6 +8,7 @@ use.std::math::u64
 # =================================================================================================
 
 const.PUBLIC_NOTE=1
+const.EXECUTION_HINT_ALWAYS=1
 const.FACTOR=0x000186A0 # 1e5
 const.MAX_U32=0x0000000100000000
 
@@ -213,15 +214,15 @@ end
 # input: [SERIAL_NUM, swap_count, ...]
 # ouput: [P2ID_SERIAL_NUM, ...]
 proc.get_p2id_serial_num
+    swapw
+    hmerge
 
-    mem_storew.40 dropw
+    # mem_storew.40 dropw
+    # mem_storew.41
+    # push.8.40
+    # => [ptr, inputs]
 
-    mem_store.41
-
-    push.8.40
-    # [ptr, inputs]
-
-    exec.note::compute_inputs_hash
+    # exec.note::compute_inputs_hash
     # => [P2ID_SERIAL_NUM]
 
 end
@@ -257,8 +258,6 @@ proc.execute_SWAPp
     # make sure the number of inputs is N
     eq.13 assert.err=ERR_SWAP_WRONG_NUMBER_OF_INPUTS
     # => [inputs_ptr]
-
-    push.101 drop
 
     mem_loadw.REQUESTED_ASSET
     # => [REQUESTED_ASSET]
@@ -343,25 +342,57 @@ proc.execute_SWAPp
     exec.increment_swap_count
     # => [P2ID_SCRIPT_HASH, creator_id]
 
-    mem_loadw.SWAP_COUNT
+    padw mem_loadw.SWAP_COUNT
     # => [SWAP_COUNT, P2ID_SCRIPT_HASH, creator_id]
 
     exec.note::get_serial_number
-    # padw mem_loadw.SWAP_SERIAL_NUM
-
     # => [SWAP_SERIAL_NUM, SWAP_COUNT, P2ID_SCRIPT_HASH, creator_id]
 
     exec.get_p2id_serial_num
     # => [P2ID_SERIAL_NUM, P2ID_SCRIPT_HASH, creator_id]
-
-    push.101 debug.stack drop
 
     exec.build_p2id_recipient_hash
     # => [P2ID_RECIPIENT]
 
     push.111 debug.stack drop
 
-    # ______ #
+    push.EXECUTION_HINT_ALWAYS
+    # => [execution_hint_always, P2ID_RECIPIENT]
+
+    push.PUBLIC_NOTE
+    # => [public_note, execution_hint_always, P2ID_RECIPIENT]
+
+    push.0 # @dev aux for p2id output note
+    # => [aux, public_note, execution_hint_always, P2ID_RECIPIENT]
+
+    push.3863019520
+    # => [tag, aux, public_note, execution_hint_always, P2ID_RECIPIENT]
+
+    mem_load.TOKEN_B_ID push.0.0 mem_load.TOKEN_B_AMT_IN
+    # => [ASSET, tag, aux, public_note, execution_hint_always, P2ID_RECIPIENT]
+
+    push.222 debug.stack drop
+
+    # @dev checking balance
+    mem_load.TOKEN_B_ID call.account::get_balance
+    # => [balance, ...]
+
+    push.333 debug.stack drop
+
+    drop # drop balance
+
+    push.444 debug.stack drop
+
+    # => [ASSET, tag, aux, note_type, execution_hint, RECIPIENT]
+    call.wallet::send_asset
+    # => [0, ASSET] @dev ?
+
+
+
+    # ___ Progress Line ___ #
+
+
+
 
     push.0 exec.note::get_inputs
     # => [num_inputs, dest_ptr]

@@ -30,7 +30,7 @@ use rand_chacha::ChaCha20Rng;
 use miden_objects::Hasher;
 
 fn compute_p2id_serial_num(swap_serial_num: [Felt; 4], swap_count: u64) -> [Felt; 4] {
-    let input_commitment = NoteInputs::new(vec![
+    /*     let input_commitment = NoteInputs::new(vec![
         swap_serial_num[0],
         swap_serial_num[1],
         swap_serial_num[2],
@@ -42,17 +42,37 @@ fn compute_p2id_serial_num(swap_serial_num: [Felt; 4], swap_count: u64) -> [Felt
     ])
     .unwrap();
 
+    println!("swap_serial_num: {:?}", swap_serial_num);
+    println!("swap_count {:?}", swap_count);
+    println!("input commitment: {:?}", input_commitment);
+
+    println!("commitment: {:?}", input_commitment.commitment());
+
     let commitment_result = input_commitment.commitment();
 
-    commitment_result.into()
+    commitment_result.into() */
+
+    let swap_count_word = [
+        Felt::new(swap_count),
+        Felt::new(0),
+        Felt::new(0),
+        Felt::new(0),
+    ];
+
+    println!("swap_serial_num: {:?}", swap_serial_num);
+    println!("swap_count_word: {:?}", swap_count_word);
+
+    let p2id_serial_num = Hasher::merge(&[swap_serial_num.into(), swap_count_word.into()]);
+
+    p2id_serial_num.into()
 }
 
 #[test]
-fn prove_partial_swap_script() {
+fn prove_partial_public_swap_script() {
     // Create assets
     let mut chain = MockChain::new();
     let faucet = chain.add_existing_faucet(Auth::NoAuth, "POL", 100000u64);
-    let offered_asset = faucet.mint(100);
+    let offered_asset = faucet.mint(100); // offered asset in note
 
     println!("\n");
     println!(
@@ -62,8 +82,8 @@ fn prove_partial_swap_script() {
     println!("\n");
 
     let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-    let requested_asset: Asset = FungibleAsset::new(faucet_id_2, 100).unwrap().into();
-    let requested_available: Asset = FungibleAsset::new(faucet_id_2, 50).unwrap().into();
+    let requested_asset: Asset = FungibleAsset::new(faucet_id_2, 100).unwrap().into(); // requested asset in note
+    let requested_available: Asset = FungibleAsset::new(faucet_id_2, 50).unwrap().into(); // amount to swap in account
 
     println!("\n");
     println!(
@@ -111,7 +131,9 @@ fn prove_partial_swap_script() {
 
     // let p2id_serial_num: [Felt; 4] = [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(0)];
 
-    let p2id_serial_num = compute_p2id_serial_num(serial_num, fill_number);
+    let p2id_serial_num = compute_p2id_serial_num(serial_num, fill_number + 1);
+
+    println!("p2id_serial_num: {:?}", p2id_serial_num);
 
     let expected_output_p2id = create_p2id_note(
         target_account.id(),

@@ -337,7 +337,7 @@ pub fn create_partial_swap_note_test(
         creator.into(),
     ])?;
 
-    println!("input hash: {:?}", inputs.commitment());
+    println!("input hash: {:?}", inputs);
 
     // let offered_asset_amount: Word = offered_asset.into();
     let aux = Felt::new(0);
