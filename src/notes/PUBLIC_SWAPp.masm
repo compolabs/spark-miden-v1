@@ -3,6 +3,7 @@ use.miden::contracts::wallets::basic->wallet
 use.std::sys
 use.miden::account
 use.std::math::u64
+use.miden::tx
 
 # CONSTANTS
 # =================================================================================================
@@ -368,86 +369,8 @@ proc.execute_SWAPp
     push.3863019520
     # => [tag, aux, public_note, execution_hint_always, P2ID_RECIPIENT]
 
-    mem_load.TOKEN_B_ID push.0.0 mem_load.TOKEN_B_AMT_IN
+    mem_load.TOKEN_B_AMT_IN push.0.0 mem_load.TOKEN_B_ID
     # => [ASSET, tag, aux, public_note, execution_hint_always, P2ID_RECIPIENT]
-
-    push.222 debug.stack drop
-
-    # @dev checking balance
-    mem_load.TOKEN_B_ID call.account::get_balance
-    # => [balance, ...]
-
-    push.333 debug.stack drop
-
-    drop # drop balance
-
-    push.444 debug.stack drop
-
-    # => [ASSET, tag, aux, note_type, execution_hint, RECIPIENT]
-    call.wallet::send_asset
-    # => [0, ASSET] @dev ?
-
-
-
-    # ___ Progress Line ___ #
-
-
-
-
-    push.0 exec.note::get_inputs
-    # => [num_inputs, dest_ptr]
-
-    drop drop
-    # => []
-
-    # get asset & recieve
-    push.4 exec.note::get_assets
-    mem_loadw.4
-    # => [ASSET]
-
-    # @dev 50 in 50 out
-    swap.3 drop push.50 swap.3
-
-    push.111
-    debug.stack
-    drop
-
-    call.wallet::receive_asset
-    # => []
-
-    # push.{ACCOUNT_ID}
-    mem_load.3
-    # push.10376293541461622847
-    # => [account_id]
-
-    push.1668143385662437433.10767920840476013014.17141854971706030398.16685164387741191399
-    # => [SCRIPT_HASH, account_id]
-
-    push.0.0.0.0
-    # => [SERIAL_NUM, SCRIPT_HASH, account_id]
-
-    exec.build_p2id_recipient_hash
-    # => [P2ID_RECIPIENT]
-
-    push.1
-    # => [execution_hint_always, P2ID_RECIPIENT]
-
-    push.1
-    # => [public_note, execution_hint_always, P2ID_RECIPIENT]
-
-    push.0
-    # => [aux, public_note, execution_hint_always, P2ID_RECIPIENT]
-
-    push.3863019520
-    # => [tag, aux, public_note, execution_hint_always, P2ID_RECIPIENT]
-    # => [tag, aux, note_type, execution_hint, RECIPIENT]
-
-    padw
-    mem_loadw.0
-
-    push.222
-    debug.stack
-    drop
 
     # => [ASSET, tag, aux, note_type, execution_hint, RECIPIENT]
     call.wallet::send_asset
@@ -456,63 +379,80 @@ proc.execute_SWAPp
     drop dropw
     # => []
 
-    push.0 exec.note::get_inputs
-    drop drop
+    # 2) send token A out amt to consumer
+    mem_load.TOKEN_A_AMT_OUT push.0.0 mem_load.TOKEN_A_ID
+    # => [token_a_AMT_OUT, 0, 0, token_a_id]
 
-    push.16.0
-
-    exec.note::compute_inputs_hash
-    # => [INPUT_COMMITMENT]
-
-    padw mem_loadw.10
-    # => [SCRIPT_HASH, INPUT_COMMITMENT]
-
-    push.1.2.3.4
-    # => [SERIAL_NUM, SCRIPT_HASH, INPUT_COMMITMENT]
-
-    exec.build_recipient_hash
-    # => [SWAPp_RECIPIENT]
-
-    push.1
-    # => [execution_hint_always, SWAPp_RECIPIENT]
-
-    push.1
-    # => [public_note, execution_hint_always, SWAPp_RECIPIENT]
-
-    push.0
-    # => [aux, public_note, execution_hint_always, SWAPp_RECIPIENT]
-
-    push.2147524096
-    # => [tag, aux, public_note, execution_hint_always, SWAPp_RECIPIENT]
-
-    push.444 debug.stack drop
-
-    push.4 exec.note::get_assets
-    drop drop
-
-    padw mem_loadw.4
-    # => [ASSET, tag, aux, public_note, execution_hint_always, SWAPp_RECIPIENT]
-
-    # @dev 50 in 50 out
-    swap.3 drop push.50 swap.3
-
-    push.555
-    debug.stack
-    drop
-
-    dupw call.wallet::receive_asset dropw
-
-    # => [ASSET, tag, aux, note_type, execution_hint, RECIPIENT]
-    call.wallet::send_asset
-
-    push.666
-    debug.stack
-    drop
-
-    # commented out to speed up test
-    # tx passes if uncommented
-    # exec.sys::truncate_stack
+    call.wallet::receive_asset
     # => []
+
+    # check if partial fill
+    mem_load.IS_PARTIAL_FILL
+    # => [is_partial_fill]
+
+    if.true
+        push.111 debug.stack debug.mem.0.16 drop
+
+        mem_load.TOKEN_B_AMT mem_load.TOKEN_B_AMT_IN sub
+        # => [token_b_AMT']
+
+        push.0.0 mem_load.TOKEN_B_ID
+        # => [REQUESTED_ASSET_REMAINING]
+
+        # overwrite memory! 
+        mem_storew.REQUESTED_ASSET dropw
+        # => []
+
+        push.16.0
+
+        debug.mem.0.16
+
+        exec.note::compute_inputs_hash
+        # => [INPUTS_HASH]
+
+        padw mem_loadw.SWAPP_SCRIPT_HASH
+        # => [SCRIPT_HASH, INPUTS_HASH]
+
+        exec.note::get_serial_number
+        # => [SERIAL_NUM, SCRIPT_HASH, INPUTS_HASH]
+
+        exec.tx::build_recipient_hash
+        # => [RECIPIENT_SWAPP]
+
+        push.EXECUTION_HINT_ALWAYS
+        # => [execution_hint_always, SWAPp_RECIPIENT]
+
+        push.PUBLIC_NOTE
+        # => [public_note, execution_hint_always, SWAPp_RECIPIENT]
+
+        push.0 # @dev empty aux
+        # => [aux, public_note, execution_hint_always, SWAPp_RECIPIENT]
+
+        mem_load.PAYBACK_TAG
+        # => [aux, public_note, execution_hint_always, SWAPp_RECIPIENT]
+
+        mem_load.TOKEN_A_AMT mem_load.TOKEN_A_AMT_OUT sub 
+        # => [token_a_amt', aux, public_note, execution_hint_always, SWAPp_RECIPIENT]
+
+        push.0.0 mem_load.TOKEN_A_ID
+        # => [ASSET, payback_tag, aux, note_type, SWAPp_RECIPIENT]
+
+        dupw call.wallet::receive_asset dropw
+        # => [ASSET, payback_tag, aux, note_type, SWAPp_RECIPIENT]
+
+        # SWAPp' creation
+        call.wallet::send_asset
+        # => [note_idx, ASSET]
+
+        drop dropw
+        # => []
+    else 
+        # do not output SWAPp'
+        # P2ID already created
+    end
+
+    # clean stack
+    exec.sys::truncate_stack
 end
 
 begin
@@ -525,6 +465,7 @@ begin
     mem_storew.P2ID_SCRIPT_HASH dropw
     # => []
 
+    # @dev need to migrate reclaim functionality from old SWAPp note
     exec.execute_SWAPp
-
+    
 end

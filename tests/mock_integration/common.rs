@@ -321,6 +321,8 @@ pub fn create_partial_swap_note_test(
     let requested_asset_word: Word = requested_asset.into();
     let tag = build_swap_tag(note_type, &offered_asset, &requested_asset)?;
 
+    println!("tag: {:?}", tag);
+
     let inputs = NoteInputs::new(vec![
         requested_asset_word[0],
         requested_asset_word[1],
@@ -336,6 +338,8 @@ pub fn create_partial_swap_note_test(
         Felt::new(0),
         creator.into(),
     ])?;
+
+    println!("inputs SWAP: {:?}", inputs);
 
     println!("input hash: {:?}", inputs);
 
