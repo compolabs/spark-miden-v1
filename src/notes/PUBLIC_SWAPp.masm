@@ -199,6 +199,94 @@ proc.get_p2id_serial_num
     hmerge
 end
 
+#! Returns if the currently consuming account is the creator of the note
+#!
+#! Inputs: []
+#! Outputs: [is_creator]
+#!
+proc.is_consumer_is_creator
+
+    push.0
+    # => [SWAP_COUNT]
+
+    exec.note::get_serial_number
+    # => [SERIAL_NUM, 0]
+
+    mem_storew.0 mem_storew.SWAP_SERIAL_NUM
+    # => [SERIAL_NUM, 0]
+
+    exec.get_p2id_serial_num
+    # => [P2ID_SERIAL_NUM]
+
+    mem_storew.P2ID_SERIAL_NUM dropw
+    # => []
+
+    exec.account::get_id
+    # => [account_id]
+
+    mem_loadw.P2ID_SCRIPT_HASH
+    # => [P2ID_SCRIPT_HASH, account_id]
+
+    padw mem_loadw.P2ID_SERIAL_NUM
+    # => [P2ID_SERIAL_NUM, P2ID_SCRIPT_HASH, account_id]
+
+    exec.build_p2id_recipient_hash
+    # => [P2ID_OG_RECIPIENT]
+
+    # write inputs to mem drop num inputs & ptr
+    push.0 exec.note::get_inputs drop drop
+    # => [P2ID_OG_RECIPIENT]
+
+    padw mem_loadw.0
+    # => [RECIPIENT_mem, P2ID_OG_RECIPIENT]
+
+    eqw
+    # => [is_equal, RECIPIENT_mem, P2ID_OG_RECIPIENT]
+
+    swap.8 dropw dropw
+    # => [is_creator]
+end
+
+#! Sends Assets in Note to Consuming Account
+#!
+#! Inputs: []
+#! Outputs: []
+#!
+proc.handle_reclaim
+    push.0 exec.note::get_assets
+
+    mem_loadw.0
+
+    call.wallet::receive_asset
+
+    dropw
+end
+
+# Partially Fillable Swap Script (SWAPp)
+# =================================================================================================
+#
+# Partially Fillable Swap Script (SWAPp): adds an asset from the note into consumers account and
+# creates a note consumable by note issuer containing requested ASSET.
+#
+# If the consuming account does not have sufficient liquidity to completely
+# fill the amount of the SWAPp creator's requested asset, then the SWAPp note:
+#  1) Computes the ratio of token_a to token_b, where token_a is the offered asset,
+#     and where token_b is the requested asset
+#  2) Calculates the amount of token_a to send to the consumer based on the the
+#     amount of token_b sent via P2ID to the creator
+#  3) Outputs a new SWAPp note with the remaining liquidity of token_a, and the updated
+#     amount of token_b
+#
+# If the consuming account completely fills the amount requested by the SWAPp creator,
+# only a single P2ID note is outputted.
+#
+# Definitions:
+# 1) the offered asset is referred to as token_a,
+# 2) the requested asset is referred to as token_b,
+# 3) token_b_in is the amount of token_b sent to the SWAPp creator via P2ID from the consuming account
+# 4) token_a_out is the amount of token_a sent to the consuming account
+#
+
 # => [token_b_amt_in]
 proc.execute_SWAPp
 
@@ -429,7 +517,13 @@ begin
     mem_storew.P2ID_SCRIPT_HASH dropw
     # => []
 
-    # @dev need to migrate reclaim functionality from old SWAPp note
-    exec.execute_SWAPp
+    exec.is_consumer_is_creator
+    # => [is_creator]
+
+    if.true
+        exec.handle_reclaim
+    else
+        exec.execute_SWAPp
+    end
 
 end
