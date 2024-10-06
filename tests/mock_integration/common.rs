@@ -8,12 +8,11 @@ use miden_objects::{
     crypto::hash::rpo::RpoDigest,
     crypto::{dsa::rpo_falcon512::SecretKey, utils::Serializable},
     notes::{
-        Note, NoteAssets, NoteDetails, NoteExecutionHint, NoteExecutionMode, NoteInputs,
+        Note, NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteInputs,
         NoteMetadata, NoteRecipient, NoteScript, NoteTag, NoteType,
     },
     testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::{ExecutedTransaction, ProvenTransaction, TransactionArgs, TransactionScript},
-    vm::Program,
     Felt, NoteError, Word, ZERO,
 };
 use miden_prover::ProvingOptions;
@@ -22,7 +21,6 @@ use miden_vm::Assembler;
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use vm_processor::utils::Deserializable;
 
-use miden_objects::Digest;
 use miden_objects::Hasher;
 // HELPER FUNCTIONS
 // ================================================================================================
@@ -142,23 +140,6 @@ pub fn build_tx_args_from_script(script_source: &str) -> TransactionArgs {
     TransactionArgs::with_tx_script(tx_script)
 }
 
-/// Creates a [NoteRecipient] for the P2ID note.
-///
-/// Notes created with this recipient will be P2ID notes consumable by the specified target
-/// account.
-pub fn build_p2id_recipient(
-    target: AccountId,
-    serial_num: Word,
-) -> Result<NoteRecipient, NoteError> {
-    let assembler: Assembler = TransactionKernel::assembler_testing().with_debug_mode(true);
-    let note_code = include_str!("../../src/notes/P2ID.masm");
-    let note_script = NoteScript::compile(note_code, assembler).unwrap();
-
-    let note_inputs = NoteInputs::new(vec![target.into()])?;
-
-    Ok(NoteRecipient::new(serial_num, note_script, note_inputs))
-}
-
 pub fn build_swap_tag(
     note_type: NoteType,
     offered_asset: &Asset,
@@ -185,25 +166,6 @@ pub fn build_swap_tag(
     }
 }
 
-pub fn create_p2id_output_note(
-    creator: AccountId,
-    swap_serial_num: [Felt; 4],
-    fill_number: u64,
-) -> Result<(NoteRecipient, Word), NoteError> {
-    let p2id_serial_num: Word = NoteInputs::new(vec![
-        swap_serial_num[0],
-        swap_serial_num[1],
-        swap_serial_num[2],
-        swap_serial_num[3],
-        Felt::new(fill_number),
-    ])?
-    .commitment()
-    .into();
-
-    let payback_recipient = build_p2id_recipient(creator, p2id_serial_num)?;
-
-    Ok((payback_recipient, p2id_serial_num))
-}
 
 pub fn create_p2id_note(
     sender: AccountId,
