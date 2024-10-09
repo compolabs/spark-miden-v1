@@ -206,45 +206,22 @@ end
 #!
 proc.is_consumer_is_creator
 
-    push.0
-    # => [SWAP_COUNT]
-
-    exec.note::get_serial_number
-    # => [SERIAL_NUM, 0]
-
-    mem_storew.0 mem_storew.SWAP_SERIAL_NUM
-    # => [SERIAL_NUM, 0]
-
-    exec.get_p2id_serial_num
-    # => [P2ID_SERIAL_NUM]
-
-    mem_storew.P2ID_SERIAL_NUM dropw
+    push.0 exec.note::get_inputs drop drop
     # => []
 
     exec.account::get_id
-    # => [account_id]
+    # => [consuming_account_id]
 
-    mem_loadw.P2ID_SCRIPT_HASH
-    # => [P2ID_SCRIPT_HASH, account_id]
+    mem_load.3
+    # => [creator_account_id]
 
-    padw mem_loadw.P2ID_SERIAL_NUM
-    # => [P2ID_SERIAL_NUM, P2ID_SCRIPT_HASH, account_id]
+    push.111 debug.stack drop
 
-    exec.build_p2id_recipient_hash
-    # => [P2ID_OG_RECIPIENT]
-
-    # write inputs to mem drop num inputs & ptr
-    push.0 exec.note::get_inputs drop drop
-    # => [P2ID_OG_RECIPIENT]
-
-    padw mem_loadw.0
-    # => [RECIPIENT_mem, P2ID_OG_RECIPIENT]
-
-    eqw
-    # => [is_equal, RECIPIENT_mem, P2ID_OG_RECIPIENT]
-
-    swap.8 dropw dropw
+    eq
     # => [is_creator]
+
+    push.222 debug.stack drop
+
 end
 
 #! Sends Assets in Note to Consuming Account
@@ -253,6 +230,9 @@ end
 #! Outputs: []
 #!
 proc.handle_reclaim
+
+    push.333 debug.stack drop
+
     push.0 exec.note::get_assets
 
     mem_loadw.0
@@ -520,7 +500,10 @@ begin
     exec.is_consumer_is_creator
     # => [is_creator]
 
+    push.404 debug.stack drop
+
     if.true
+        push.202 debug.stack drop
         exec.handle_reclaim
     else
         exec.execute_SWAPp

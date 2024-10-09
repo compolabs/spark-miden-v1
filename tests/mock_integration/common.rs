@@ -8,8 +8,8 @@ use miden_objects::{
     crypto::hash::rpo::RpoDigest,
     crypto::{dsa::rpo_falcon512::SecretKey, utils::Serializable},
     notes::{
-        Note, NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteInputs,
-        NoteMetadata, NoteRecipient, NoteScript, NoteTag, NoteType,
+        Note, NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteInputs, NoteMetadata,
+        NoteRecipient, NoteScript, NoteTag, NoteType,
     },
     testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::{ExecutedTransaction, ProvenTransaction, TransactionArgs, TransactionScript},
@@ -165,7 +165,6 @@ pub fn build_swap_tag(
         _ => NoteTag::for_local_use_case(SWAP_USE_CASE_ID, payload),
     }
 }
-
 
 pub fn create_p2id_note(
     sender: AccountId,

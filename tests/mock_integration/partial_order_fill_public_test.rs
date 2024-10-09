@@ -13,23 +13,24 @@ use miden_tx::testing::mock_chain::{Auth, MockChain};
 
 #[test]
 fn prove_partial_public_swap_script() {
-    // Create assets
+    // Set up mock chain and assets
     let mut chain = MockChain::new();
     let faucet = chain.add_existing_faucet(Auth::NoAuth, "POL", 100000u64);
-    let offered_asset = faucet.mint(100); // offered asset in note
+    let offered_asset = faucet.mint(100); // Offered asset to swap
 
     let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-    let requested_asset: Asset = FungibleAsset::new(faucet_id_2, 100).unwrap().into(); // requested asset in note
-    let requested_available: Asset = FungibleAsset::new(faucet_id_2, 50).unwrap().into(); // amount to swap in account
+    let requested_asset: Asset = FungibleAsset::new(faucet_id_2, 100).unwrap().into(); // Requested asset for swap
+    let requested_available: Asset = FungibleAsset::new(faucet_id_2, 20).unwrap().into(); // Amount to swap
 
-    // Create sender and target account
+    // Create accounts for sender and target
     let sender_account = chain.add_new_wallet(Auth::BasicAuth, vec![offered_asset]);
     let target_account = chain.add_existing_wallet(Auth::BasicAuth, vec![requested_available]);
 
+    // Set up the swap transaction
     let serial_num = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
     let fill_number = 0;
 
-    // Create the note containing the SWAP script
+    // Create the partial swap note
     let (swap_note, _note_script_hash) = create_partial_swap_note_test(
         sender_account.id(),
         sender_account.id(),
@@ -44,24 +45,24 @@ fn prove_partial_public_swap_script() {
     chain.add_note(swap_note.clone());
     chain.seal_block(None);
 
-    // expected note
-    let offered_remaining = faucet.mint(50);
-    let requested_remaning = FungibleAsset::new(faucet_id_2, 50).unwrap().into();
+    // Set up the expected remaining assets after partial fill
+    let offered_remaining = faucet.mint(80);
+    let requested_remaining = FungibleAsset::new(faucet_id_2, 80).unwrap().into();
 
     let (output_swap_note, _note_script_hash) = create_partial_swap_note_test(
         sender_account.id(),
         target_account.id(),
         offered_remaining,
-        requested_remaning,
+        requested_remaining,
         NoteType::Public,
         serial_num,
         fill_number + 1,
     )
     .unwrap();
 
+    // Expected output note
     let p2id_serial_num = compute_p2id_serial_num(serial_num, fill_number + 1);
-
-    let expected_output_p2id = create_p2id_note(
+    let expected_p2id_note = create_p2id_note(
         target_account.id(),
         sender_account.id(),
         vec![requested_available],
@@ -71,36 +72,23 @@ fn prove_partial_public_swap_script() {
     )
     .unwrap();
 
-    let expected_swapp_note: OutputNote =
-        miden_objects::transaction::OutputNote::Full(output_swap_note);
+    let expected_swap_note = OutputNote::Full(output_swap_note);
+    let expected_p2id_note = OutputNote::Full(expected_p2id_note);
 
-    let expected_p2id_note: OutputNote =
-        miden_objects::transaction::OutputNote::Full(expected_output_p2id);
-
-    // CONSTRUCT AND EXECUTE TX (Success)
-    // --------------------------------------------------------------------------------------------
-
+    // Construct and execute the transaction
     let tx_script =
         TransactionScript::compile(DEFAULT_AUTH_SCRIPT, vec![], TransactionKernel::assembler())
             .unwrap();
 
-    // this results in "Public note missing the details in the advice provider"
-
     let executed_transaction = chain
         .build_tx_context(target_account.id())
         .tx_script(tx_script)
-        .expected_notes(vec![
-            expected_p2id_note.clone(),
-            expected_swapp_note.clone(),
-        ])
+        .expected_notes(vec![expected_p2id_note.clone(), expected_swap_note.clone()])
         .build()
         .execute()
         .unwrap();
 
-    // Prove, serialize/deserialize and verify the transaction
-    // assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
-
-    // Assert that the p2id recipient digest is the same
+    // Assert that the P2ID recipient digest matches
     assert_eq!(
         executed_transaction
             .output_notes()
@@ -110,25 +98,27 @@ fn prove_partial_public_swap_script() {
         "P2ID recipient digests do not match"
     );
 
-    // Assert that the swapp recipient digest is the same
+    // Assert that the swap recipient digest matches
     assert_eq!(
         executed_transaction
             .output_notes()
             .get_note(1)
             .recipient_digest(),
-        expected_swapp_note.recipient_digest(),
-        "SWAPp recipient digests do not match"
+        expected_swap_note.recipient_digest(),
+        "SWAP recipient digests do not match"
     );
 
+    // Assert that the P2ID assets match
     assert_eq!(
         executed_transaction.output_notes().get_note(0).assets(),
         expected_p2id_note.assets(),
         "P2ID assets do not match"
     );
 
+    // Assert that the swap assets match
     assert_eq!(
         executed_transaction.output_notes().get_note(1).assets(),
-        expected_swapp_note.assets(),
-        "SWAPp assets do not match"
+        expected_swap_note.assets(),
+        "SWAP assets do not match"
     );
 }

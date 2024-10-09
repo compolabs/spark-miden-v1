@@ -130,8 +130,6 @@ fn prove_partial_swap_script() {
         TransactionScript::compile(DEFAULT_AUTH_SCRIPT, vec![], TransactionKernel::assembler())
             .unwrap();
 
-    // this results in "Public note missing the details in the advice provider"
-
     let executed_transaction = chain
         .build_tx_context(target_account.id())
         .tx_script(tx_script)
