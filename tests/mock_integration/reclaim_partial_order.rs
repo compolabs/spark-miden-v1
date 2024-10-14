@@ -66,8 +66,11 @@ fn prove_partial_public_swap_script() {
     // Prove, serialize/deserialize and verify the transaction
     // assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
-    let balance_creator = sender_account.vault().get_balance(faucet.account().id());
+    let balance_creator = sender_account
+        .vault()
+        .get_balance(faucet.account().id())
+        .unwrap();
 
     println!("assets: {:?}", balance_creator);
-    assert_eq!((balance_creator, 100));
+    assert_eq!(balance_creator, 100);
 }
