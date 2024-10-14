@@ -215,12 +215,8 @@ proc.is_consumer_is_creator
     mem_load.3
     # => [creator_account_id]
 
-    push.111 debug.stack drop
-
     eq
     # => [is_creator]
-
-    push.222 debug.stack drop
 
 end
 
@@ -230,8 +226,6 @@ end
 #! Outputs: []
 #!
 proc.handle_reclaim
-
-    push.333 debug.stack drop
 
     push.0 exec.note::get_assets
 
@@ -500,10 +494,7 @@ begin
     exec.is_consumer_is_creator
     # => [is_creator]
 
-    push.404 debug.stack drop
-
     if.true
-        push.202 debug.stack drop
         exec.handle_reclaim
     else
         exec.execute_SWAPp

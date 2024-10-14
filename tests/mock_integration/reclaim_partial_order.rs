@@ -32,7 +32,7 @@ fn prove_partial_public_swap_script() {
     println!("target: {:?}", target_account.id());
 
     // Create the note containing the SWAP script
-    let (swap_note, _note_script_hash) = create_partial_swap_note_test(
+    let swap_note = create_partial_swap_note(
         sender_account.id(),
         sender_account.id(),
         offered_asset,
@@ -52,8 +52,6 @@ fn prove_partial_public_swap_script() {
     let tx_script =
         TransactionScript::compile(DEFAULT_AUTH_SCRIPT, vec![], TransactionKernel::assembler())
             .unwrap();
-
-    println!("SWAPp note assets: {:?}", swap_note.assets());
 
     let _executed_transaction = chain
         .build_tx_context(sender_account.id())

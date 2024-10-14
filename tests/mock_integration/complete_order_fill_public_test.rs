@@ -31,7 +31,7 @@ fn prove_complete_order_fill() {
     let fill_number = 0;
 
     // Create the partial swap note
-    let (swap_note, _note_script_hash) = create_partial_swap_note_test(
+    let swap_note = create_partial_swap_note(
         sender_account.id(),
         sender_account.id(),
         offered_asset,
