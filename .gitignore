@@ -1,2 +1,5 @@
 /target
 /miden-node
+
+/accounts
+*.sqlite3

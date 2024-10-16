@@ -1,0 +1,57 @@
+use.miden::note
+use.miden::contracts::wallets::basic->wallet
+use.miden::tx
+use.miden::account
+use.std::sys
+use.std::crypto::hashes::native
+use.std::math::u64
+
+# CONSTANTS
+# =================================================================================================
+const.FAIL=111
+
+# Memory Addresses
+# =================================================================================================
+const.PAYBACK_RECIPIENT=0x0000
+const.REQUESTED_ASSET=0x0001
+const.PAYBACK_TAG=0x0002
+const.SWAP_COUNT=0x0003
+const.SWAP_CREATOR_ID=0x0004
+
+#! Returns if the currently consuming account is the creator of the note
+#!
+#! Inputs: []
+#! Outputs: [is_creator]
+#!
+proc.is_consumer_creator
+
+    push.0 exec.note::get_inputs drop drop
+    # => []
+
+    mem_load.SWAP_CREATOR_ID
+    # => [creator_id]
+
+    exec.account::get_id
+    # => [account_id]
+
+    eq
+    # => [is_creator]
+
+end
+
+# for testing is_consumer_is_creator only
+begin
+    dropw
+
+    exec.is_consumer_creator
+
+    if.true
+        push.0 exec.note::get_assets
+        mem_loadw.0
+        call.wallet::receive_asset
+        exec.sys::truncate_stack
+    else
+        assert.err=FAIL
+    end
+
+end

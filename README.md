@@ -52,7 +52,7 @@ When partially consuming a SWAPp note, two notes are outputted:
 1. A P2ID note with the requested asset for the SWAPp note creator.
 2. A new SWAPp note with L1 liquidity of the asset being sold.
 
-### Running Tests:c
+### Running Tests:
 ```
 cargo test --test mock_integration
 ```
@@ -65,4 +65,20 @@ cargo masm-fmt "src/**/*.masm"
 #### Installing masm-formatter
 ```
 cargo install masm-formatter
+```
+
+
+### Running CLI
+
+```
+cargo build --release
+./target/release/cli init
+./target/release/cli/setup
+
+./target/release/cli query <BTC/ETH tag>
+./target/release/cli query <ETH/BTC tag>
+
+./target/release/cli login
+
+./target/release/cli order <loggedInId> <faucet_id_0> 5 <faucet_id_1> 5
 ```

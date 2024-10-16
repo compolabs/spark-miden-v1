@@ -1,36 +1,6 @@
-[package]
-name = "spark-miden-v1"
-version = "0.2.0"
-edition = "2021"
-
-[dependencies]
-miden-objects = { version = "0.5.0", features = ["testing"] }
-miden-tx = {  version = "0.5.0", features = ["testing"] }
-miden-stdlib = { version = "0.10", default-features = false }
-
-miden-vm = "0.10.0"
-miden-prover = { version = "0.10", default-features = false }
-vm-processor = { package = "miden-processor", version = "0.10", default-features = false }
-miden-client = { version = "0.5.0", features = ["tonic", "sqlite", "testing"] }
-miden-lib = "0.5.0"
-
-masm-formatter = "0.1.2"
-
-figment = { version = "0.10.19", features = ["toml"] }
-uuid = { version = "1.6.1", features = ["serde", "v4"], optional = true }
-cargo-make = "0.37.12"
-proptest = "1.4.0"
-tokio = { version = "1.37.0", features = ["macros"] }
-rand_chacha = "0.3.1"
-rand = "0.8.5"
-
-[features]
-# integration = ["testing", "concurrent", "uuid"]
-# concurrent = ["miden-lib/concurrent", "miden-objects/concurrent", "miden-tx/concurrent"]
-std = ["miden-objects/std"]
-# testing = ["miden-objects/testing", "miden-lib/testing", "miden-tx/testing"]
-test_utils = ["miden-objects/testing"]
-
-[dev-dependencies]
-uuid = { version = "1.6.1", features = ["serde", "v4"] }
-assert_cmd = { version = "2.0" }
+[workspace]
+resolver = "2"
+members = [ 
+    "cli",
+    "swap_note"
+]

@@ -1,0 +1,9 @@
+# Testing a revert tx proc
+# @dev can this be simplified?
+proc.revert
+    push.0.1 assert_eq
+end
+
+begin
+    exec.revert
+end

@@ -1,0 +1,42 @@
+use.miden::note
+use.miden::contracts::wallets::basic->wallet
+use.miden::tx
+use.miden::account
+use.std::sys
+use.std::crypto::hashes::native
+use.std::math::u64
+
+begin
+    dropw
+    # => [INPUT_SECRET]
+
+    # store secret @ mem address 5
+    mem_storew.5
+    dropw
+    # => []
+
+    # @dev hashing 8 inputs
+
+    push.8.5
+    # => [mem_ptr, num_inputs]
+
+    # memory layout @ addr 5: [INPUT_SECRET, 0, 0, 0, 0]
+    exec.note::compute_inputs_hash
+    # => [INPUT_SECRET_HASH]
+
+    push.0 exec.note::get_inputs drop drop
+    # => [INPUT_SECRET_HASH]
+
+    # get secret hash
+    padw mem_loadw.3
+    # => [SECRET_HASH, INPUT_SECRET_HASH]
+
+    # if this passes, allow asset withdrawl
+    assert_eqw
+
+    # release assets
+    push.0 exec.note::get_assets
+    mem_loadw.0
+    call.wallet::receive_asset
+    exec.sys::truncate_stack
+end
