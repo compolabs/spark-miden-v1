@@ -5,7 +5,6 @@ use miden_objects::{
         SlotItem,
     },
     assets::{Asset, AssetVault, FungibleAsset},
-    crypto::hash::rpo::RpoDigest,
     crypto::{dsa::rpo_falcon512::SecretKey, utils::Serializable},
     notes::{
         Note, NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteInputs, NoteMetadata,
@@ -21,6 +20,7 @@ use miden_vm::Assembler;
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use vm_processor::utils::Deserializable;
 
+use miden_client::transactions::build_swap_tag;
 use miden_objects::Hasher;
 // HELPER FUNCTIONS
 // ================================================================================================
@@ -140,32 +140,6 @@ pub fn build_tx_args_from_script(script_source: &str) -> TransactionArgs {
     TransactionArgs::with_tx_script(tx_script)
 }
 
-pub fn build_swap_tag(
-    note_type: NoteType,
-    offered_asset: &Asset,
-    requested_asset: &Asset,
-) -> Result<NoteTag, NoteError> {
-    const SWAP_USE_CASE_ID: u16 = 0;
-
-    // get bits 4..12 from faucet IDs of both assets, these bits will form the tag payload; the
-    // reason we skip the 4 most significant bits is that these encode metadata of underlying
-    // faucets and are likely to be the same for many different faucets.
-
-    let offered_asset_id: u64 = offered_asset.faucet_id().into();
-    let offered_asset_tag = (offered_asset_id >> 52) as u8;
-
-    let requested_asset_id: u64 = requested_asset.faucet_id().into();
-    let requested_asset_tag = (requested_asset_id >> 52) as u8;
-
-    let payload = ((offered_asset_tag as u16) << 8) | (requested_asset_tag as u16);
-
-    let execution = NoteExecutionMode::Local;
-    match note_type {
-        NoteType::Public => NoteTag::for_public_use_case(SWAP_USE_CASE_ID, payload, execution),
-        _ => NoteTag::for_local_use_case(SWAP_USE_CASE_ID, payload),
-    }
-}
-
 pub fn create_p2id_note(
     sender: AccountId,
     target: AccountId,
@@ -202,17 +176,21 @@ pub fn create_partial_swap_note(
     last_consumer: AccountId,
     offered_asset: Asset,
     requested_asset: Asset,
-    note_type: NoteType,
     swap_serial_num: [Felt; 4],
     fill_number: u64,
-) -> Result<(Note), NoteError> {
-    let assembler: Assembler = TransactionKernel::assembler_testing().with_debug_mode(true);
+) -> Result<Note, NoteError> {
+    let assembler: Assembler = TransactionKernel::assembler_testing();
 
     let note_code = include_str!("../../src/notes/PUBLIC_SWAPp.masm");
     let note_script = NoteScript::compile(note_code, assembler).unwrap();
+    let note_type = NoteType::Public;
 
     let requested_asset_word: Word = requested_asset.into();
-    let tag = build_swap_tag(note_type, &offered_asset, &requested_asset)?;
+    let tag = build_swap_tag(
+        note_type,
+        offered_asset.faucet_id(),
+        requested_asset.faucet_id(),
+    )?;
 
     let inputs = NoteInputs::new(vec![
         requested_asset_word[0],
@@ -230,7 +208,6 @@ pub fn create_partial_swap_note(
         creator.into(),
     ])?;
 
-    // let offered_asset_amount: Word = offered_asset.into();
     let aux = Felt::new(0);
 
     // build the outgoing note

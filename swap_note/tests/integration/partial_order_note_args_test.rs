@@ -13,8 +13,8 @@ use miden_tx::testing::mock_chain::{Auth, MockChain};
 use std::collections::BTreeMap;
 
 use miden_objects::transaction::TransactionArgs;
-use miden_tx::testing::TransactionContextBuilder;
 
+// @dev Currently failing with "The nonce did not increase after a state changing transaction"
 #[test]
 fn prove_partial_public_swap_script_note_args() {
     // Set up mock chain and assets
@@ -35,10 +35,6 @@ fn prove_partial_public_swap_script_note_args() {
         .unwrap()
         .into(); // Amount to swap
 
-    // offered_asset_amount / requested_asset_amount * requested_asset_available = amount_out
-    // new_offered_asset_amount = offered_asset_amount - amount_out
-    // new_requested_asset_amount = requested_asset_amount - requested_asset_available
-
     // Create accounts for sender and target
     let sender_account = chain.add_new_wallet(Auth::BasicAuth, vec![offered_asset]);
     let target_account = chain.add_existing_wallet(Auth::BasicAuth, vec![requested_available]);
@@ -53,7 +49,6 @@ fn prove_partial_public_swap_script_note_args() {
         sender_account.id(),
         offered_asset,
         requested_asset,
-        NoteType::Public,
         serial_num,
         fill_number,
     )
@@ -71,7 +66,6 @@ fn prove_partial_public_swap_script_note_args() {
         target_account.id(),
         offered_remaining,
         requested_remaining,
-        NoteType::Public,
         serial_num,
         fill_number + 1,
     )
@@ -106,13 +100,12 @@ fn prove_partial_public_swap_script_note_args() {
         .expected_notes(vec![expected_p2id_note.clone(), expected_swap_note.clone()])
         .build();
 
-    // Prepare note arguments
+    // Prepare note args
     let note_args = [Felt::new(5), Felt::new(0), Felt::new(0), Felt::new(0)];
 
     // Map note IDs to their arguments
     let note_args_map = BTreeMap::from([(swap_note.id(), note_args)]);
 
-    // Create tx_args with your note_args
     let tx_args = TransactionArgs::new(
         None,
         Some(note_args_map),

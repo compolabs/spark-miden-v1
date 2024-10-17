@@ -36,7 +36,6 @@ fn prove_complete_order_fill() {
         sender_account.id(),
         offered_asset,
         requested_asset,
-        NoteType::Public,
         serial_num,
         fill_number,
     )
@@ -88,4 +87,7 @@ fn prove_complete_order_fill() {
         expected_p2id_note.assets(),
         "P2ID assets do not match"
     );
+
+    let account_delta = executed_transaction.account_delta().vault().fungible();
+    println!("account delta: {:?}", account_delta);
 }
