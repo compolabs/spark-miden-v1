@@ -1,4 +1,0 @@
-use.miden::account
-use.miden::tx
-use.miden::contracts::wallets::basic->wallet
-use.miden::contracts::auth::basic->basic_eoa

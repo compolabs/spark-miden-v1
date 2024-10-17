@@ -261,12 +261,12 @@ end
 # 4) token_a_out is the amount of token_a sent to the consuming account
 #
 
-# => [token_b_amt_in]
+# => []
 proc.execute_SWAPp
 
     # if user does not supply amount token B in via note args
     # then we use the amount of tokens B in their wallet
-    mem_store.TOKEN_B_AMT_IN
+    # mem_store.TOKEN_B_AMT_IN
     # => []
 
     exec.note::get_assets assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS
@@ -473,6 +473,7 @@ proc.execute_SWAPp
         drop dropw
         # => []
     else
+        push.111 debug.stack drop
         # do not output SWAPp'
         # P2ID already created
     end
@@ -484,7 +485,13 @@ end
 begin
     # => [SWAPp_SCRIPT_HASH]
 
+    exec.account::get_nonce
+    push.111 debug.stack drop drop
+
     mem_storew.SWAPP_SCRIPT_HASH dropw
+    # => [NOTE_ARGS]
+
+    drop drop drop mem_store.TOKEN_B_AMT_IN
     # => []
 
     push.1668143385662437433.10767920840476013014.17141854971706030398.16685164387741191399
@@ -499,5 +506,8 @@ begin
     else
         exec.execute_SWAPp
     end
+
+    exec.account::get_nonce
+    push.222 debug.stack drop drop
 
 end

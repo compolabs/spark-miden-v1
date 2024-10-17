@@ -206,7 +206,7 @@ pub fn create_partial_swap_note(
     swap_serial_num: [Felt; 4],
     fill_number: u64,
 ) -> Result<(Note), NoteError> {
-    let assembler: Assembler = TransactionKernel::assembler_testing().with_debug_mode(false);
+    let assembler: Assembler = TransactionKernel::assembler_testing().with_debug_mode(true);
 
     let note_code = include_str!("../../src/notes/PUBLIC_SWAPp.masm");
     let note_script = NoteScript::compile(note_code, assembler).unwrap();

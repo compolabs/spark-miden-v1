@@ -22,6 +22,12 @@ impl LoginCmd {
         // Import existing accounts
         let accounts = load_accounts().unwrap();
         for account_data in accounts {
+            println!("account: {:?}", account_data.account.id().to_hex());
+
+            for asset in account_data.account.vault().assets() {
+                println!("Asset: {:?}", asset);
+            }
+
             client.import_account(account_data).unwrap()
         }
 
@@ -36,8 +42,6 @@ impl LoginCmd {
             .map_err(|e| e.to_string())?;
 
         println!("Successful login, account id: {}", account.id());
-
-        let balance = account.vault().assets();
 
         for asset in account.vault().assets() {
             println!("Asset: {:?}", asset);

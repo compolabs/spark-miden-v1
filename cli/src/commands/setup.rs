@@ -47,11 +47,23 @@ impl SetupCmd {
         client.sync_state().await.unwrap();
 
         // Create faucet accounts
-        let (faucet1, _) = Self::create_faucet(1000, "ASSETA", &mut client);
-        let (faucet2, _) = Self::create_faucet(1000, "ASSETB", &mut client);
+        let (faucet1, _) = Self::create_faucet(2000, "ASSETA", &mut client);
+        let (faucet2, _) = Self::create_faucet(2000, "ASSETB", &mut client);
+
+        println!("faucet1: {:?}", faucet1.id());
+        println!("faucet2: {:?}", faucet2.id());
 
         // Create user account
         let (user, user_seed) = Self::create_wallet(&mut client);
+
+        let wallet_template = AccountTemplate::BasicWallet {
+            mutable_code: false,
+            storage_type: AccountStorageType::OnChain,
+        };
+
+        let (user_1, user_1_seed) = client
+            .new_account(wallet_template)
+            .map_err(|e| e.to_string())?;
 
         // Mint assets for user
         Self::fund_user_wallet(
@@ -64,6 +76,17 @@ impl SetupCmd {
         )
         .await;
 
+        // Mint assets for user 1
+        Self::fund_user_wallet(
+            faucet1.id(),
+            1000,
+            faucet2.id(),
+            1000,
+            user_1.id(),
+            &mut client,
+        )
+        .await;
+
         // Create 50 ASSETA/ASSETB swap notes
         Self::create_swap_notes(
             50,
@@ -71,7 +94,7 @@ impl SetupCmd {
             500,
             faucet2.id(),
             500,
-            user.id(),
+            user_1.id(),
             &mut client,
         )
         .await;
@@ -83,24 +106,53 @@ impl SetupCmd {
             500,
             faucet1.id(),
             500,
-            user.id(),
+            user_1.id(),
             &mut client,
         )
         .await;
 
         // Export CLOB data
         let user_with_filename = AccountWithFilename {
-            account: user,
-            account_seed: user_seed,
+            account: user_1.clone(),
+            account_seed: user_1_seed,
             filename: "user".to_string(),
         };
-        Self::export_clob_data(faucet1.id(), faucet2.id(), user_with_filename, &mut client);
+        let user_with_filename_1 = AccountWithFilename {
+            account: user.clone(),
+            account_seed: user_seed,
+            filename: "user1".to_string(),
+        };
+
+        Self::export_clob_data(
+            faucet1.id(),
+            faucet2.id(),
+            user_with_filename,
+            user_with_filename_1,
+            &mut client,
+        );
+
+        // Check if user has balance
+        let (account, _) = client.get_account(user_1.id()).unwrap();
+        println!(
+            "user balance: token1: {:?} token2: {:?}",
+            account.vault().get_balance(faucet1.id()),
+            account.vault().get_balance(faucet1.id())
+        );
+        if account.vault().get_balance(faucet1.id()).unwrap() == 0 {
+            panic!("User does not have enough assets to execute this order.");
+        }
+        if account.vault().get_balance(faucet2.id()).unwrap() == 0 {
+            panic!("User does not have enough assets to execute this order.");
+        }
 
         // Remove DB file
         let init = InitCmd {};
         init.remove_file_if_exists(DB_FILE_PATH).unwrap();
 
         println!("CLOB successfully setup.");
+
+        println!("user: {:?}", user.id().to_hex());
+        println!("user (minter): {:?}", user_1.id().to_hex());
 
         Ok(())
     }
@@ -209,6 +261,7 @@ impl SetupCmd {
         faucet1: AccountId,
         faucet2: AccountId,
         user: AccountWithFilename,
+        user_1: AccountWithFilename,
         client: &mut Client<N, R, S, A>,
     ) {
         // build swap tags
@@ -229,5 +282,9 @@ impl SetupCmd {
         let auth = client.get_account_auth(user.account.id()).unwrap();
         let user_data = AccountData::new(user.account, Some(user.account_seed), auth);
         export_account_data(&user_data, user.filename.as_str()).unwrap();
+
+        let auth_1 = client.get_account_auth(user_1.account.id()).unwrap();
+        let user_data_1 = AccountData::new(user_1.account, Some(user_1.account_seed), auth_1);
+        export_account_data(&user_data_1, user_1.filename.as_str()).unwrap();
     }
 }

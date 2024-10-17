@@ -24,19 +24,19 @@ use miden_objects::Felt;
 #[command(about = "Execute an order")]
 pub struct OrderCmd {
     /// Account executing the order
-    account_id: String,
+    pub user: String,
 
     /// Target faucet id
-    target_faucet: String,
+    pub target_faucet: String,
 
     /// Target asset amount
-    target_amount: u64,
+    pub target_amount: u64,
 
     /// Source faucet id
-    source_faucet: String,
+    pub source_faucet: String,
 
     /// Source asset amount
-    source_amount: u64,
+    pub source_amount: u64,
 }
 
 impl OrderCmd {
@@ -45,9 +45,16 @@ impl OrderCmd {
         mut client: Client<N, R, S, A>,
     ) -> Result<(), String> {
         // Parse id's
-        let _account_id = AccountId::from_hex(self.account_id.as_str()).unwrap();
+        // Parse id's
+        let account_id = AccountId::from_hex(self.user.as_str()).unwrap();
         let source_faucet_id = AccountId::from_hex(self.source_faucet.as_str()).unwrap();
         let target_faucet_id = AccountId::from_hex(self.target_faucet.as_str()).unwrap();
+
+        // Check if user has balance
+        let (account, _) = client.get_account(account_id).unwrap();
+        if account.vault().get_balance(source_faucet_id).unwrap() < self.source_amount {
+            panic!("User does not have enough assets to execute this order.");
+        }
 
         // Build order
         let source_asset =
@@ -80,7 +87,7 @@ impl OrderCmd {
             .get_input_note(swap_note_order.id().unwrap())
             .unwrap();
 
-        println!("account id consume: {:?}", _account_id);
+        println!("account id consume: {:?}", account_id);
         println!("source asset: {:?}", source_faucet_id);
         println!("target asset: {:?}", target_faucet_id);
         println!("swap inputs: {:?}", swap_note.details().inputs());
@@ -106,7 +113,7 @@ impl OrderCmd {
 
         let output_swap_note = create_partial_swap_note(
             creator,
-            _account_id,
+            account_id,
             offered_remaining,
             requested_remaining,
             swap_serial_num,
@@ -117,7 +124,7 @@ impl OrderCmd {
         let p2id_serial_num = compute_p2id_serial_num(swap_serial_num, next_fill_number);
 
         let expected_p2id_note = create_p2id_note(
-            _account_id,
+            account_id,
             creator,
             vec![requested_filled],
             NoteType::Public,
@@ -131,7 +138,7 @@ impl OrderCmd {
             .with_expected_output_notes(vec![expected_p2id_note, output_swap_note]);
 
         println!("Executing transaction...");
-        let transaction_execution_result = client.new_transaction(_account_id, tx_request).unwrap();
+        let transaction_execution_result = client.new_transaction(account_id, tx_request).unwrap();
         client
             .submit_transaction(transaction_execution_result)
             .await
